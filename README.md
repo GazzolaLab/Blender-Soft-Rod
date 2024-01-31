@@ -1,1 +1,1 @@
-# Blender-Soft-Arm-Simulation
+# Projectile-Motion-Simulation

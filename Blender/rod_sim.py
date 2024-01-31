@@ -37,7 +37,8 @@ bpy.ops.object.delete()
 # Vector of all the values for initial velocities
 v0_values = [20, 25, 30, 35, 40]
 
-dt = 10**(-6)
+#dt = 10**(-6)
+dt = 10**(-3)
 framerate = 25
 simulation_ratio = int(1 / framerate / dt)
 
@@ -46,7 +47,7 @@ time = np.arange(0, 10, dt)
 # Create spheres with different initial velocities
 spheres = []
 for i, v0 in enumerate(v0_values):
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(i * 2, 0, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=.2, location=(i * 2, 0, 0))
     sphere = bpy.context.active_object
     spheres.append((sphere, v0))
 
@@ -59,12 +60,12 @@ for i in range(len(spheres) - 1):
 
 
 #The actual animation
-for i, (sphere, v0) in enumerate(spheres):
-    pos = [0]
-    x = np.array([0, v0])
-    for k, t in enumerate(time[:-1]):
-        x = x + f(x) * dt
 
+for k, t in enumerate(time[:-1]):
+    for i, (sphere, v0) in enumerate(spheres):
+        pos = [0]
+        x = np.array([0, v0])
+        x = x + f(x) * dt
         pos.append(x[0])
         if (k % simulation_ratio) == 0:
             sphere.location.z = pos[k]
@@ -78,8 +79,8 @@ for i, (sphere, v0) in enumerate(spheres):
                 # xloc = sphere.location.x + (spheres[i+1][0].location.x - sphere.location.x) / 2
                 depth, center, angles = calc_cyl_orientation(sphere.location, spheres[i+1][0].location)
                 cylinders[i].location = (center[0], center[1], center[2])
-                cylinders[i].rotation_euler = (angles[1], 0, angles[0])
-               
+                cylinders[i].rotation_euler = (0,angles[1], angles[0])
+                cylinders[i].scale[2] = depth
                
 
                 # Keyframe the cylinder's location and rotation
