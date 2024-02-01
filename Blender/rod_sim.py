@@ -44,7 +44,7 @@ spheres = [] # sphere is now a list a tuples containing the sphere object and it
 for i, v0 in enumerate(v0_values):
     bpy.ops.mesh.primitive_uv_sphere_add(radius=.2, location=(i * 2, 0, 0))
     sphere = bpy.context.active_object
-    spheres.append((sphere, v0))
+    spheres.append([sphere, v0])
 
 # Create cylinders to connect the spheres
 cylinders = []
@@ -71,22 +71,19 @@ framerate = 25
 simulation_ratio = int(1 / framerate / dt)
 time = np.arange(0, 10, dt)
 
-
 # Simulate the behavior of all objects over "time"
 for time_index, t in enumerate(time[:-1]):
-    for i, (sphere, vz) in enumerate(spheres):
-        #calculate 3D-world position of each sphere
+    for i, [sphere, vz] in enumerate(spheres):
+        # update 3D-world position of each sphere
         x = np.array([sphere.location.z, vz])
         x = x + f(x) * dt
         sphere.location.z = x[0]
-        vz = x[1]
+        spheres[i][1] = x[1]
     
     if (time_index % simulation_ratio) == 0: # this is an index which we want to write to a keyframe
-        # then, we add spheres to the keyframe
+        # then, we add updated sphere locations to the keyframe
         for i, (sphere, vz) in enumerate(spheres):
-            sphere.keyframe_insert(data_path="location", index=2, frame=int(time_index/simulation_ratio) + 1)
-            sphere.keyframe_insert(data_path="location", index=1, frame=int(time_index/simulation_ratio) + 1)
-            sphere.keyframe_insert(data_path="location", index=0, frame=int(time_index/simulation_ratio) + 1)
+            sphere.keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
             
         #now we update cylinder orientation and then draw those to the keyframe.
         for i in range(len(cylinders)):
@@ -95,10 +92,10 @@ for time_index, t in enumerate(time[:-1]):
             cylinders[i].rotation_euler = (0,angles[1], angles[0])
             cylinders[i].scale[2] = depth
             
-            # Keyframe the cylinder's location and rotation
-            cylinders[i].keyframe_insert(data_path="location", index=2, frame=int(time_index/simulation_ratio) + 1)
-            cylinders[i].keyframe_insert(data_path="location", index=0, frame=int(time_index/simulation_ratio) + 1)
-            cylinders[i].keyframe_insert(data_path="rotation_euler", index=2, frame=int(time_index/simulation_ratio) + 1)
+            # Keyframe the cylinder's location , rotation, and scaling
+            cylinders[i].keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
+            cylinders[i].keyframe_insert(data_path="rotation_euler", frame=int(time_index/simulation_ratio) + 1)
+            cylinders[i].keyframe_insert(data_path="scale", frame=int(time_index/simulation_ratio) + 1)
 
 
 
