@@ -10,6 +10,6 @@ There are two main folders in this repository:
   - Proejctile Motion (-ky) as gravity: Replaces gravity with a spring constant to have oscillatory motion
   - Projectile Motion (-ky - bv): Replaces gravity with -ky -bv to have damped oscialltory motion 
 
-#Blender
+# Blender
   - rod_sim.py: The python script for an arm (sphere joints which are connected by cylinders) performing an osciallatory motion
   - Rod_simulation.blender: The blender animation for the arm performing the oscillatory motion
