@@ -1,0 +1,72 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
+from scipy import stats
+
+
+def helper(frames):
+    framerate = 25
+    simulation_ratio = int(1 / framerate / dt)
+    frames_num = frames
+    time_steps = simulation_ratio * frames_num
+    return int(time_steps)
+
+v0 = 20
+
+x = np.array([0, v0])
+dt = 10**(-3)
+ 
+def f(x):
+    k = 5
+    z, v= x[0], x[1]
+    return np.array([v, (-1) * k * z])
+
+time = np.arange(0, 10, dt)
+
+pos = [x[0]]
+for k, t in enumerate(time[:-1]):
+    x = x + f(x) * dt
+    pos.append(x[0])
+
+#ball 1 z position (prediction)
+
+z_pos = pos[helper(19)]
+
+#for i in range(len(pos)):
+    #if pos[i] == -8.510595299541347:
+        #print(i)
+
+
+#Error Calcs - RMSE (L2 error)
+
+#This position takes from the equivalent frame in Blender
+blender_pos = 8.9527
+true_values = np.array([blender_pos])
+predicted_values = np.array([z_pos])
+rmse = np.sqrt(mean_squared_error(true_values, predicted_values)) 
+print(rmse)
+
+
+plt.plot(time, pos, '-b', label='Position (z) part a')
+plt.xlabel('Time (t)')
+plt.ylabel('Position (z)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+#1 / framerate / dt; framerate = 25; This equals 40
+#I think this means each frame is represented by 40 timesteps (40x10**-3 seconds/frame)
+#Peak frame position achieved at 19 frames (On animation)
+#Equals 40x10**-3 seconds/frame  *  19 frames = 0.76 seconds = 760 timeframes
+
+#Further testing: At 1 second, (1000x10**-3 -> 25 frames) blender pos = 7.5091; jupyter pos = 7.0545
+
+#8.959999254663545 - 703rd index (Max 1st cycle) pos[703]
+
+#Discrepancy of a certain number of frames/timesteps when doing straight math conversion
+
+#When the ball reaches 8.9527, it is in the 685th index of the pos list; however, the math works out to the 760th index - frame 2 (difference of 75)
+#When the ball is in the 2nd frame, it reaches the same position in the pos list in the 41st index; (mathematicaly the 80th index)
+#When the ball is in the 50th frame it is in the 1961st pos list index; (Mathematically should reach the position in the 2000th index)
+
