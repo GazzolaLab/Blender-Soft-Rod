@@ -78,6 +78,7 @@ for time_index, t in enumerate(time[:-1]):
         x = np.array([sphere.location.z, vz])
         x = x + f(x) * dt
         sphere.location.z = x[0]
+        sphere.location.y = x[0]
         spheres[i][1] = x[1]
     
     if (time_index % simulation_ratio) == 0: # this is an index which we want to write to a keyframe
