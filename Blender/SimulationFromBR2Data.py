@@ -78,7 +78,9 @@ class Cylinder:
         max_def = 0.07
         
         h = -np.sqrt(self.obj.location[0]**2 + self.obj.location[2]**2)/max_def + 240/360
-        r, g, b = colorsys.hsv_to_rgb(h, 1, 1)
+        v = np.sqrt(self.obj.location[0]**2 + self.obj.location[2]**2)/max_def*0.5 + 0.5
+
+        r, g, b = colorsys.hsv_to_rgb(h, 1, v)
         self.update_color(r,g,b,1)
         
     
