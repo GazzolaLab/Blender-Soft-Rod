@@ -9,24 +9,20 @@ npz_data = np.load(npz_file_path)
 
 file_position = npz_data['position_rod']
 
-double_listx = []
-double_listy = []
-double_listz = []
+rod_frames = []
 
 #remember to initialize to zeros at first
 
-for i in range (26):
-  file_xpos = []
-  file_ypos = []
-  file_zpos = []
-  for j in range (40):
-      file_xpos.append(file_position[i][0][j])
-      file_ypos.append(file_position[i][1][j])
-      file_zpos.append(file_position[i][2][j])
-  double_listx.append(file_xpos)
-  double_listy.append(file_ypos)
-  double_listz.append(file_zpos)
-
+for i in range (len(file_position)):
+  curr_frame = []
+  for j in range (len(file_position[i])):
+      print(len(file_position[i]))
+      x = file_position[i][0][j]
+      y = file_position[i][1][j]
+      z = file_position[i][2][j]
+      curr_rod.append(np.array([x,y,z]))
+  rod_frames.append(curr_rod)
+rod_frames = np.array(rod_frames)
 
 class Sphere:
     def __init__(self, location):
