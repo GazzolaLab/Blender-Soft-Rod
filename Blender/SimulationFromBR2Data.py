@@ -4,7 +4,7 @@ import colorsys
 
 #treating these as globals
 
-npz_file_path = "C:/Users/darren/Downloads/br2_data.npz"
+npz_file_path = "br2_data.npz"
 npz_data = np.load(npz_file_path)
 
 file_position = npz_data['position_rod']
