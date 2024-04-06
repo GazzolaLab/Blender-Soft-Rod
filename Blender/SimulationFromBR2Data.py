@@ -4,38 +4,35 @@ import colorsys
 
 #treating these as globals
 
-npz_file_path = "br2_data.npz"
+npz_file_path = "1_rod_br2_data.npz"
 npz_data = np.load(npz_file_path)
 
 file_position = npz_data['position_rod']
 
 rod_frames = []
 
-#remember to initialize to zeros at first
-
 for i in range (len(file_position)):
   curr_frame = []
-  for j in range (len(file_position[i])):
-      print(len(file_position[i]))
+  for j in range (len(file_position[i][0])):
       x = file_position[i][0][j]
       y = file_position[i][1][j]
       z = file_position[i][2][j]
-      curr_rod.append(np.array([x,y,z]))
-  rod_frames.append(curr_rod)
+      curr_frame.append(np.array([x,y,z]))
+  rod_frames.append(curr_frame)
 rod_frames = np.array(rod_frames)
 
 class Sphere:
-    def __init__(self, location):
-        self.obj = self.create_sphere(location)
+    def __init__(self, location, radius=0.005):
+        self.obj = self.create_sphere(location, radius)
         
-    def create_sphere(self, location):
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.0025, location=location)
+    def create_sphere(self, location, radius):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, location=location)
         return bpy.context.active_object
     
-    def update_position(self, newx, newy, newz):
-        self.obj.location.z  = newz
-        self.obj.location.y = newy
-        self.obj.location.x = newx
+    def update_position(self, location):
+        self.obj.location.z  = location[2]
+        self.obj.location.y = location[1]
+        self.obj.location.x = location[0]
 
 class Cylinder:
     def __init__(self, pos1, pos2):
@@ -95,8 +92,8 @@ for material in bpy.data.materials:
 #creates spheres
 spheres = []
 
-for i in range(len(double_listx[0])):
-    spheres.append(Sphere((double_listx[0][i],double_listy[0][i],double_listz[0][i])))
+for point in rod_frames[0]:
+    spheres.append(Sphere(point))
 #create cylinders
 cylinders = []
 for i in range(len(spheres)-1):
@@ -104,9 +101,9 @@ for i in range(len(spheres)-1):
 
 
 #for each time step, update all sphere and cylinder positions and write object to keyframe
-for time_step in range(len(double_listx)):
+for time_step in range(len(rod_frames)):
     for s in range (len(spheres)):
-        spheres[s].update_position(double_listx[time_step][s], double_listy[time_step][s], double_listz[time_step][s])
+        spheres[s].update_position(rod_frames[time_step][s])
         #adding to keyframe
         spheres[s].obj.keyframe_insert(data_path="location", frame=time_step)
     for c in range (len(cylinders)):
