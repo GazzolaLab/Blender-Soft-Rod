@@ -8,7 +8,7 @@ name = "BlenderSoftRod"
 version = "0.1.0"
 description = "Blender integration tools for soft-rod system."
 readme = "README.md"
-authors = ["skim449 <skim449@illinois.edu>"]
+authors = []
 license = "MIT"
 keywords = ["data-analysis"]
 
