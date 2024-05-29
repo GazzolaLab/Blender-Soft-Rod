@@ -26,8 +26,8 @@ classifiers = [
 
 # ...
 packages = [
-    { include = "bsr", from "src" },
-    { include = "elastica_blender", from "src" },
+    { include = "bsr", from = "src" },
+    { include = "elastica_blender", from = "src" },
 ]
 
 [tool.poetry.dependencies]
