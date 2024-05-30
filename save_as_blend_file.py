@@ -1,5 +1,7 @@
 #This is using 1 arm oscillation model as an example; Should apply to any previous blender file
 
+import os
+
 import bpy
 import numpy as np
     
@@ -94,6 +96,7 @@ for time_index, t in enumerate(time[:-1]):
 
 
 ### Saving the file ###
-
+write_filepath = "3rodbr2_write.blend"
+write_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), write_filepath)
 #Saves above script as .blend file; stores on personal device using filepath
-bpy.ops.wm.save_as_mainfile(filepath="/Users/rohitharish/Downloads/Blender Summer .blend files/rodsimvscode2.blend")    
+bpy.ops.wm.save_as_mainfile(filepath=write_filepath)    
