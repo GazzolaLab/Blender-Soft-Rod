@@ -33,3 +33,6 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 pytest = "^8.2.1"
+pytest-mock = "^3.14.0"
+codecov = "^2.1.13"
+black = "^24.4.2"
