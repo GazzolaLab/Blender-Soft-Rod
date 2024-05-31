@@ -1,3 +1,8 @@
+__doc__ = """
+This module provides a set of geometry-mesh interfaces for blender objects.
+"""
+__all__ = ["BlenderMeshInterfaceProtocol", "Sphere", "Cylinder"]
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,31 +19,52 @@ import colorsys
 import bpy
 import numpy as np
 
-P = ParamSpec("P")
 MeshDataType = dict[str, Any]
+
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
+P = ParamSpec("P")
 
 
 class BlenderMeshInterfaceProtocol(Protocol):
+    """
+    This protocol defines the interface for Blender mesh objects.
+    """
+
     @property
-    def states(self) -> MeshDataType: ...
+    def states(self) -> MeshDataType:
+        """Returns the current state of the mesh object."""
 
     # TODO: For future implementation
     # @property
     # def data(self): ...
 
     @property
-    def object(self) -> bpy.types.Object: ...
+    def object(self) -> bpy.types.Object:
+        """Returns associated Blender object."""
 
     @classmethod
-    def create(cls: Type[S], states: MeshDataType) -> S: ...
+    def create(cls: Type[S], states: MeshDataType) -> S:
+        """Creates a new mesh object with the given states."""
 
-    def update_states(self, *args: Any) -> bpy.types.Object: ...
+    def update_states(self, *args: Any) -> bpy.types.Object:
+        """Updates the mesh object with the given states."""
 
     # def update_material(self, material) -> None: ...  # TODO: For future implementation
 
 
 class Sphere:
+    """
+    This class provides a mesh interface for Blender Sphere objects.
+    Sphere objects are created with the given position and radius.
+
+    Parameters
+    ----------
+    position : np.ndarray
+        The position of the sphere object.
+    radius : float
+        The radius of the sphere object.
+    """
+
     def __init__(self, position: np.ndarray, radius: float) -> None:
         self._obj = self._create_sphere(position, radius)
 
@@ -78,12 +104,19 @@ class Sphere:
     def _create_sphere(
         self, position: np.ndarray, radius: float
     ) -> bpy.types.Object:
+        """
+        Creates a new sphere object with the given position and radius.
+        """
         bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, location=position)
         return bpy.context.active_object
 
 
 # FIXME: This class needs to be modified to conform to the BlenderMeshInterfaceProtocol
 class Cylinder:
+    """
+    TODO: Add documentation
+    """
+
     def __init__(self, pos1, pos2):
         self.obj = self.create_cylinder(pos1, pos2)
         self.mat = bpy.data.materials.new(name="cyl_mat")
@@ -141,6 +174,7 @@ class Cylinder:
 
 
 if TYPE_CHECKING:
+    # This is required for explicit type-checking
     data = {"position": np.array([0, 0, 0]), "radius": 1.0}
     _: BlenderMeshInterfaceProtocol = Sphere.create(data)
     data = {
