@@ -1,3 +1,5 @@
+import pathlib
+
 import bpy
 import pytest
 
@@ -85,3 +87,48 @@ def test_file_reload_using_bsr_reload(blend_file):
     obj = bpy.context.active_object
     assert obj.radius == 0.1
     assert obj.location == (0, 0, 0)
+
+
+def test_file_not_found_reload():
+    from bsr.file import reload
+
+    with pytest.raises(FileNotFoundError):
+        reload("non_existent_file.blend")
+
+
+@pytest.mark.parametrize(
+    "name", [1, 1.0, (1, 2, 3), [1, 2, 3], {"a": 1}]
+)  # Invalid types
+def test_file_non_valid_path_type_for_reload(name):
+    from bsr.file import reload
+
+    with pytest.raises(ValueError):
+        reload(name)
+
+
+@pytest.mark.parametrize(
+    "name", [1, 1.0, (1, 2, 3), [1, 2, 3], {"a": 1}]
+)  # Invalid types
+def test_file_save_non_path_object(name: str | pathlib.Path):
+    from bsr.file import save
+
+    with pytest.raises(ValueError):
+        save(name)
+
+
+@pytest.mark.parametrize("name", ["test.blend", pathlib.Path("test.blend2")])
+def test_file_save_valid_path_pathlib(tmp_path, name):
+    from bsr.file import save
+
+    blend_file = tmp_path / name
+    save(blend_file)
+    assert blend_file.exists()
+
+
+@pytest.mark.parametrize("name", ["test.blend", pathlib.Path("test.blend2")])
+def test_file_save_valid_path_str(tmp_path, name):
+    from bsr.file import save
+
+    blend_file = tmp_path / name
+    save(blend_file.as_posix())
+    assert blend_file.exists()
