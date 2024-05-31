@@ -1,11 +1,8 @@
 import bpy
 import numpy as np
-
-import numpy as np
-
 from elastica import CallBackBaseClass
 
-from bsr.geometry import Sphere, Cylinder
+from bsr.geometry import Cylinder, Sphere
 
 
 class BlenderRodCallback(CallBackBaseClass):
@@ -24,7 +21,7 @@ class BlenderRodCallback(CallBackBaseClass):
         elif current_step % self.every == 0:
             self.update(
                 positions=system.position_collection,
-                time_step=current_step // self.every
+                time_step=current_step // self.every,
             )
         else:
             pass
@@ -33,11 +30,11 @@ class BlenderRodCallback(CallBackBaseClass):
         # New object
         for j in range(positions.shape[-1]):
             self.bpy_objs["sphere"].append(Sphere(positions[:, j]))
-        for j in range(positions.shape[-1]-1):
+        for j in range(positions.shape[-1] - 1):
             self.bpy_objs["cylinder"].append(
                 Cylinder(
                     self.bpy_objs["sphere"][j].obj.location,
-                    self.bpy_objs["sphere"][j+1].obj.location
+                    self.bpy_objs["sphere"][j + 1].obj.location,
                 )
             )
 
@@ -50,9 +47,13 @@ class BlenderRodCallback(CallBackBaseClass):
         for idx, cylinder in enumerate(self.bpy_objs["cylinder"]):
             cylinder.update_position(
                 self.bpy_objs["sphere"][idx].obj.location,
-                self.bpy_objs["sphere"][idx+1].obj.location
+                self.bpy_objs["sphere"][idx + 1].obj.location,
             )
             cylinder.obj.keyframe_insert(data_path="location", frame=time_step)
-            cylinder.obj.keyframe_insert(data_path="rotation_euler", frame=time_step)
+            cylinder.obj.keyframe_insert(
+                data_path="rotation_euler", frame=time_step
+            )
             cylinder.obj.keyframe_insert(data_path="scale", frame=time_step)
-            cylinder.mat.keyframe_insert(data_path="diffuse_color", frame=time_step)
+            cylinder.mat.keyframe_insert(
+                data_path="diffuse_color", frame=time_step
+            )
