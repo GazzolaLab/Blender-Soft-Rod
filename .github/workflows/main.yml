@@ -6,7 +6,7 @@ name: CI
 # and pull request events for all branches.
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
     branches: [ '**' ]
 
