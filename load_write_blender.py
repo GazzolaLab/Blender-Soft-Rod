@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import bpy
+
 import bsr
 
 class PendulumBlender:
@@ -136,6 +137,13 @@ def main():
     write_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), write_filepath)
     #Saves above script as .blend file; stores on personal device using filepath
     bpy.ops.wm.save_as_mainfile(filepath=write_filepath)  
+    with bpy.data.libraries.load(load_filepath, link=True) as (
+        data_from,
+        data_to,
+    ):
+        data_to.objects = [
+            name for name in data_from.objects if name.startswith("S")
+        ]
 
 
     # load_filepath = "Blender/3rodbr2.blend"
@@ -154,6 +162,12 @@ def main():
 
     
     
+    # TODO: The writing part is not working
+    # data_to.objects["Cube"].select_set(True)
+    write_filepath = "/Blender/3rodbr2_write.blend"
+    bpy.data.libraries.write(
+        write_filepath, set(bpy.context.selected_objects), path_remap="RELATIVE"
+    )
 
 
 if __name__ == "__main__":
