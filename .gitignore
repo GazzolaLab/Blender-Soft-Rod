@@ -7,6 +7,7 @@ __pycache__/
 *.so
 
 *.blend
+*.swp
 
 .DS_Store
 

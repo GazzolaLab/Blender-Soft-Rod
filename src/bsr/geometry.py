@@ -1,23 +1,88 @@
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ParamSpec,
+    Protocol,
+    Type,
+    TypedDict,
+    TypeVar,
+)
+from typing_extensions import Self
+
 import colorsys
 
 import bpy
 import numpy as np
 
+P = ParamSpec("P")
+MeshDataType = dict[str, Any]
+S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
+
+
+class BlenderMeshInterfaceProtocol(Protocol):
+    @property
+    def states(self) -> MeshDataType: ...
+
+    # TODO: For future implementation
+    # @property
+    # def data(self): ...
+
+    @property
+    def object(self) -> bpy.types.Object: ...
+
+    @classmethod
+    def create(cls: Type[S], states: MeshDataType) -> S: ...
+
+    def update_states(self, *args: Any) -> bpy.types.Object: ...
+
+    # def update_material(self, material) -> None: ...  # TODO: For future implementation
+
 
 class Sphere:
-    def __init__(self, location, radius=0.005):
-        self.obj = self.create_sphere(location, radius)
+    def __init__(self, position: np.ndarray, radius: float) -> None:
+        self._obj = self._create_sphere(position, radius)
 
-    def create_sphere(self, location, radius):
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, location=location)
+    @classmethod
+    def create(cls, states: MeshDataType) -> "Sphere":
+        return cls(states["position"], states["radius"])
+
+    @property
+    def object(self) -> bpy.types.Object:
+        return self._obj
+
+    @property
+    def states(self) -> MeshDataType:
+        states = {
+            "position": np.array(
+                [
+                    self.object.location.x,
+                    self.object.location.y,
+                    self.object.location.z,
+                ]
+            ),
+            "radius": self.object.radius,
+        }
+        return states
+
+    def update_states(
+        self, position: np.ndarray | None = None, radius: float | None = None
+    ) -> bpy.types.Object:
+        if position is not None:
+            self.object.location.x = position[0]
+            self.object.location.y = position[1]
+            self.object.location.z = position[2]
+        if radius is not None:
+            self.object.radius = radius
+        return self.object
+
+    def _create_sphere(
+        self, position: np.ndarray, radius: float
+    ) -> bpy.types.Object:
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, location=position)
         return bpy.context.active_object
 
-    def update_position(self, location):
-        self.obj.location.z = location[2]
-        self.obj.location.y = location[1]
-        self.obj.location.x = location[0]
 
-
+# FIXME: This class needs to be modified to conform to the BlenderMeshInterfaceProtocol
 class Cylinder:
     def __init__(self, pos1, pos2):
         self.obj = self.create_cylinder(pos1, pos2)
@@ -73,3 +138,14 @@ class Cylinder:
 
     def update_color(self, r, g, b, a):
         self.mat.diffuse_color = (r, g, b, a)
+
+
+if TYPE_CHECKING:
+    data = {"position": np.array([0, 0, 0]), "radius": 1.0}
+    _: BlenderMeshInterfaceProtocol = Sphere.create(data)
+    data = {
+        "position_1": np.array([0, 0, 0]),
+        "position_2": np.array([1, 1, 1]),
+        "radius": 1.0,
+    }
+    _: BlenderMeshInterfaceProtocol = Cylinder.create(data)
