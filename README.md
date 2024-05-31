@@ -18,6 +18,24 @@ make install
 make pre-commit-install
 ```
 
+### Unittests
+
+```sh
+make test
+```
+
+### Code formatting
+
+```sh
+make formatting
+```
+
+### Check type-hinting
+
+```sh
+make mypy
+```
+
 # Projectile Motion
   - Projectile Motion: graphs the movement of an object with the projectile motion formula
   - Projectile Motion Final: Plotting projectile motion used discretized methods
