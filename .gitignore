@@ -8,6 +8,8 @@ __pycache__/
 
 *.blend
 
+*.txt
+
 .DS_Store
 
 # Distribution / packaging
