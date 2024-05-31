@@ -4,7 +4,7 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "BlenderSoftRod"
+name = "bsr"
 version = "0.1.0"
 description = "Blender integration tools for soft-rod system."
 readme = "README.md"
@@ -31,8 +31,123 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.11,<3.12"
+bpy = "4.*"
 pytest = "^8.2.1"
 pytest-mock = "^3.14.0"
 codecov = "^2.1.13"
 black = "^24.4.2"
+pre-commit = "^3.7.1"
+pytest-cov = "^5.0.0"
+isort = "^5.13.2"
+mypy = "^1.10.0"
+mypy-extensions = "^1.0.0"
+pyupgrade = "^3.15.2"
+
+[tool.black]
+# https://github.com/psf/black
+target-version = ["py38"]
+line-length = 80
+color = true
+
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | env
+    | venv
+)/
+'''
+
+[tool.isort]
+# https://github.com/timothycrosley/isort/
+line_length = 80
+
+known_typing = ["typing", "types", "typing_extensions", "mypy", "mypy_extensions"]
+sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+include_trailing_comma = true
+profile = "black"
+multi_line_output = 3
+indent = 4
+color_output = true
+
+[tool.mypy]
+# https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
+python_version = "3.10"
+pretty = true
+show_traceback = true
+color_output = true
+strict = true
+
+allow_redefinition = false
+check_untyped_defs = false  # TODO: Disabled cuz it might be to harsh condition, but open to discussion.
+disallow_any_generics = false
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+implicit_reexport = true
+no_implicit_optional = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = false  # TODO: open to discussion
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+# https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
+# Directories that are not visited by pytest collector:
+norecursedirs =["hooks", "*.egg", ".eggs", "dist", "build", "docs", ".tox", ".git", "__pycache__"]
+doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+
+# Extra options:
+addopts = [
+  "--strict-markers",
+  "--tb=short",
+#  "--doctest-modules", TODO: Try to include pytest.doctest
+#  "--doctest-continue-on-failure",
+]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    # Enable pragma
+    "pragma: no cover",
+    "TODO",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == __main__:",
+    "def __repr__",
+    '''def plot_'.*\b':''',
+    "if self.debug:",
+    "if settings.DEBUG",
+    "if TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    '''class '.*\bProtocol\)':''',
+    ''''@(abc\.)?'abstractmethod''',
+    '\.\.\.'
+]
+fail_under = 40
+show_missing = true
+
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/.local/*",
+	"setup.py",
+    "src/elastica_blender",# not part of the dev target
+]
