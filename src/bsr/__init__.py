@@ -1,5 +1,3 @@
-__doc__ = """Python software for integrating soft-rods visualization into blender for rendering and analysis."""
-
 import sys
 from importlib import metadata as importlib_metadata
 
