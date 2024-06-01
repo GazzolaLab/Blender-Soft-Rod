@@ -34,11 +34,11 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest -c pyproject.toml --cov=src/bsr
+	poetry run pytest -c pyproject.toml --cov=src
 
 .PHONY: test_ci
 test_ci:
-	poetry run pytest -c pyproject.toml --cov=src/bsr --cov-report=xml
+	poetry run pytest -c pyproject.toml --cov=src --cov-report=xml
 
 .PHONY: check-codestyle
 check-codestyle:
