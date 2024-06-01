@@ -17,6 +17,11 @@ TODO: Description of the project.
 
    api/geometry
 
+.. toctree::
+   :maxdepth: 2
+   :caption: CLI tools:
+
+   cli/data_converter
 
 
 Indices and tables

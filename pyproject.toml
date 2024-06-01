@@ -30,9 +30,14 @@ packages = [
     { include = "elastica_blender", from = "src" },
 ]
 
+[tool.poetry.scripts]
+# elastica data converter
+elastica-npz2blend = "elastica_blender.converter.npz2blend:main"
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 bpy = "4.*"
+click = "^8.1.7"
 pytest = "^8.2.1"
 pytest-mock = "^3.14.0"
 codecov = "^2.1.13"
@@ -47,6 +52,7 @@ sphinx = "^7.3.7"
 sphinx-rtd-theme = "^2.0.0"
 numpydoc = "^1.7.0"
 sphinx-autodoc-typehints = "^2.1.0"
+sphinx-click = "^6.0.0"
 
 [tool.black]
 # https://github.com/psf/black
@@ -153,5 +159,4 @@ branch = true
 omit = [
     "*/.local/*",
 	"setup.py",
-    "src/elastica_blender",# not part of the dev target
 ]
