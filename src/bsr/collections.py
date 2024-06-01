@@ -5,8 +5,7 @@ from typing_extensions import Self
 
 import numpy as np
 
-# TODO
-# from .rod import Rod
+from .rod import Rod
 
 
 # TODO
@@ -52,7 +51,7 @@ class RodCollection:
         pass
 
     def update_history(
-        self, keytimes: np.ndarray, position: np.ndarray, radius: np.ndarray
+        self, keyframes: np.ndarray, position: np.ndarray, radius: np.ndarray
     ):
         pass
 

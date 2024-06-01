@@ -55,7 +55,7 @@ def construct_blender_file(
         num_elements = position_history.shape[3]
         rods = bsr.create_rod_collection(num_rods, num_elements)
         rods.update_history(
-            keytimes=time, position=position_history, radius=radius_history
+            keyframes=time, position=position_history, radius=radius_history
         )
     else:
         for tag in tags:
@@ -65,7 +65,7 @@ def construct_blender_file(
             num_elements = position_history.shape[3]
             rods = bsr.create_rod_collection(num_rods, num_elements, tag)
             rods.update_history(
-                keytimes=time, position=position_history, radius=radius_history
+                keyframes=time, position=position_history, radius=radius_history
             )
 
     bsr.save(output)
