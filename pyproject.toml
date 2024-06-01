@@ -100,6 +100,7 @@ allow_redefinition = false
 check_untyped_defs = false  # TODO: Disabled cuz it might be to harsh condition, but open to discussion.
 disallow_any_generics = false
 disallow_incomplete_defs = true
+disallow_subclassing_any = false # Needed for allowing Elastica mixins
 ignore_missing_imports = true
 implicit_reexport = true
 no_implicit_optional = true
