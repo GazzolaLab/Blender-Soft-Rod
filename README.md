@@ -1,5 +1,16 @@
 # Blender-Soft-Arm-Simulation
 
+## How to build documentation
+
+We will provide external link for documentation once the repository is public.
+For now, use the following command to build the documentation:
+```sh
+cd docs
+make clean
+make html
+open build/html/index.html
+```
+
 ## How setup development environment
 
 We are using `poetry` to maintain the dependency trees for this project. To install `poetry` run the following command:
