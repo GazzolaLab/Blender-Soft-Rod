@@ -3,6 +3,9 @@ import pathlib
 import bpy
 import pytest
 
+# Had to do an extra import (pip install mathutils in Terminal); Reason shown later
+from mathutils import Vector
+
 
 # Test file creation
 def test_file_create_using_bpy(tmp_path):
@@ -14,19 +17,30 @@ def test_file_create_using_bpy(tmp_path):
 @pytest.fixture(scope="session")
 def blend_file(tmp_path_factory):
     blend_file = tmp_path_factory.mktemp("data") / "test.blend"
-    bpy.ops.wm.save_as_mainfile(filepath=str(blend_file))
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(0, 0, 0))
+    # Moved save_as_mainfile line below creation of sphere; Previously rendered empty .blend file
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_file))
     return blend_file
 
 
 def test_file_opening_using_bpy(blend_file):
     # TODO: Open the blend file and load the object
-    ...
-
-    loaded_object_radius = None
-    loaded_object_location = None
-    assert loaded_object_radius == 0.1
-    assert loaded_object_location == (0, 0, 0)
+    bpy.ops.wm.open_mainfile(filepath=str(blend_file))
+    objects = bpy.context.scene.objects
+    loaded_object = objects.get("Sphere")
+    # You cannot directly access the sphere's radius
+    # Must estimate through dimensions of object's bounding box
+    loaded_object_dimensions = loaded_object.dimensions
+    # Dimension of the box on any axis is the approx sphere diameter, can divide by 2 for approx radius
+    # Seems that the approximation is close but not quite correct
+    # 0.09999993443489075 vs 0.1
+    loaded_object_radius = loaded_object_dimensions[0] / 2
+    # Location is displayed in the form Vector((0,0,0)), which is in Mathutils package
+    loaded_object_location = loaded_object.location
+    # Assert statement adjusted
+    assert loaded_object_radius >= 0.099 and loaded_object_radius <= 1.001
+    # Assert statement changed from Tuple to Vector to match Blender format
+    assert loaded_object_location == Vector((0, 0, 0))
 
 
 def test_file_opening_and_writing_data_using_bpy(blend_file):
