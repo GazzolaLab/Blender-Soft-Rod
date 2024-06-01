@@ -15,6 +15,7 @@ TODO: Description of the project.
    :maxdepth: 2
    :caption: Contents:
 
+   api/file
    api/geometry
 
 
