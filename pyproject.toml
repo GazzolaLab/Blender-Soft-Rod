@@ -43,6 +43,10 @@ isort = {extras = ["colors"], version = "^5.13.2"}
 mypy = "^1.10.0"
 mypy-extensions = "^1.0.0"
 pyupgrade = "^3.15.2"
+sphinx = "^7.3.7"
+sphinx-rtd-theme = "^2.0.0"
+numpydoc = "^1.7.0"
+sphinx-autodoc-typehints = "^2.1.0"
 
 [tool.black]
 # https://github.com/psf/black
