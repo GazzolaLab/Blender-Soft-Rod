@@ -1,6 +1,7 @@
 import pathlib
 
 import bpy
+import numpy as np
 import pytest
 
 # Had to do an extra import (pip install mathutils in Terminal); Reason shown later
@@ -37,33 +38,45 @@ def test_file_opening_using_bpy(blend_file):
     loaded_object_radius = loaded_object_dimensions[0] / 2
     # Location is displayed in the form Vector((0,0,0)), which is in Mathutils package
     loaded_object_location = loaded_object.location
+    exact_radius = 0.1
     # Assert statement adjusted
-    assert loaded_object_radius >= 0.099 and loaded_object_radius <= 1.001
+    np.testing.assert_allclose(loaded_object_radius, exact_radius, atol=0.01)
     # Assert statement changed from Tuple to Vector to match Blender format
     assert loaded_object_location == Vector((0, 0, 0))
 
 
 def test_file_opening_and_writing_data_using_bpy(blend_file):
     # TODO: Open the blend file
-    ...
+    bpy.ops.wm.open_mainfile(filepath=str(blend_file))
 
     # TODO: Change the radius of the object
     new_radius = 0.2
-    ...
+    # - Note; cannot driectly change sphere radius post-definition; can work around by scaling it
+    objects = bpy.context.scene.objects
+    loaded_object = objects.get("Sphere")
+    scale_factor = 2
+    loaded_object.scale = (
+        scale_factor * loaded_object.scale[0],
+        scale_factor * loaded_object.scale[1],
+        scale_factor * loaded_object.scale[2],
+    )
+    # This effectively scales in each axis by the scale factor (2), increasing radius to 0.2
 
     # TODO: Change the location of the object
-    new_location = (1, 1, 1)
-    ...
+    new_location = Vector((1, 1, 1))
+    loaded_object.location = new_location
 
     # TODO: Save the blend file in different name
     new_blend_file = blend_file.parent / "test2.blend"
-    ...
+    bpy.ops.wm.save_as_mainfile(filepath=str(new_blend_file))
     assert new_blend_file.exists()
 
     # TODO: Open the new blend file and load the object
-    loaded_object_radius = None
-    loaded_object_location = None
-    assert loaded_object_radius == new_radius
+    bpy.ops.wm.save_as_mainfile(filepath=str(new_blend_file))
+    loaded_object_dimensions = loaded_object.dimensions
+    loaded_object_radius = loaded_object_dimensions[0] / 2
+    loaded_object_location = loaded_object.location
+    np.testing.assert_allclose(loaded_object_radius, new_radius, atol=0.01)
     assert loaded_object_location == new_location
 
 
