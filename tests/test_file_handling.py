@@ -24,9 +24,9 @@ def blend_file_path(tmp_path_factory):
     return file_path
 
 
-def test_file_opening_using_bpy(blend_file):
+def test_file_opening_using_bpy(blend_file_path):
     # TODO: Open the blend file and load the object
-    bpy.ops.wm.open_mainfile(filepath=str(blend_file))
+    bpy.ops.wm.open_mainfile(filepath=str(blend_file_path))
     objects = bpy.context.scene.objects
     loaded_object = objects.get("Sphere")
     # You cannot directly access the sphere's radius
