@@ -14,8 +14,7 @@ poetry-remove:
 #* Installation
 .PHONY: install
 install:
-	poetry export --without-hashes > requirements.txt
-	poetry install -n
+	poetry install -n --with dev,docs
 
 .PHONY: pre-commit-install
 pre-commit-install:

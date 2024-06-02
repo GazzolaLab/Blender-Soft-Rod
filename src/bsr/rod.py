@@ -15,21 +15,31 @@ class Rod:
     """
 
     def __init__(self):
-        pass
+        self.bpy_objs = None
+
+    def clear(self):
+        raise NotImplementedError("Not yet implemented")
 
     def build(self, positions: np.ndarray, radii: np.ndarray):
         # TODO: Refactor
         for j in range(positions.shape[-1]):
-            self.bpy_objs["sphere"].append(Sphere(positions[:, j]))
+            sphere = Sphere(positions[:, j])
+            self.bpy_objs["sphere"].append(sphere)
+            sphere.obj.keyframe_insert(data_path="location", frame=0)
+
         for j in range(positions.shape[-1] - 1):
-            self.bpy_objs["cylinder"].append(
-                Cylinder(
-                    self.bpy_objs["sphere"][j].obj.location,
-                    self.bpy_objs["sphere"][j + 1].obj.location,
-                )
+            cylinder = Cylinder(
+                self.bpy_objs["sphere"][j].obj.location,
+                self.bpy_objs["sphere"][j + 1].obj.location,
             )
+            self.bpy_objs["cylinder"].append(cylinder)
+            cylinder.obj.keyframe_insert(data_path="location", frame=0)
 
     def update(self, keyframe: int, positions: np.ndarray, radii: np.ndarray):
+        if self.bpy_objs is None:
+            self.bpy_objs = {"sphere": [], "cylinder": []}
+            self.build(positions, radii)
+            return
         # TODO: Refactor
         # update all sphere and cylinder positions and write object to keyframe
         for idx, sphere in enumerate(self.bpy_objs["sphere"]):
