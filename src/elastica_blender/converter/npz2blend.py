@@ -8,7 +8,9 @@ import numpy as np
 import bsr
 
 
-def confirm_pyelastica_npz_structure(path: str, tags: list[str] | None = None):
+def confirm_pyelastica_npz_structure(
+    path: str, tags: list[str] | None = None
+) -> None:
     data = np.load(path)
     keys = list(data.keys())
 
@@ -31,14 +33,14 @@ def confirm_pyelastica_npz_structure(path: str, tags: list[str] | None = None):
 
 def construct_blender_file(
     path: str | Path, output: str | Path, tags: list[str] | None, fps: int = -1
-):
+) -> None:
     """
     Read npz file containing the position and radius data of multiple elatica rods.
     The shape of time is [n_timesteps]
     The shape of position is [n_rods, n_timesteps, 3, n_nodes]
     The shape of radius is [n_rods, n_timesteps, n_nodes-1]
     """
-    confirm_pyelastica_npz_structure(path, tags)
+    confirm_pyelastica_npz_structure(str(path), tags)
     data = np.load(path)
 
     time = data["time"]
@@ -52,8 +54,8 @@ def construct_blender_file(
         position_history = data["position_history"]
         radius_history = data["radius_history"]
         num_rods = position_history.shape[0]
-        num_elements = position_history.shape[3]
-        rods = bsr.create_rod_collection(num_rods, num_elements)
+        num_nodes = position_history.shape[3]
+        rods = bsr.create_rod_collection(num_rods, num_nodes)
         rods.update_history(
             keyframes=time, position=position_history, radius=radius_history
         )
@@ -62,8 +64,8 @@ def construct_blender_file(
             position_history = data[tag + "_position_history"]
             radius_history = data[tag + "_radius_history"]
             num_rods = position_history.shape[0]
-            num_elements = position_history.shape[3]
-            rods = bsr.create_rod_collection(num_rods, num_elements, tag)
+            num_nodes = position_history.shape[3]
+            rods = bsr.create_rod_collection(num_rods, num_nodes, tag)
             rods.update_history(
                 keyframes=time, position=position_history, radius=radius_history
             )
@@ -98,5 +100,7 @@ def construct_blender_file(
     default=-1,
     help="Frames per second. By default, the value is set to -1, which means every frame is saved.",
 )
-def main(path, output, tags, fps):  # pragma: no cover
+def main(
+    path: Path, output: Path, tags: list[str], fps: int
+) -> None:  # pragma: no cover
     construct_blender_file(path, output, tags, fps)

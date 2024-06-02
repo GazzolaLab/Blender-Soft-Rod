@@ -14,7 +14,7 @@ class Rod:
     Rod class for managing visualization and rendering in Blender
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.bpy_objs = None
 
     def clear(self):
