@@ -1,7 +1,8 @@
+__all__ = ["BlenderRodCallback"]
+
 import bpy
 import numpy as np
 from elastica import CallBackBaseClass
-from elastica.typing import SystemType
 
 import bsr
 from bsr.geometry import Cylinder, Sphere
@@ -9,7 +10,7 @@ from bsr.geometry import Cylinder, Sphere
 
 class BlenderRodCallback(CallBackBaseClass):
     """
-    Call back function for continuum snake
+    PyElastica callback to save rod state to Blender.
     """
 
     def __init__(self, step_skip: int) -> None:
@@ -18,9 +19,7 @@ class BlenderRodCallback(CallBackBaseClass):
         self.keyframe = 0
         self.bpy_objs = bsr.Rod()
 
-    def make_callback(
-        self, system: Systemtype, time: np.floating, current_step: int
-    ):
+    def make_callback(self, system, time: np.floating, current_step: int):
         if current_step % self.every == 0:
             self.bpy_objs.update(
                 keyframe=self.key_frame,
