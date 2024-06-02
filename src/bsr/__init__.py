@@ -1,6 +1,8 @@
 import sys
 from importlib import metadata as importlib_metadata
 
+from .macros import *
+
 
 def get_version() -> str:
     try:
