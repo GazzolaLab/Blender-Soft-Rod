@@ -17,11 +17,11 @@ def test_file_create_using_bpy(tmp_path):
 
 @pytest.fixture(scope="session")
 def blend_file(tmp_path_factory):
-    blend_file = tmp_path_factory.mktemp("data") / "test.blend"
+    blend_file_path = tmp_path_factory.mktemp("data") / "test.blend"
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(0, 0, 0))
     # Moved save_as_mainfile line below creation of sphere; Previously rendered empty .blend file
-    bpy.ops.wm.save_as_mainfile(filepath=str(blend_file))
-    return blend_file
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_file_path))
+    return blend_file_path
 
 
 def test_file_opening_using_bpy(blend_file):
