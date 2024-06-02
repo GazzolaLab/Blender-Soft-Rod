@@ -47,7 +47,9 @@ class RodCollection:
         return iter(self._rods)
 
     @classmethod
-    def create_collection(cls, number: int, tag: str = None) -> Self:
+    def create_collection(
+        cls, num_rods: int, num_nodes: int, tag: str = None
+    ) -> Self:
         pass
 
     def update_history(

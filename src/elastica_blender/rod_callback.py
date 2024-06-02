@@ -3,6 +3,7 @@ __all__ = ["BlenderRodCallback"]
 import bpy
 import numpy as np
 from elastica import CallBackBaseClass
+from elastica.typing import RodType
 
 import bsr
 from bsr.geometry import Cylinder, Sphere
@@ -19,7 +20,9 @@ class BlenderRodCallback(CallBackBaseClass):
         self.keyframe = 0
         self.bpy_objs = bsr.Rod()
 
-    def make_callback(self, system, time: np.floating, current_step: int):
+    def make_callback(
+        self, system: RodType, time: np.floating, current_step: int
+    ) -> None:
         if current_step % self.every == 0:
             self.bpy_objs.update(
                 keyframe=self.key_frame,
