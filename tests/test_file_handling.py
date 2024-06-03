@@ -81,8 +81,9 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
 
 
 def test_file_saving_using_bsr_save(tmp_path):
-    from bsr.file import save
     from pathlib import Path
+
+    from bsr.file import save
 
     blend_file_path = tmp_path / "test.blend"
     save(blend_file_path)  # Save using pathlib.Path object
@@ -131,18 +132,20 @@ def test_file_not_found_reload():
 def test_file_non_valid_path_type_for_reload(name):
     from bsr.file import reload
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError) as exec_info:
         reload(name)
+    assert "should be either Path or str" in str(exec_info.value)
 
 
 @pytest.mark.parametrize(
     "name", [1, 1.0, (1, 2, 3), [1, 2, 3], {"a": 1}]
 )  # Invalid types
-def test_file_save_non_path_object(name: str | pathlib.Path):
+def test_file_save_non_path_object(name):
     from bsr.file import save
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError) as exec_info:
         save(name)
+    assert "should be either Path or str" in str(exec_info.value)
 
 
 @pytest.mark.parametrize("name", ["test.blend", pathlib.Path("test.blend2")])
