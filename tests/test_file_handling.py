@@ -81,8 +81,9 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
 
 
 def test_file_saving_using_bsr_save(tmp_path):
-    from bsr.file import save
     from pathlib import Path
+
+    from bsr.file import save
 
     blend_file_path = tmp_path / "test.blend"
     save(blend_file_path)  # Save using pathlib.Path object
@@ -103,9 +104,15 @@ def test_file_reload_using_bsr_reload(blend_file):
 
     # Change the radius and location of the object
     new_radius = 0.2
-    new_location = (1, 1, 1)
+    new_location = Vector((1, 1, 1))
     obj = bpy.context.active_object
-    obj_radius = new_radius
+    scale_factor = 2
+    obj.scale = (
+        scale_factor * obj.scale[0],
+        scale_factor * obj.scale[1],
+        scale_factor * obj.scale[2],
+    )
+    object_radius = obj.dimensions[0] / 2
     obj.location = new_location
 
     # Reload the saved file
@@ -114,8 +121,8 @@ def test_file_reload_using_bsr_reload(blend_file):
     # read the object data
     # Radius and location of the object should be the same as the original file
     obj = bpy.context.active_object
-    assert obj.radius == 0.1
-    assert obj.location == (0, 0, 0)
+    np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1, atol=0.01)
+    assert obj.location == Vector((0, 0, 0))
 
 
 def test_file_not_found_reload():
