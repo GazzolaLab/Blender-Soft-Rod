@@ -22,13 +22,13 @@ def save(path: Path | str) -> bool:
     elif isinstance(path, str):
         path = Path(path)
     else:
-        raise TypeError("Type of path should be either Path or str.")
+        raise TypeError(
+            f"Type of path should be either Path or str. Given: {type(path)}"
+        )
 
-    if path.suffix != ".blend":
-        path = path.with_suffix(".blend")
-    
     bpy.ops.wm.save_as_mainfile(filepath=path.as_posix())
     return path.exists()
+
 
 def reload(path: Path | str) -> bool:
     """
