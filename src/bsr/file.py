@@ -26,7 +26,7 @@ def save(path: Path | str) -> bool:
             f"Type of path should be either Path or str. Given: {type(path)}"
         )
 
-    bpy.ops.wm.save_as_mainfile(filepath=path.as_posix())
+    bpy.ops.wm.save_as_mainfile(filepath=str(path))
     return path.exists()
 
 
