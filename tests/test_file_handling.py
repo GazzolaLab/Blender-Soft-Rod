@@ -82,14 +82,16 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
 
 def test_file_saving_using_bsr_save(tmp_path):
     from bsr.file import save
+    from pathlib import Path
 
-    blend_file = tmp_path / "test.blend"
-    save(blend_file)  # Save using pathlib.Path object
-    assert blend_file.exists()
+    blend_file_path = tmp_path / "test.blend"
+    save(blend_file_path)  # Save using pathlib.Path object
+    assert blend_file_path.exists()
 
-    blend_file = (tmp_path / "test2.blend").as_posix()
-    save(blend_file)  # Save using str object
-    assert blend_file.exists()
+    blend_file_path_str = (tmp_path / "test2.blend").as_posix()
+    save(blend_file_path_str)  # Save using str object
+    blend_file_path = Path(blend_file_path_str)
+    assert blend_file_path.exists()
 
 
 def test_file_reload_using_bsr_reload(blend_file):
