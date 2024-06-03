@@ -67,7 +67,7 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
     loaded_object.location = new_location
 
     # TODO: Save the blend file in different name
-    new_blend_file = blend_file.parent / "test2.blend"
+    new_blend_file = blend_file.parent / "testname"
     bpy.ops.wm.save_as_mainfile(filepath=str(new_blend_file))
     assert new_blend_file.exists()
 
@@ -85,11 +85,11 @@ def test_file_saving_using_bsr_save(tmp_path):
 
     from bsr.file import save
 
-    blend_file_path = tmp_path / "test.blend"
+    blend_file_path = tmp_path / "test_path"
     save(blend_file_path)  # Save using pathlib.Path object
     assert blend_file_path.exists()
 
-    blend_file_path_str = (tmp_path / "test2.blend").as_posix()
+    blend_file_path_str = (tmp_path / "test_str").as_posix()
     save(blend_file_path_str)  # Save using str object
     blend_file_path = Path(blend_file_path_str)
     assert blend_file_path.exists()
@@ -99,7 +99,7 @@ def test_file_reload_using_bsr_reload(blend_file):
     from bsr.file import reload, save
 
     # Save the blend file into another path
-    saved_blend_file = blend_file.parent / "test2.blend"
+    saved_blend_file = blend_file.parent / "test_path"
     save(saved_blend_file)
 
     # Change the radius and location of the object
@@ -145,14 +145,14 @@ def test_file_non_valid_path_type_for_reload(name):
 @pytest.mark.parametrize(
     "name", [1, 1.0, (1, 2, 3), [1, 2, 3], {"a": 1}]
 )  # Invalid types
-def test_file_save_non_path_object(name: str | pathlib.Path):
+def test_file_save_non_path_object(name):
     from bsr.file import save
 
     with pytest.raises(ValueError):
         save(name)
 
 
-@pytest.mark.parametrize("name", ["test.blend", pathlib.Path("test.blend2")])
+@pytest.mark.parametrize("name", ["test_str", pathlib.Path("test_path")])
 def test_file_save_valid_path_pathlib(tmp_path, name):
     from bsr.file import save
 
@@ -161,7 +161,7 @@ def test_file_save_valid_path_pathlib(tmp_path, name):
     assert blend_file.exists()
 
 
-@pytest.mark.parametrize("name", ["test.blend", pathlib.Path("test.blend2")])
+@pytest.mark.parametrize("name", ["test_str", pathlib.Path("test_path")])
 def test_file_save_valid_path_str(tmp_path, name):
     from bsr.file import save
 
