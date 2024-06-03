@@ -15,7 +15,7 @@ def test_file_create_using_bpy(tmp_path):
     assert blend_file.exists()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def blend_file(tmp_path_factory):
     blend_file_path = tmp_path_factory.mktemp("data") / "test.blend"
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(0, 0, 0))
