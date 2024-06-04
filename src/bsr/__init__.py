@@ -3,6 +3,7 @@ from importlib import metadata as importlib_metadata
 
 from .collections import *
 from .rod import *
+from .macros import *
 
 
 def get_version() -> str:
