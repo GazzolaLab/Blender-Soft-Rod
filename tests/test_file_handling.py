@@ -101,8 +101,6 @@ def test_file_reload_using_bsr_reload(blend_file):
     # Save the blend file into another path
     saved_blend_file = blend_file.parent / "test_path"
     save(saved_blend_file)
-    print("save function accessed")
-    print(bpy.context.active_object.location)
 
     # Change the radius and location of the object
     new_radius = 0.2
@@ -116,17 +114,13 @@ def test_file_reload_using_bsr_reload(blend_file):
         scale_factor * obj.scale[2],
     )
     obj.location = new_location
-    print("new info inputted")
-    print(obj.dimensions[0] / 2)
 
     # Reload/Revert the saved file
     reload(saved_blend_file)
-    print("reload function accessed")
 
     # read the object data
     # Radius and location of the object should be the same as the original file
     obj = bpy.context.active_object
-    print("About to test")
     np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1, atol=0.01)
     assert obj.location == Vector((0, 0, 0))
 
