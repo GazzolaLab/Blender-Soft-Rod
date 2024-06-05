@@ -24,7 +24,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx.ext.autosectionlabel",
     "sphinx_autodoc_typehints",
+    "sphinx_click",
     "numpydoc",
 ]
 
