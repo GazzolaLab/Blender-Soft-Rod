@@ -20,6 +20,7 @@ TODO: Description of the project.
    :maxdepth: 2
    :caption: API:
 
+   api/file
    api/geometry
 
 .. toctree::
