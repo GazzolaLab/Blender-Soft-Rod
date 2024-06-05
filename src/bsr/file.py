@@ -8,8 +8,7 @@ from mathutils import Vector
 
 def save(path: Path | str) -> bool:
     """
-    Checks if the input is a Path or string and then saves the .blend file accordingly,
-    raising an error if the input type is wrong.
+    Saves .blend file.
 
     To use this function, pass in a filepath in either Path or string format.
     If the input is a string, the function will convert it back into a path in a conditional.
@@ -74,7 +73,7 @@ def save(path: Path | str) -> bool:
 
 def reload(path: Path | str) -> bool:
     """
-    Reloads (resets) the file to previous save condition, and raises error if filename is not found.
+    Reloads the .blend file to most recent saved state.
 
     To use this function, pass in a filepath in either Path or string format.
     If the input is a string, the function will convert it back into a path in a conditional.
