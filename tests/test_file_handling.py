@@ -121,7 +121,7 @@ def test_file_reload_using_bsr_reload(blend_file):
     # read the object data
     # Radius and location of the object should be the same as the original file
     obj = bpy.context.active_object
-    np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1, atol=0.01)
+    np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1)
     assert obj.location == Vector((0, 0, 0))
 
 
