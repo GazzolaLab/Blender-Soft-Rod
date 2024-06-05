@@ -21,8 +21,6 @@ def save(path: Path | str) -> bool:
     ----------
     path: Path | str
         File path to save the file to.
-        This can be passed in as a Path object from the pathlib library,
-        or a string literal.
 
     Returns
     -------
@@ -85,8 +83,6 @@ def reload(path: Path | str) -> None:
     ----------
     path: Path | str
         File path to save the file to.
-        This can be passed in as a Path object from the pathlib library,
-        or a string literal.
 
     Returns
     -------
