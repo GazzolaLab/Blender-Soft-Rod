@@ -71,7 +71,7 @@ def save(path: Path | str) -> bool:
     return path.exists()
 
 
-def reload(path: Path | str) -> bool:
+def reload(path: Path | str) -> None:
     """
     Reloads the .blend file to most recent saved state.
 
