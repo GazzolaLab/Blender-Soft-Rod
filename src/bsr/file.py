@@ -29,9 +29,9 @@ def save(path: Path | str) -> bool:
     Examples
     --------
     >>> import bsr
-    
+
     ... # work on blender file
-    
+
     >>> blender_path: str | Path
     >>> bsr.save(blender_path)
     """
@@ -49,13 +49,7 @@ def save(path: Path | str) -> bool:
 
 def reload(path: Path | str) -> None:
     """
-    Reloads the .blend file to most recent saved state.
-
-    To use this function, pass in a filepath in either Path or string format.
-    If the input is a string, the function will convert it back into a path in a conditional.
-    If the input is not a Path or string, a TypeError will be raised.
-    If the filepath does not exist, a FileNotFoundError will be raised.
-    If these conditions are all passed, the file is reloaded with the revert_mainfile operator.
+    Reloads the blender file to most recently saved state.
 
     Parameters
     ----------
@@ -72,26 +66,12 @@ def reload(path: Path | str) -> None:
 
     Examples
     --------
-    >>> path = /Users/rohitharish/Downloads/test_path
-    >>> bpy.ops.wm.revert_mainfile()
-    #Reloads file to last saved state
+    >>> import bsr
 
-    >>> path = "/Users/rohitharish/Downloads/test_path"
-    >>> path = Path(path)
-    /Users/rohitharish/Downloads/test_path
-    >>> bpy.ops.wm.revert_meainfile()
-    #Reloads file to last saved state
+    ... # work on blender file
 
-    >>> path = 50
-    >>> raise TypeError(
-            f"Type of path should be either Path or str. Given: {type(path)}"
-        )
-    Type of path should be either Path or str. Given: {int(path)}
-
-    >>> path = /Users/rohitharish/Downloads/non_existent_file.blend
-    >>> raise FileNotFoundError("This file does not exist")
-    This file does not exist
-
+    >>> blender_path: str | Path
+    >>> bsr.reload(blender_path)
     """
     if isinstance(path, Path):
         pass
