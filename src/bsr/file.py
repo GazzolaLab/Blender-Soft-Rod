@@ -8,14 +8,7 @@ from mathutils import Vector
 
 def save(path: Path | str) -> bool:
     """
-    Saves .blend file.
-
-    To use this function, pass in a filepath in either Path or string format.
-    If the input is a string, the function will convert it back into a path in a conditional.
-    If the input is not a Path or string, a TypeError will be raised.
-    Once all valid input types are in path format, they are converted back into a string.
-    These are then used as the filepath parameter for the save_as_mainfile operator.
-    This operator saves a .blend file to the filepath that is passed in.
+    Saves working blender environment to a blender file.
 
     Parameters
     ----------
@@ -35,27 +28,12 @@ def save(path: Path | str) -> bool:
 
     Examples
     --------
-    >>> path = /Users/rohitharish/Downloads/test_path
-    >>> bpy.ops.wm.save_as_mainfile(filepath=str(path))
-    #Saves file as test_path.blend
-    >>> return path.exists()
-    True
-
-    >>> path = "/Users/rohitharish/Downloads/test_path"
-    >>> path = Path(path)
-    /Users/rohitharish/Downloads/test_path
-    >>> bpy.ops.wm.save_as_mainfile(filepath=str(path))
-    #Saves file as test_path.blend
-    >>> return path.exists()
-    True
-
-    >>> path = 50
-    >>> raise TypeError(
-            f"Type of path should be either Path or str. Given: {type(path)}"
-        )
-    Type of path should be either Path or str. Given: {int(path)}
-    >>> return path.exists()
-    False
+    >>> import bsr
+    
+    ... # work on blender file
+    
+    >>> blender_path: str | Path
+    >>> bsr.save(blender_path)
     """
     if isinstance(path, Path):
         pass
