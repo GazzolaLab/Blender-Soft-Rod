@@ -40,7 +40,7 @@ def test_file_opening_using_bpy(blend_file):
     loaded_object_location = loaded_object.location
     exact_radius = 0.1
     # Assert statement adjusted
-    np.testing.assert_allclose(loaded_object_radius, exact_radius, atol=0.01)
+    np.testing.assert_allclose(loaded_object_radius, exact_radius)
     # Assert statement changed from Tuple to Vector to match Blender format
     assert loaded_object_location == Vector((0, 0, 0))
 
