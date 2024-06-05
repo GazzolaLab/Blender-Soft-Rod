@@ -76,7 +76,7 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
     loaded_object_dimensions = loaded_object.dimensions
     loaded_object_radius = loaded_object_dimensions[0] / 2
     loaded_object_location = loaded_object.location
-    np.testing.assert_allclose(loaded_object_radius, new_radius, atol=0.01)
+    np.testing.assert_allclose(loaded_object_radius, new_radius)
     assert loaded_object_location == new_location
 
 
