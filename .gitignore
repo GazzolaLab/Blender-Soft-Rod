@@ -8,6 +8,8 @@ __pycache__/
 
 *.blend
 *.swp
+*.npz
+
 *.txt
 
 .DS_Store

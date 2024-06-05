@@ -10,13 +10,24 @@ Python software for integrating soft-rods visualization into blender for renderi
 
 TODO: Description of the project.
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorial:
+
+   tutorial/elastica
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API:
 
+   api/file
    api/geometry
 
+.. toctree::
+   :maxdepth: 2
+   :caption: CLI tools:
+
+   cli/data_converter
 
 
 Indices and tables
