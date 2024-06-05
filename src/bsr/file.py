@@ -62,12 +62,6 @@ def reload(path: Path | str) -> None:
     path: Path | str
         File path to save the file to.
 
-    Returns
-    -------
-    bool:
-        Whether the file was successfully reloaded.
-        In this case doesn't need to return anything.
-
     Raises
     ------
     TypeError
