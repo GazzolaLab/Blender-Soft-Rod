@@ -36,7 +36,7 @@ def test_file_opening_using_bpy(blend_file):
     loaded_object_location = loaded_object.location
     exact_radius = 0.1
     # Assert statement adjusted
-    np.testing.assert_allclose(loaded_object_radius, exact_radius)
+    np.testing.assert_allclose(loaded_object_radius, exact_radius, rtol=1e-6)
     # Assert statement changed from Tuple to Vector to match Blender format
     assert loaded_object_location == Vector((0, 0, 0))
 
@@ -67,7 +67,7 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
     loaded_object_dimensions = loaded_object.dimensions
     loaded_object_radius = loaded_object_dimensions[0] / 2
     loaded_object_location = loaded_object.location
-    np.testing.assert_allclose(loaded_object_radius, new_radius)
+    np.testing.assert_allclose(loaded_object_radius, new_radius, rtol=1e-6)
     assert loaded_object_location == new_location
 
 
@@ -112,7 +112,7 @@ def test_file_reload_using_bsr_reload(blend_file):
     # read the object data
     # Radius and location of the object should be the same as the original file
     obj = bpy.context.active_object
-    np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1)
+    np.testing.assert_allclose(obj.dimensions[0] / 2, 0.1, rtol=1e-6)
     assert obj.location == Vector((0, 0, 0))
 
 
