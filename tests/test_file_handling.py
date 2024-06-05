@@ -25,15 +25,11 @@ def blend_file(tmp_path_factory):
 
 
 def test_file_opening_using_bpy(blend_file):
-    # TODO: Open the blend file and load the object
     bpy.ops.wm.open_mainfile(filepath=str(blend_file))
     objects = bpy.context.scene.objects
     loaded_object = objects.get("Sphere")
-    # You cannot directly access the sphere's radius
-    # Must estimate through dimensions of object's bounding box
     loaded_object_dimensions = loaded_object.dimensions
-    # Dimension of the box on any axis is the approx sphere diameter, can divide by 2 for approx radius
-    # Seems that the approximation is close but not quite correct
+    # The approximation is close but not quite correct
     # 0.09999993443489075 vs 0.1
     loaded_object_radius = loaded_object_dimensions[0] / 2
     # Location is displayed in the form Vector((0,0,0)), which is in Mathutils package
@@ -46,10 +42,8 @@ def test_file_opening_using_bpy(blend_file):
 
 
 def test_file_opening_and_writing_data_using_bpy(blend_file):
-    # TODO: Open the blend file
     bpy.ops.wm.open_mainfile(filepath=str(blend_file))
 
-    # TODO: Change the radius of the object
     new_radius = 0.2
     # - Note; cannot driectly change sphere radius post-definition; can work around by scaling it
     objects = bpy.context.scene.objects
@@ -62,16 +56,13 @@ def test_file_opening_and_writing_data_using_bpy(blend_file):
     )
     # This effectively scales in each axis by the scale factor (2), increasing radius to 0.2
 
-    # TODO: Change the location of the object
     new_location = Vector((1, 1, 1))
     loaded_object.location = new_location
 
-    # TODO: Save the blend file in different name
     new_blend_file = blend_file.parent / "testname"
     bpy.ops.wm.save_as_mainfile(filepath=str(new_blend_file))
     assert new_blend_file.exists()
 
-    # TODO: Open the new blend file and load the object
     bpy.ops.wm.save_as_mainfile(filepath=str(new_blend_file))
     loaded_object_dimensions = loaded_object.dimensions
     loaded_object_radius = loaded_object_dimensions[0] / 2
