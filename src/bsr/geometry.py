@@ -30,10 +30,6 @@ class BlenderMeshInterfaceProtocol(Protocol):
     This protocol defines the interface for Blender mesh objects.
     """
 
-    @property
-    def states(self) -> MeshDataType:
-        """Returns the current state of the mesh object."""
-
     # TODO: For future implementation
     # @property
     # def data(self): ...
@@ -76,20 +72,6 @@ class Sphere:
     @property
     def object(self) -> bpy.types.Object:
         return self._obj
-
-    @property
-    def states(self) -> MeshDataType:
-        states = {
-            "position": np.array(
-                [
-                    self.object.location.x,
-                    self.object.location.y,
-                    self.object.location.z,
-                ]
-            ),
-            "radius": self.object.radius,
-        }
-        return states
 
     def update_states(
         self, position: np.ndarray | None = None, radius: float | None = None
