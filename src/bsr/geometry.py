@@ -66,7 +66,8 @@ class Sphere:
     """
 
     def __init__(self, position: np.ndarray, radius: float) -> None:
-        self._obj = self._create_sphere(position, radius)
+        self._obj = self._create_sphere()
+        self.update_states(position, radius)
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
@@ -98,16 +99,14 @@ class Sphere:
             self.object.location.y = position[1]
             self.object.location.z = position[2]
         if radius is not None:
-            self.object.radius = radius
+            self.object.scale = (radius, radius, radius)
         return self.object
 
-    def _create_sphere(
-        self, position: np.ndarray, radius: float
-    ) -> bpy.types.Object:
+    def _create_sphere(self) -> bpy.types.Object:
         """
         Creates a new sphere object with the given position and radius.
         """
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, location=position)
+        bpy.ops.mesh.primitive_uv_sphere_add()
         return bpy.context.active_object
 
 
@@ -122,16 +121,17 @@ class Cylinder:
         self.mat = bpy.data.materials.new(name="cyl_mat")
         self.obj.active_material = self.mat
 
-    def create_cylinder(self, position_1, position_2):
+    def create_cylinder(self, position_1, position_2, radius):
         depth, center, angles = self.calc_cyl_orientation(
             position_1, position_2
         )
-        bpy.ops.mesh.primitive_cylinder_add(
-            radius=0.005, depth=1, location=center
-        )
+        bpy.ops.mesh.primitive_cylinder_add(depth=1.0, radius=1.0)
         cylinder = bpy.context.active_object
         cylinder.rotation_euler = (0, angles[1], angles[0])
         cylinder.scale[2] = depth
+        cylinder.scale[0] = radius
+        cylinder.scale[1] = radius
+        cylinder.location = center
         return cylinder
 
     def calc_cyl_orientation(self, position_1, position_2):
@@ -147,13 +147,15 @@ class Cylinder:
         angles = np.array([phi, theta])
         return depth, center, angles
 
-    def update_position(self, position_1, position_2):
+    def update_states(self, position_1, position_2, radius):
         depth, center, angles = self.calc_cyl_orientation(
             position_1, position_2
         )
-        self.obj.location = (center[0], center[1], center[2])
+        self.obj.location = center
         self.obj.rotation_euler = (0, angles[1], angles[0])
         self.obj.scale[2] = depth
+        self.obj.scale[0] = radius
+        self.obj.scale[1] = radius
 
         # computing deformation heat-map
         max_def = 0.07
