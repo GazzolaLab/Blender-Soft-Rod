@@ -16,10 +16,6 @@ from bsr.geometry import Cylinder, Sphere
     ],
 )
 class TestBlenderMeshInterfaceObjects:
-    def test_states_getter(self, primitive):
-        # TODO : Test .states getter
-        assert False
-
     def test_object_type(self, primitive):
         # TODO : Test .object and return type
         assert False
