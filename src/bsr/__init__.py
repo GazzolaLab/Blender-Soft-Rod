@@ -2,6 +2,7 @@ import sys
 from importlib import metadata as importlib_metadata
 
 from .collections import *
+from .file import *
 from .macros import *
 from .rod import *
 

@@ -8,7 +8,7 @@
 
 import bpy
 import numpy as np
-    
+
     #Can access values one at a time if you return as an array
 
 def calc_cyl_orientation(pos1,pos2):
@@ -63,7 +63,7 @@ cylinders = []
 for i in range(len(spheres) - 1):
     bpy.ops.mesh.primitive_cylinder_add(radius=0.1, depth=1)
     cylinder = bpy.context.active_object
-    
+
     #connect cylinders to spheres on creation
     depth, center, angles = calc_cyl_orientation(spheres[i][0].location, spheres[i+1][0].location)
     cylinder.location = (center[0], center[1], center[2])
@@ -89,28 +89,28 @@ for time_index, t in enumerate(time[:-1]):
         # update 3D-world position of each sphere
         zpos_and_vel = np.array([sphere.location.z, vel_z])
         zpos_and_vel = zpos_and_vel + increment_position_z(zpos_and_vel) * dt
-        
+
         ypos_and_vel  = np.array([sphere.location.y, vel_y])
         ypos_and_vel = ypos_and_vel + increment_position_y(ypos_and_vel) * dt
-        
+
         sphere.location.z = zpos_and_vel[0]
         sphere.location.y = ypos_and_vel[0]
-        
+
         spheres[i][1] = zpos_and_vel[1]
         spheres[i][2] = ypos_and_vel[1]
-    
+
     if (time_index % simulation_ratio) == 0: # this is an index which we want to write to a keyframe
         # then, we add updated sphere locations to the keyframe
         for i, (sphere, vel_z, vel_y) in enumerate(spheres):
             sphere.keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
-            
+
         #now we update cylinder orientation and then draw those to the keyframe.
         for i in range(len(cylinders)):
             depth, center, angles = calc_cyl_orientation(spheres[i][0].location, spheres[i+1][0].location)
             cylinders[i].location = (center[0], center[1], center[2])
             cylinders[i].rotation_euler = (0,angles[1], angles[0])
             cylinders[i].scale[2] = depth
-            
+
             # Keyframe the cylinder's location , rotation, and scaling
             cylinders[i].keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
             cylinders[i].keyframe_insert(data_path="rotation_euler", frame=int(time_index/simulation_ratio) + 1)
@@ -120,10 +120,9 @@ for time_index, t in enumerate(time[:-1]):
 
 """
 
-
-
 import bpy
 import numpy as np
+
 
 class Sphere:
     def __init__(self, location, vel_z, vel_y):
@@ -137,9 +136,13 @@ class Sphere:
 
     def update_position(self, dt):
         zpos_and_vel = np.array([self.obj.location.z, self.vel_z])
-        zpos_and_vel = zpos_and_vel + self.increment_position_z(zpos_and_vel) * dt
+        zpos_and_vel = (
+            zpos_and_vel + self.increment_position_z(zpos_and_vel) * dt
+        )
         ypos_and_vel = np.array([self.obj.location.y, self.vel_y])
-        ypos_and_vel = ypos_and_vel + self.increment_position_y(ypos_and_vel) * dt
+        ypos_and_vel = (
+            ypos_and_vel + self.increment_position_y(ypos_and_vel) * dt
+        )
         self.obj.location.z = zpos_and_vel[0]
         self.obj.location.y = ypos_and_vel[0]
         self.vel_z = zpos_and_vel[1]
@@ -155,13 +158,16 @@ class Sphere:
         y_position, velocity = pos_and_vel[0], pos_and_vel[1]
         return np.array([velocity, (-1) * spring_const2 * y_position])
 
+
 class Cylinder:
     def __init__(self, pos1, pos2):
         self.obj = self.create_cylinder(pos1, pos2)
 
     def create_cylinder(self, pos1, pos2):
         depth, center, angles = self.calc_cyl_orientation(pos1, pos2)
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.1, depth=1, location=center)
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=0.1, depth=1, location=center
+        )
         cylinder = bpy.context.active_object
         cylinder.rotation_euler = (0, angles[1], angles[0])
         cylinder.scale[2] = depth
@@ -171,34 +177,40 @@ class Cylinder:
         pos1 = np.array(pos1)
         pos2 = np.array(pos2)
         depth = np.linalg.norm(pos2 - pos1)
-        dz =  pos2[2] - pos1[2]
+        dz = pos2[2] - pos1[2]
         dy = pos2[1] - pos1[1]
         dx = pos2[0] - pos1[0]
         center = (pos1 + pos2) / 2
         phi = np.arctan2(dy, dx)
-        theta = np.arccos(dz/depth)
+        theta = np.arccos(dz / depth)
         angles = np.array([phi, theta])
         return depth, center, angles
 
+
 # Clear existing mesh objects in the scene
-bpy.ops.object.select_all(action='DESELECT')
-bpy.ops.object.select_by_type(type='MESH')
+bpy.ops.object.select_all(action="DESELECT")
+bpy.ops.object.select_by_type(type="MESH")
 bpy.ops.object.delete()
 
 # Create spheres with different initial velocities
 init_vel_z = [20, 25, 30, 35, 40]
 init_vel_y = [20, 25, 30, 35, 40]
 
-#creates spheres
-spheres = [Sphere((i * 2, 0, 0), vel_z, vel_y) for i, (vel_z, vel_y) in enumerate(zip(init_vel_z, init_vel_y))]
-
+# creates spheres
+spheres = [
+    Sphere((i * 2, 0, 0), vel_z, vel_y)
+    for i, (vel_z, vel_y) in enumerate(zip(init_vel_z, init_vel_y))
+]
 
 
 # Create cylinders to connect the spheres
-cylinders = [Cylinder(spheres[i].obj.location, spheres[i+1].obj.location) for i in range(len(spheres) - 1)]
+cylinders = [
+    Cylinder(spheres[i].obj.location, spheres[i + 1].obj.location)
+    for i in range(len(spheres) - 1)
+]
 
 # SIMULATION
-dt = 10**(-3)
+dt = 10 ** (-3)
 framerate = 25
 simulation_ratio = int(1 / framerate / dt)
 time = np.arange(0, 10, dt)
@@ -209,15 +221,28 @@ for time_index, t in enumerate(time[:-1]):
 
     if (time_index % simulation_ratio) == 0:
         for sphere in spheres:
-            sphere.obj.keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
-       
+            sphere.obj.keyframe_insert(
+                data_path="location",
+                frame=int(time_index / simulation_ratio) + 1,
+            )
+
         for i, cylinder in enumerate(cylinders):
-           
-            depth, center, angles = cylinder.calc_cyl_orientation(spheres[i].obj.location, spheres[i+1].obj.location)
-            cylinder.obj.location = (center[0],center[1],center[2])
+
+            depth, center, angles = cylinder.calc_cyl_orientation(
+                spheres[i].obj.location, spheres[i + 1].obj.location
+            )
+            cylinder.obj.location = (center[0], center[1], center[2])
             cylinder.obj.rotation_euler = (0, angles[1], angles[0])
             cylinder.obj.scale[2] = depth
 
-            cylinder.obj.keyframe_insert(data_path="location", frame=int(time_index/simulation_ratio) + 1)
-            cylinder.obj.keyframe_insert(data_path="rotation_euler", frame=int(time_index/simulation_ratio) + 1)
-            cylinder.obj.keyframe_insert(data_path="scale", frame=int(time_index/simulation_ratio) + 1)
+            cylinder.obj.keyframe_insert(
+                data_path="location",
+                frame=int(time_index / simulation_ratio) + 1,
+            )
+            cylinder.obj.keyframe_insert(
+                data_path="rotation_euler",
+                frame=int(time_index / simulation_ratio) + 1,
+            )
+            cylinder.obj.keyframe_insert(
+                data_path="scale", frame=int(time_index / simulation_ratio) + 1
+            )
