@@ -103,18 +103,16 @@ class Cylinder:
         position_1: np.ndarray,
         position_2: np.ndarray,
         radius: float,
-        depth: float,
     ):
-        self.obj = self._create_cylinder(position_1, position_2, radius, depth)
+        self.obj = self._create_cylinder(
+            position_1,
+            position_2,
+            radius,
+        )
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
-        return cls(
-            states["position_1"],
-            states["position_2"],
-            states["radius"],
-            states["depth"],
-        )
+        return cls(states["position_1"], states["position_2"], states["radius"])
 
     @property
     def object(self) -> bpy.types.Object:
@@ -148,7 +146,6 @@ class Cylinder:
         position_1: np.ndarray,
         position_2: np.ndarray,
         radius: float,
-        depth: float,
     ) -> bpy.types.Object:
         """
         Creates a new cylinder object with the given end positions, radius, centerpoint and depth.
