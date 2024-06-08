@@ -1,51 +1,14 @@
 __doc__ = """
 This module provides a set of geometry-mesh interfaces for blender objects.
 """
-__all__ = ["BlenderMeshInterfaceProtocol", "Sphere", "Cylinder"]
+__all__ = ["Sphere", "Cylinder"]
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ParamSpec,
-    Protocol,
-    Type,
-    TypedDict,
-    TypeVar,
-)
-from typing_extensions import Self
-
-import colorsys
+from typing import TYPE_CHECKING
 
 import bpy
 import numpy as np
 
-MeshDataType = dict[str, Any]
-
-S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
-P = ParamSpec("P")
-
-
-class BlenderMeshInterfaceProtocol(Protocol):
-    """
-    This protocol defines the interface for Blender mesh objects.
-    """
-
-    # TODO: For future implementation
-    # @property
-    # def data(self): ...
-
-    @property
-    def object(self) -> bpy.types.Object:
-        """Returns associated Blender object."""
-
-    @classmethod
-    def create(cls: Type[S], states: MeshDataType) -> S:
-        """Creates a new mesh object with the given states."""
-
-    def update_states(self, *args: Any) -> bpy.types.Object:
-        """Updates the mesh object with the given states."""
-
-    # def update_material(self, material) -> None: ...  # TODO: For future implementation
+from bsr.protocol import BlenderMeshInterfaceProtocol, MeshDataType
 
 
 class Sphere:
