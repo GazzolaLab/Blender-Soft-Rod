@@ -38,6 +38,7 @@ elastica-npz2blend = "elastica_blender.converter.npz2blend:main"
 python = ">=3.11,<3.12"
 bpy = "4.*"
 click = "^8.1.7"
+mathutils = "^3.3.0"
 
 [tool.poetry.group.dev]
 [tool.poetry.group.dev.dependencies]
