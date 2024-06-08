@@ -4,16 +4,23 @@ import bpy
 import numpy as np
 
 import bsr
+from bsr.geometry import Cylinder, Sphere
 
 
 class PendulumBlender:
     def __init__(self, location, ball_radius):
-        self.location = location
-        self.ball_radius = ball_radius
+        self.sphere = Sphere(position=location, radius=ball_radius)
+        self.cylinder = Cylinder(
+            position_1=np.array([0, 0, 0]),
+            position_2=location,
+            radius=ball_radius,
+        )
 
     def update(self, position):
-        # TODO
-        pass
+        self.sphere.update(position=position)
+        self.cylinder.update(
+            position_1=np.array([0, 0, 0]), position_2=position
+        )
 
 
 class Pendulum:  # Pendulum simulator
