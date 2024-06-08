@@ -99,50 +99,63 @@ class Cylinder:
     """
 
     def __init__(
-        self, pos1: np.ndarray, pos2: np.ndarray, radius: float, depth: float
+        self,
+        position_1: np.ndarray,
+        position_2: np.ndarray,
+        radius: float,
+        depth: float,
     ):
-        self.pos1 = pos1
-        self.pos2 = pos2
-        self.obj = self._create_cylinder(pos1, pos2, radius, depth)
+        self.obj = self._create_cylinder(position_1, position_2, radius, depth)
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
         return cls(
-            states["pos1"], states["pos2"], states["radius"], states["depth"]
+            states["position_1"],
+            states["position_2"],
+            states["radius"],
+            states["depth"],
         )
 
     @property
     def object(self) -> bpy.types.Object:
         return self._obj
 
-    def update_states(self, pos1, pos2, radius):
-        depth, center, angles = self.calc_cyl_orientation(pos1, pos2)
+    def update_states(self, position_1, position_2, radius):
+        depth, center, angles = self.calc_cyl_orientation(
+            position_1, position_2
+        )
         self.obj.location = center
         self.obj.rotation_euler = (0, angles[1], angles[0])
         self.obj.scale[2] = depth
         self.obj.scale[0] = radius
         self.obj.scale[1] = radius
 
-    def calc_cyl_orientation(self, pos1, pos2):
-        pos1 = np.array(pos1)
-        pos2 = np.array(pos2)
-        depth = np.linalg.norm(pos2 - pos1)
-        dz = pos2[2] - pos1[2]
-        dy = pos2[1] - pos1[1]
-        dx = pos2[0] - pos1[0]
-        center = (pos1 + pos2) / 2
+    def calc_cyl_orientation(self, position_1, position_2):
+        position_1 = np.array(position_1)
+        position_2 = np.array(position_2)
+        depth = np.linalg.norm(position_2 - position_1)
+        dz = position_2[2] - position_1[2]
+        dy = position_2[1] - position_1[1]
+        dx = position_2[0] - position_1[0]
+        center = (position_1 + position_2) / 2
         phi = np.arctan2(dy, dx)
         theta = np.arccos(dz / depth)
         angles = np.array([phi, theta])
         return depth, center, angles
 
     def _create_cylinder(
-        self, pos1: np.ndarray, pos2: np.ndarray, radius: float, depth: float
+        self,
+        position_1: np.ndarray,
+        position_2: np.ndarray,
+        radius: float,
+        depth: float,
     ) -> bpy.types.Object:
         """
         Creates a new cylinder object with the given end positions, radius, centerpoint and depth.
         """
-        depth, center, angles = self.calc_cyl_orientation(pos1, pos2)
+        depth, center, angles = self.calc_cyl_orientation(
+            position_1, position_2
+        )
         bpy.ops.mesh.primitive_uv_cylinder_add(
             radius=radius, location=center, depth=depth
         )
