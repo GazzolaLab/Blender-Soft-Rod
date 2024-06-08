@@ -98,67 +98,58 @@ class Cylinder:
     TODO: Add documentation
     """
 
-    def __init__(self, position_1, position_2, radius):
-        self.obj = self.create_cylinder(position_1, position_2)
-        self.mat = bpy.data.materials.new(name="cyl_mat")
-        self.obj.active_material = self.mat
+    def __init__(
+        self, pos1: np.ndarray, pos2: np.ndarray, radius: float, depth: float
+    ):
+        self.pos1 = pos1
+        self.pos2 = pos2
+        self.obj = self._create_cylinder(pos1, pos2, radius, depth)
 
-    def create_cylinder(self, position_1, position_2, radius):
-        depth, center, angles = self.calc_cyl_orientation(
-            position_1, position_2
+    @classmethod
+    def create(cls, states: MeshDataType) -> "Cylinder":
+        return cls(
+            states["pos1"], states["pos2"], states["radius"], states["depth"]
         )
-        bpy.ops.mesh.primitive_cylinder_add(depth=1.0, radius=1.0)
-        cylinder = bpy.context.active_object
-        cylinder.rotation_euler = (0, angles[1], angles[0])
-        cylinder.scale[2] = depth
-        cylinder.scale[0] = radius
-        cylinder.scale[1] = radius
-        cylinder.location = center
-        return cylinder
 
-    def calc_cyl_orientation(self, position_1, position_2):
-        position_1 = np.array(position_1)
-        position_2 = np.array(position_2)
-        depth = np.linalg.norm(position_2 - position_1)
-        dz = position_2[2] - position_1[2]
-        dy = position_2[1] - position_1[1]
-        dx = position_2[0] - position_1[0]
-        center = (position_1 + position_2) / 2
-        phi = np.arctan2(dy, dx)
-        theta = np.arccos(dz / depth)
-        angles = np.array([phi, theta])
-        return depth, center, angles
+    @property
+    def object(self) -> bpy.types.Object:
+        return self._obj
 
-    def update_states(self, position_1, position_2, radius):
-        depth, center, angles = self.calc_cyl_orientation(
-            position_1, position_2
-        )
+    def update_states(self, pos1, pos2, radius):
+        depth, center, angles = self.calc_cyl_orientation(pos1, pos2)
         self.obj.location = center
         self.obj.rotation_euler = (0, angles[1], angles[0])
         self.obj.scale[2] = depth
         self.obj.scale[0] = radius
         self.obj.scale[1] = radius
 
-        # computing deformation heat-map
-        max_def = 0.07
+    def calc_cyl_orientation(self, pos1, pos2):
+        pos1 = np.array(pos1)
+        pos2 = np.array(pos2)
+        depth = np.linalg.norm(pos2 - pos1)
+        dz = pos2[2] - pos1[2]
+        dy = pos2[1] - pos1[1]
+        dx = pos2[0] - pos1[0]
+        center = (pos1 + pos2) / 2
+        phi = np.arctan2(dy, dx)
+        theta = np.arccos(dz / depth)
+        angles = np.array([phi, theta])
+        return depth, center, angles
 
-        h = (
-            -np.sqrt(self.obj.location[0] ** 2 + self.obj.location[2] ** 2)
-            / max_def
-            + 240 / 360
+    def _create_cylinder(
+        self, pos1: np.ndarray, pos2: np.ndarray, radius: float, depth: float
+    ) -> bpy.types.Object:
+        """
+        Creates a new cylinder object with the given end positions, radius, centerpoint and depth.
+        """
+        depth, center, angles = self.calc_cyl_orientation(pos1, pos2)
+        bpy.ops.mesh.primitive_uv_cylinder_add(
+            radius=radius, location=center, depth=depth
         )
-        v = (
-            np.sqrt(self.obj.location[0] ** 2 + self.obj.location[2] ** 2)
-            / max_def
-            * 0.5
-            + 0.5
-        )
-
-        r, g, b = colorsys.hsv_to_rgb(h, 1, v)
-        self.update_color(r, g, b, 1)
-
-    def update_color(self, r, g, b, a):
-        self.mat.diffuse_color = (r, g, b, a)
+        cylinder = bpy.context.active_object
+        cylinder.rotation_euler = (0, angles[1], angles[0])
+        cylinder.scale[2] = depth
+        return cylinder
 
 
 if TYPE_CHECKING:
