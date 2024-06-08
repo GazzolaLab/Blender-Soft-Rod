@@ -922,6 +922,16 @@ files = [
 ]
 
 [[package]]
+name = "mathutils"
+version = "3.3.0"
+description = "A general math utilities library providing Matrix, Vector, Quaternion, Euler and Color classes, written in C for speed."
+optional = false
+python-versions = "*"
+files = [
+    {file = "mathutils-3.3.0.tar.gz", hash = "sha256:b9371af8149f3f3f05ee165cb583b2df7b3fbc9935406d1c505a5276b8e563af"},
+]
+
+[[package]]
 name = "matplotlib"
 version = "3.9.0"
 description = "Python plotting package"
@@ -2026,4 +2036,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "e4e7f497ec28651e82875d063cd221481ddf597c0539d605f2422b0e895adaa4"
+content-hash = "3b322f03b36914c8a799979b60bac6cfc56d47cc30facbb0cf7f56c7f5283002"
