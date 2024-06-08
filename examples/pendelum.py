@@ -11,67 +11,12 @@ class PendulumBlender:
         self.location = location
         self.ball_radius = ball_radius
 
-        origin_location = np.array([0, 0, 0])
-        # Add a sphere
-        self.add_sphere(location=self.location, radius=self.ball_radius)
-        # Add a cylinder
-        center, angle, length = PendulumBlender.calculate_cylinder_pose(
-            loc1=origin_location, loc2=self.location
-        )
-        self.add_cylinder(
-            location=center,
-            rotation=angle,
-            depth=length,
-            radius=0.1 * self.ball_radius,
-        )
-
-    def __repr__(self):
-        return (
-            f"Pendulum at {self.location} with ball radius {self.ball_radius}"
-        )
-
-    def add_sphere(self, location, radius):
-        self.sphere = bpy.ops.mesh.primitive_uv_sphere_add(
-            radius=radius, location=location
-        )
-        self.sphere = bpy.context.active_object
-
-    def add_cylinder(self, location, rotation, depth, radius):
-        bpy.ops.mesh.primitive_cylinder_add(
-            location=location,
-            depth=depth,
-            radius=radius,
-        )
-        self.cylinder = bpy.context.active_object
-        self.cylinder.rotation_euler = rotation
-
-    @staticmethod
-    def calculate_cylinder_pose(
-        loc1: np.ndarray, loc2: np.ndarray
-    ) -> tuple[float, np.ndarray, np.ndarray]:
-        # Calculate the depth of the cylinder
-        length = np.linalg.norm(loc1 - loc2)
-        # Calculate the center of the cylinder
-        center = (loc1 + loc2) / 2
-        # Calculate the difference in z, y, and x
-        delta = loc2 - loc1
-        # Calculate the angles of the cylinder
-        angle = np.array(
-            [0, np.arccos(delta[2] / length), np.arctan2(delta[1], delta[0])]
-        )
-        return center, angle, length
-
     def update(self, position):
-        self.sphere.location = position
-        center, angle, length = PendulumBlender.calculate_cylinder_pose(
-            loc1=np.array([0, 0, 0]), loc2=position
-        )
-        self.cylinder.location = center
-        self.cylinder.rotation_euler = angle
-        self.cylinder.scale[2] = length
+        # TODO
+        pass
 
 
-class Pendulum:
+class Pendulum:  # Pendulum simulator
     def __init__(self, length, euler_angles):
         self.length = length
         self.euler_angles = euler_angles
@@ -102,13 +47,8 @@ class Pendulum:
         self.position += self.velocity * dt / 2
 
 
-def delete_all():
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete()
-
-
 def main():
-    delete_all()
+    bsr.clear_mesh_objects()
 
     pendulum_length = 0.3
     pendulum_euler_angles = np.array([0.0, 0.0])
@@ -135,39 +75,7 @@ def main():
 
     ### Saving the file ###
     write_filepath = "pendulum.blend"
-    write_filepath = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), write_filepath
-    )
-    # Saves above script as .blend file; stores on personal device using filepath
-    bpy.ops.wm.save_as_mainfile(filepath=write_filepath)
-    with bpy.data.libraries.load(load_filepath, link=True) as (
-        data_from,
-        data_to,
-    ):
-        data_to.objects = [
-            name for name in data_from.objects if name.startswith("S")
-        ]
-
-    # load_filepath = "Blender/3rodbr2.blend"
-
-    # with bpy.data.libraries.load(load_filepath, link=True) as (data_from, data_to):
-    #     data_to.objects = [name for name in data_from.objects if name.startswith("S")]
-
-    # for obj in data_to.objects:
-    #     assert obj is not None
-    #     print(obj.name)
-
-    # # TODO: The writing part is not working
-    # # data_to.objects["Cube"].select_set(True)
-    # write_filepath = "/Blender/3rodbr2_write.blend"
-    # bpy.data.libraries.write(write_filepath, set(bpy.context.selected_objects), path_remap="RELATIVE")
-
-    # TODO: The writing part is not working
-    # data_to.objects["Cube"].select_set(True)
-    write_filepath = "/Blender/3rodbr2_write.blend"
-    bpy.data.libraries.write(
-        write_filepath, set(bpy.context.selected_objects), path_remap="RELATIVE"
-    )
+    bsr.save(filepath=write_filepath)
 
 
 if __name__ == "__main__":
