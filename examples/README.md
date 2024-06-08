@@ -25,3 +25,10 @@ Examples can serve as a starting template for customized usages.
     * __Purpose__: Illustration case for Rod module
     * __Features__: Rod
     * [RigidRodSpringMotion3D](./single_rigid_rod_spring_action_3D.py)
+        * __Purpose__: In 3D motion
+
+## Case with External Simulator
+
+* [TimoshenkoBeamCase](./TimoshenkoBeamCase)
+    * __Purpose__: Example of `elastica_blender` module on simple Timoshenko beam.
+    * __Features__: elastica_blender.BlenderRodCallback
