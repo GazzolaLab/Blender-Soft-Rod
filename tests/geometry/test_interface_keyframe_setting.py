@@ -1,10 +1,11 @@
-import pytest
-import bpy
-
 import math
-import numpy as np
 
-from bsr.geometry import Sphere, Cylinder
+import bpy
+import numpy as np
+import pytest
+
+from bsr.geometry import Cylinder, Sphere
+
 
 def get_keyframes(obj_list):
     keyframes = []
@@ -15,8 +16,9 @@ def get_keyframes(obj_list):
                 for keyframe in fcurve.keyframe_points:
                     x, y = keyframe.co
                     if x not in keyframes:
-                        keyframes.append((math.ceil(x)))
+                        keyframes.append(math.ceil(x))
     return keyframes
+
 
 def count_number_of_keyframes_action(obj):
     action = obj.animation_data.action
@@ -24,6 +26,7 @@ def count_number_of_keyframes_action(obj):
         return 0
     else:
         return len(action.fcurves[0].keyframe_points)
+
 
 @pytest.mark.parametrize(
     "primitive",
@@ -37,8 +40,6 @@ def count_number_of_keyframes_action(obj):
     ],
 )
 def test_set_keyframe_count_for_primitive(primitive):
-    #breakpoint()
-    #print("test")
     primitive.set_keyframe(1)
     assert count_number_of_keyframes_action(primitive.object) == 1
 
@@ -54,3 +55,6 @@ def test_set_keyframe_count_for_primitive(primitive):
 
     primitive.set_keyframe(1)
     assert count_number_of_keyframes_action(primitive.object) == 1
+
+    # Clear the test
+    primitive.clear_animation()

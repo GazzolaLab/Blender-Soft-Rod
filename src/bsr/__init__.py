@@ -1,10 +1,10 @@
 import sys
 from importlib import metadata as importlib_metadata
 
-from .stack import *
 from .file import *
 from .macros import *
 from .rod import *
+from .stack import *
 
 
 def get_version() -> str:

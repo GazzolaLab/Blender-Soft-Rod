@@ -4,6 +4,7 @@ import bpy
 
 from .protocol import BlenderMeshInterfaceProtocol
 
+
 # Base class
 class KeyFrameControlMixin(ABC):
     """
@@ -20,6 +21,5 @@ class KeyFrameControlMixin(ABC):
         self.object.animation_data_create()
 
     @abstractmethod
-    def set_keyframe(self: BlenderMeshInterfaceProtocol, keyframe:int) -> None:
+    def set_keyframe(self: BlenderMeshInterfaceProtocol, keyframe: int) -> None:
         raise NotImplementedError
-
