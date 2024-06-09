@@ -1,15 +1,14 @@
 __all__ = ["RodStack", "create_rod_collection"]
 
-from typing import TYPE_CHECKING, Protocol, Any
+from typing import TYPE_CHECKING, Any, Protocol
 from typing_extensions import Self
 
+import bpy
 import numpy as np
 
-import bpy
-
+from .mixin import KeyFrameControlMixin
 from .protocol import StackProtocol
 from .rod import Rod
-from .mixin import KeyFrameControlMixin
 
 
 # TODO
@@ -35,9 +34,7 @@ class RodStack(KeyFrameControlMixin):
         pass
 
     @classmethod
-    def create_collection(
-        cls, num_rods: int, num_nodes: int
-    ) -> Self:
+    def create_collection(cls, num_rods: int, num_nodes: int) -> Self:
         return cls()
 
     def update_history(
@@ -45,7 +42,7 @@ class RodStack(KeyFrameControlMixin):
     ) -> None:
         pass
 
-    def set_keyframe(self, keyframe:int) -> None:
+    def set_keyframe(self, keyframe: int) -> None:
         # TODO
         pass
 

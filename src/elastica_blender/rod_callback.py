@@ -25,7 +25,9 @@ class BlenderRodCallback(CallBackBaseClass):
     ) -> None:
         if current_step % self.every == 0:
             if current_step == 0:
-                self.bpy_objs = bsr.Rod(system.position_collection, system.radius_collection)
+                self.bpy_objs = bsr.Rod(
+                    system.position_collection, system.radius_collection
+                )
             else:
                 self.bpy_objs.update_states(
                     positions=system.position_collection,

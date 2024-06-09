@@ -9,7 +9,6 @@ import bpy
 import numpy as np
 
 from .geometry import Cylinder, Sphere
-
 from .mixin import KeyFrameControlMixin
 from .protocol import CompositeProtocol
 
@@ -33,7 +32,9 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         assert positions.ndim == 2, "positions must be 2D array"
         assert positions.shape[0] == 3, "positions must have 3 rows"
         assert radii.ndim == 1, "radii must be 1D array"
-        assert positions.shape[-1] == radii.shape[-1] + 1, "radii must have n_nodes-1 elements"
+        assert (
+            positions.shape[-1] == radii.shape[-1] + 1
+        ), "radii must have n_nodes-1 elements"
 
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
@@ -50,14 +51,16 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         return self._bpy_objs
 
     @classmethod
-    def create(cls, states: dict[str, np.ndarray]) -> "RodWithSphereAndCylinder":
+    def create(
+        cls, states: dict[str, np.ndarray]
+    ) -> "RodWithSphereAndCylinder":
         rod = cls(states["positions"], states["radii"])
         return rod
 
     def _build(self, positions: np.ndarray, radii: np.ndarray) -> None:
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
-        _radii[1:-1] /= 2.
+        _radii[1:-1] /= 2.0
         for j in range(positions.shape[-1]):
             sphere = Sphere(positions[:, j], _radii[j])
             self.spheres.append(sphere)
@@ -73,7 +76,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
     def update_states(self, positions: np.ndarray, radii: np.ndarray) -> None:
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
-        _radii[1:-1] /= 2.
+        _radii[1:-1] /= 2.0
         for idx, sphere in enumerate(self.spheres):
             sphere.update_states(positions[:, idx], radii[idx])
 
@@ -82,7 +85,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
                 positions[:, idx], positions[:, idx + 1], radii[idx]
             )
 
-    def set_keyframe(self, keyframe:int) -> None:
+    def set_keyframe(self, keyframe: int) -> None:
         for idx, sphere in enumerate(self.spheres):
             sphere.set_keyframe(keyframe)
 

@@ -15,11 +15,13 @@ import bpy
 class BlenderKeyframeManipulateProtocol(Protocol):
     def clear_animation(self) -> None: ...
 
-    def set_keyframe(self, keyframe:int) -> None: ...
+    def set_keyframe(self, keyframe: int) -> None: ...
+
 
 MeshDataType = dict[str, Any]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
 P = ParamSpec("P")
+
 
 class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     """
@@ -46,12 +48,16 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
 
     # def update_material(self, material) -> None: ...  # TODO: For future implementation
 
+
 class CompositeProtocol(BlenderMeshInterfaceProtocol, Protocol):
     @property
     def object(self) -> dict[str, list[bpy.types.Object]]:
         """Returns associated Blender object."""
 
+
 D = TypeVar("D", bound="StackProtocol", covariant=True)
+
+
 class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
     def __len__(self) -> int: ...
 
