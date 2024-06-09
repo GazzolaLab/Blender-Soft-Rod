@@ -63,7 +63,7 @@ class Sphere(KeyFrameControlMixin):
         ----------
         keyframe : int
         """
-        self._obj.keyframe_insert(data_path="location", frame=keyframe)
+        self.object.keyframe_insert(data_path="location", frame=keyframe)
 
 
 # FIXME: This class needs to be modified to conform to the BlenderMeshInterfaceProtocol
