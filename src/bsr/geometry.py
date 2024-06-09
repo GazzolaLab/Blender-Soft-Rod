@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING
 import bpy
 import numpy as np
 
-from bsr.protocol import BlenderMeshInterfaceProtocol, MeshDataType
+from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
+from .mixin import KeyFrameControlMixin
 
 
-class Sphere:
+class Sphere(KeyFrameControlMixin):
     """
     This class provides a mesh interface for Blender Sphere objects.
     Sphere objects are created with the given position and radius.
@@ -54,9 +55,19 @@ class Sphere:
         bpy.ops.mesh.primitive_uv_sphere_add()
         return bpy.context.active_object
 
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Sets a keyframe at the given frame.
+
+        Parameters
+        ----------
+        keyframe : int
+        """
+        self._obj.keyframe_insert(data_path="location", frame=keyframe)
+
 
 # FIXME: This class needs to be modified to conform to the BlenderMeshInterfaceProtocol
-class Cylinder:
+class Cylinder(KeyFrameControlMixin):
     """
     TODO: Add documentation
     """
@@ -116,13 +127,26 @@ class Cylinder:
         depth, center, angles = self.calc_cyl_orientation(
             position_1, position_2
         )
-        bpy.ops.mesh.primitive_uv_cylinder_add(
-            radius=radius, location=center, depth=depth
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=1.0, depth=1.0
         )
         cylinder = bpy.context.active_object
         cylinder.rotation_euler = (0, angles[1], angles[0])
         cylinder.scale[2] = depth
         return cylinder
+
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Sets a keyframe at the given frame.
+
+        Parameters
+        ----------
+        keyframe : int
+        """
+        self.object.keyframe_insert(data_path="location", frame=keyframe)
+        self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
+        self.object.keyframe_insert(data_path="scale", frame=keyframe)
+        # self.object.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
 
 if TYPE_CHECKING:
@@ -134,4 +158,4 @@ if TYPE_CHECKING:
         "position_2": np.array([1, 1, 1]),
         "radius": 1.0,
     }
-    _: BlenderMeshInterfaceProtocol = Cylinder.create(data)
+    _: BlenderMeshInterfaceProtocol = Cylinder.create(data) # type: ignore[no-redef]
