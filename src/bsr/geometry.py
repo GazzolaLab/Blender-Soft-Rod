@@ -78,7 +78,7 @@ class Cylinder(KeyFrameControlMixin):
         position_2: np.ndarray,
         radius: float,
     ):
-        self.obj = self._create_cylinder(
+        self._obj = self._create_cylinder(
             position_1,
             position_2,
             radius,
@@ -96,11 +96,11 @@ class Cylinder(KeyFrameControlMixin):
         depth, center, angles = self.calc_cyl_orientation(
             position_1, position_2
         )
-        self.obj.location = center
-        self.obj.rotation_euler = (0, angles[1], angles[0])
-        self.obj.scale[2] = depth
-        self.obj.scale[0] = radius
-        self.obj.scale[1] = radius
+        self.object.location = center
+        self.object.rotation_euler = (0, angles[1], angles[0])
+        self.object.scale[2] = depth
+        self.object.scale[0] = radius
+        self.object.scale[1] = radius
 
     def calc_cyl_orientation(self, position_1, position_2):
         position_1 = np.array(position_1)
