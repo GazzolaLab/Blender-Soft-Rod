@@ -18,15 +18,18 @@ class BlenderRodCallback(CallBackBaseClass):
         CallBackBaseClass.__init__(self)
         self.every = step_skip
         self.keyframe = 0
-        self.bpy_objs = bsr.Rod()
+        self.bpy_objs: bsr.Rod
 
     def make_callback(
         self, system: RodType, time: np.floating, current_step: int
     ) -> None:
         if current_step % self.every == 0:
-            self.bpy_objs.update(
-                keyframe=self.key_frame,
-                positions=system.position_collection,
-                radii=system.radius_collection,
-            )
+            if current_step == 0:
+                self.bpy_objs = bsr.Rod(system.position_collection, system.radius_collection)
+            else:
+                self.bpy_objs.update_states(
+                    positions=system.position_collection,
+                    radii=system.radius_collection,
+                )
+            self.bpy_objs.set_keyframe(self.key_frame)
             self.key_frame += 1
