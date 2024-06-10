@@ -1,12 +1,29 @@
+__all__ = [
+    "BlenderMeshInterfaceProtocol",
+    "CompositeProtocol",
+    "StackProtocol",
+]
+
 from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, Type, TypeVar
 from typing_extensions import Self
+
+from abc import ABC, abstractmethod
+
+import bpy
+
+
+class BlenderKeyframeManipulateProtocol(Protocol):
+    def clear_animation(self) -> None: ...
+
+    def set_keyframe(self, keyframe: int) -> None: ...
+
 
 MeshDataType = dict[str, Any]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
 P = ParamSpec("P")
 
 
-class BlenderMeshInterfaceProtocol(Protocol):
+class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     """
     This protocol defines the interface for Blender mesh objects.
     """
@@ -30,3 +47,22 @@ class BlenderMeshInterfaceProtocol(Protocol):
         """Updates the mesh object with the given states."""
 
     # def update_material(self, material) -> None: ...  # TODO: For future implementation
+
+
+class CompositeProtocol(BlenderMeshInterfaceProtocol, Protocol):
+    @property
+    def object(self) -> dict[str, list[bpy.types.Object]]:
+        """Returns associated Blender object."""
+
+
+D = TypeVar("D", bound="StackProtocol", covariant=True)
+
+
+class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
+    def __len__(self) -> int: ...
+
+    def __getitem__(self, index: int) -> D: ...
+
+    @property
+    def object(self) -> list[BlenderMeshInterfaceProtocol]:
+        """Returns associated Blender object."""
