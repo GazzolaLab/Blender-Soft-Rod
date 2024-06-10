@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+from utils import get_mesh_limit
 
 from bsr.geometry import Cylinder, Sphere
-from tests.geometry.utils import get_mesh_limit
 
 # Visual tolerance for the mesh limit
 _VISUAL_ATOL = 1e-7

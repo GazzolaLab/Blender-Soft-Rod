@@ -1,61 +1,104 @@
 __doc__ = """
 Rod class for creating and updating rods in Blender
 """
-__all__ = ["Rod"]
+__all__ = ["RodWithSphereAndCylinder", "Rod"]
 
+from typing import TYPE_CHECKING
+
+import bpy
 import numpy as np
 
 from .geometry import Cylinder, Sphere
+from .mixin import KeyFrameControlMixin
+from .protocol import CompositeProtocol
 
 
-# TODO
-class Rod:
+class RodWithSphereAndCylinder(KeyFrameControlMixin):
     """
     Rod class for managing visualization and rendering in Blender
+
+    Parameters
+    ----------
+    positions : np.ndarray
+        The positions of the sphere objects. Expected shape is (n_dim, n_nodes).
+        n_dim = 3
+    radii : np.ndarray
+        The radii of the sphere objects. Expected shape is (n_nodes-1,).
+
     """
 
-    def __init__(self) -> None:
-        self.bpy_objs = None
+    def __init__(self, positions: np.ndarray, radii: np.ndarray) -> None:
+        # check shape of positions and radii
+        assert positions.ndim == 2, "positions must be 2D array"
+        assert positions.shape[0] == 3, "positions must have 3 rows"
+        assert radii.ndim == 1, "radii must be 1D array"
+        assert (
+            positions.shape[-1] == radii.shape[-1] + 1
+        ), "radii must have n_nodes-1 elements"
 
-    def clear(self):
-        raise NotImplementedError("Not yet implemented")
+        # create sphere and cylinder objects
+        self.spheres: list[Sphere] = []
+        self.cylinders: list[Cylinder] = []
+        self._bpy_objs: dict[str, list[bpy.types.Object]] = {
+            "sphere": self.spheres,
+            "cylinder": self.cylinders,
+        }
 
-    def build(self, positions: np.ndarray, radii: np.ndarray):
-        # TODO: Refactor
+        self._build(positions, radii)
+
+    @property
+    def object(self) -> dict[str, list[bpy.types.Object]]:
+        return self._bpy_objs
+
+    @classmethod
+    def create(
+        cls, states: dict[str, np.ndarray]
+    ) -> "RodWithSphereAndCylinder":
+        rod = cls(states["positions"], states["radii"])
+        return rod
+
+    def _build(self, positions: np.ndarray, radii: np.ndarray) -> None:
+        _radii = np.concatenate([radii, [0]])
+        _radii[1:] += radii
+        _radii[1:-1] /= 2.0
         for j in range(positions.shape[-1]):
-            sphere = Sphere(positions[:, j])
-            self.bpy_objs["sphere"].append(sphere)
-            sphere.obj.keyframe_insert(data_path="location", frame=0)
+            sphere = Sphere(positions[:, j], _radii[j])
+            self.spheres.append(sphere)
 
-        for j in range(positions.shape[-1] - 1):
+        for j in range(radii.shape[-1]):
             cylinder = Cylinder(
-                self.bpy_objs["sphere"][j].obj.location,
-                self.bpy_objs["sphere"][j + 1].obj.location,
+                positions[:, j],
+                positions[:, j + 1],
+                radii[j],
             )
-            self.bpy_objs["cylinder"].append(cylinder)
-            cylinder.obj.keyframe_insert(data_path="location", frame=0)
+            self.cylinders.append(cylinder)
 
-    def update(self, keyframe: int, positions: np.ndarray, radii: np.ndarray):
-        if self.bpy_objs is None:
-            self.bpy_objs = {"sphere": [], "cylinder": []}
-            self.build(positions, radii)
-            return
-        # TODO: Refactor
-        # update all sphere and cylinder positions and write object to keyframe
-        for idx, sphere in enumerate(self.bpy_objs["sphere"]):
-            sphere.update_position(positions[:, idx])
-            sphere.obj.keyframe_insert(data_path="location", frame=time_step)
+    def update_states(self, positions: np.ndarray, radii: np.ndarray) -> None:
+        _radii = np.concatenate([radii, [0]])
+        _radii[1:] += radii
+        _radii[1:-1] /= 2.0
+        for idx, sphere in enumerate(self.spheres):
+            sphere.update_states(positions[:, idx], radii[idx])
 
-        for idx, cylinder in enumerate(self.bpy_objs["cylinder"]):
-            cylinder.update_position(
-                self.bpy_objs["sphere"][idx].obj.location,
-                self.bpy_objs["sphere"][idx + 1].obj.location,
+        for idx, cylinder in enumerate(self.cylinders):
+            cylinder.update_states(
+                positions[:, idx], positions[:, idx + 1], radii[idx]
             )
-            cylinder.obj.keyframe_insert(data_path="location", frame=time_step)
-            cylinder.obj.keyframe_insert(
-                data_path="rotation_euler", frame=time_step
-            )
-            cylinder.obj.keyframe_insert(data_path="scale", frame=time_step)
-            cylinder.mat.keyframe_insert(
-                data_path="diffuse_color", frame=time_step
-            )
+
+    def set_keyframe(self, keyframe: int) -> None:
+        for idx, sphere in enumerate(self.spheres):
+            sphere.set_keyframe(keyframe)
+
+        for idx, cylinder in enumerate(self.cylinders):
+            cylinder.set_keyframe(keyframe)
+
+
+# Alias
+Rod = RodWithSphereAndCylinder
+
+if TYPE_CHECKING:
+    data = {
+        "positions": np.array([[0, 0, 0], [1, 1, 1]]),
+        "radii": np.array([1.0, 1.0]),
+    }
+    _: CompositeProtocol = RodWithSphereAndCylinder.create(data)
