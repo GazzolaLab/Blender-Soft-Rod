@@ -1,3 +1,4 @@
+import bpy
 import numpy as np
 import pytest
 
@@ -18,11 +19,30 @@ from bsr.geometry import Cylinder, Sphere
 class TestBlenderMeshInterfaceObjects:
     def test_object_type(self, primitive):
         # TODO : Test .object and return type
-        assert False
+        if isinstance(primitive, Sphere):
+            object = primitive.object
+        elif isinstance(primitive, Cylinder):
+            object = primitive.object
+        else:
+            raise TypeError(f"Unsupported type: {type(primitive)}")
+        assert isinstance(object, bpy.types.Object)
 
     def test_create_method(self, primitive):
         # TODO : Test .create method using .states
-        assert False
+        if isinstance(primitive, Sphere):
+            states = {"position": np.array([0, 0, 0]), "radius": 1.0}
+            created = Sphere.create(states)
+            assert isinstance(created, Sphere)
+        elif isinstance(primitive, Cylinder):
+            states = {
+                "position_1": np.array([0, 0, 0]),
+                "position_2": np.array([0, 0, 1]),
+                "radius": 1.0,
+            }
+            created = Cylinder.create(states)
+            assert isinstance(created, Cylinder)
+        else:
+            raise TypeError(f"Unsupported type: {type(primitive)}")
 
     def test_update_states_method(self, primitive):
         # TODO: Test .update_states method and check if the object is updated
