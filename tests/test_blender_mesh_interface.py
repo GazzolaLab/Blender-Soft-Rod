@@ -19,13 +19,7 @@ from bsr.geometry import Cylinder, Sphere
 class TestBlenderMeshInterfaceObjects:
     def test_object_type(self, primitive):
         # TODO : Test .object and return type
-        if isinstance(primitive, Sphere):
-            object = primitive.object
-        elif isinstance(primitive, Cylinder):
-            object = primitive.object
-        else:
-            raise TypeError(f"Unsupported type: {type(primitive)}")
-        assert isinstance(object, bpy.types.Object)
+        assert isinstance(primitive.object, bpy.types.Object)
 
     def test_create_method(self, primitive):
         # TODO : Test .create method using .states
