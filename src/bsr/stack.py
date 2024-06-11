@@ -17,6 +17,11 @@ from .typing import RodType
 
 
 class BaseStack(Sequence, KeyFrameControlMixin):
+    """
+    A stack of objects that can be manipulated together.
+    Internally, we use a list-like structure to store the objects.
+    """
+
     DefaultType: Type[BlenderMeshInterfaceProtocol]
 
     def __init__(self) -> None:
@@ -38,6 +43,9 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
+        """
+        Returns the objects in the stack.
+        """
         return self._objs
 
     def set_keyframe(self, keyframe: int) -> None:
@@ -52,6 +60,9 @@ class BaseStack(Sequence, KeyFrameControlMixin):
         cls,
         states: dict[str, NDArray],
     ) -> Self:
+        """
+        Creates a stack of objects from the given states.
+        """
         self = cls()
         keys = states.keys()
         lengths = [i.shape[0] for i in states.values()]
