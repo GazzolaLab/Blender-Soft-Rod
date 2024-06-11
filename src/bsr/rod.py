@@ -49,10 +49,18 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     @property
     def object(self) -> dict[str, list[bpy.types.Object]]:
+        """
+        Return the dictionary of Blender objects: sphere and cylinder
+        """
         return self._bpy_objs
 
     @classmethod
     def create(cls, states: dict[str, NDArray]) -> "RodWithSphereAndCylinder":
+        """
+        Create a Rod object from the given states
+
+        States must have the following keys: positions(n_nodes, 3), radii(n_nodes-1,)
+        """
         rod = cls(**states)
         return rod
 
@@ -73,6 +81,16 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             self.cylinders.append(cylinder)
 
     def update_states(self, positions: NDArray, radii: NDArray) -> None:
+        """
+        Update the states of the rod object
+
+        Parameters
+        ----------
+        positions : NDArray
+            The positions of the sphere objects. Expected shape is (n_nodes, 3).
+        radii : NDArray
+            The radii of the sphere objects. Expected shape is (n_nodes-1,).
+        """
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
         _radii[1:-1] /= 2.0
@@ -85,6 +103,9 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             )
 
     def set_keyframe(self, keyframe: int) -> None:
+        """
+        Set keyframe for the rod object
+        """
         for idx, sphere in enumerate(self.spheres):
             sphere.set_keyframe(keyframe)
 

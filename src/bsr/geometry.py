@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import bpy
 import numpy as np
+from numpy.typing import NDArray
 
 from .mixin import KeyFrameControlMixin
 from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
@@ -19,34 +20,48 @@ class Sphere(KeyFrameControlMixin):
 
     Parameters
     ----------
-    position : np.ndarray
-        The position of the sphere object.
+    position : NDArray
+        The position of the sphere object. (3D)
     radius : float
         The radius of the sphere object.
+
     """
 
-    def __init__(self, position: np.ndarray, radius: float) -> None:
+    def __init__(self, position: NDArray, radius: float) -> None:
         self._obj = self._create_sphere()
         self.update_states(position, radius)
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
+        """
+        Basic factory method to create a new Sphere object.
+        """
         return cls(states["position"], states["radius"])
 
     @property
     def object(self) -> bpy.types.Object:
+        """
+        Access the Blender object.
+        """
         return self._obj
 
-    def update_states(
-        self, position: np.ndarray | None = None, radius: float | None = None
-    ) -> bpy.types.Object:
+    def update_states(self, position: NDArray, radius: float) -> None:
+        """
+        Updates the position and radius of the sphere object.
+
+        Parameters
+        ----------
+        position : NDArray
+            The new position of the sphere object.
+        radius : float
+            The new radius of the sphere object.
+        """
         if position is not None:
             self.object.location.x = position[0]
             self.object.location.y = position[1]
             self.object.location.z = position[2]
         if radius is not None:
             self.object.scale = (radius, radius, radius)
-        return self.object
 
     def _create_sphere(self) -> bpy.types.Object:
         """
@@ -74,8 +89,8 @@ class Cylinder(KeyFrameControlMixin):
 
     def __init__(
         self,
-        position_1: np.ndarray,
-        position_2: np.ndarray,
+        position_1: NDArray,
+        position_2: NDArray,
         radius: float,
     ):
         self._obj = self._create_cylinder(
@@ -117,8 +132,8 @@ class Cylinder(KeyFrameControlMixin):
 
     def _create_cylinder(
         self,
-        position_1: np.ndarray,
-        position_2: np.ndarray,
+        position_1: NDArray,
+        position_2: NDArray,
         radius: float,
     ) -> bpy.types.Object:
         """
