@@ -127,7 +127,9 @@ class TestConstructBlenderFile:
             call_count = 1 if tags is None else len(tags)
 
             assert bsr.create_rod_collection.call_count == call_count
-            assert rods_mock.update_history.call_count == call_count
+            assert (
+                rods_mock.update_states.call_count == call_count * 4
+            )  # 4 frames
 
             bsr.save.assert_called_once_with(output_path)
 
