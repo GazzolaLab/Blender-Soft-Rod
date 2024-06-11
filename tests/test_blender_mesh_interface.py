@@ -23,20 +23,10 @@ class TestBlenderMeshInterfaceObjects:
 
     def test_create_method(self, primitive):
         # TODO : Test .create method using .states
-        if isinstance(primitive, Sphere):
-            states = {"position": np.array([0, 0, 0]), "radius": 1.0}
-            created = Sphere.create(states)
-            assert isinstance(created, Sphere)
-        elif isinstance(primitive, Cylinder):
-            states = {
-                "position_1": np.array([0, 0, 0]),
-                "position_2": np.array([0, 0, 1]),
-                "radius": 1.0,
-            }
-            created = Cylinder.create(states)
-            assert isinstance(created, Cylinder)
-        else:
-            raise TypeError(f"Unsupported type: {type(primitive)}")
+        states = primitive.states
+        new_object = type(primitive).create(states)
+        
+        assert states == new_object.states
 
     def test_update_states_method(self, primitive):
         # TODO: Test .update_states method and check if the object is updated
