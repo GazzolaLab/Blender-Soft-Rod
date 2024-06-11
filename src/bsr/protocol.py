@@ -18,6 +18,7 @@ from typing_extensions import Self
 from abc import ABC, abstractmethod
 
 import bpy
+from numpy.typing import NDArray
 
 
 class BlenderKeyframeManipulateProtocol(Protocol):
@@ -26,7 +27,7 @@ class BlenderKeyframeManipulateProtocol(Protocol):
     def set_keyframe(self, keyframe: int) -> None: ...
 
 
-MeshDataType: TypeAlias = dict[str, Any]
+MeshDataType: TypeAlias = dict[str, NDArray]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
 P = ParamSpec("P")
 
@@ -67,6 +68,8 @@ D = TypeVar("D", bound="StackProtocol", covariant=True)
 
 
 class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
+    DefaultType: Type[D]
+
     def __len__(self) -> int: ...
 
     def __getitem__(self, index: int) -> D: ...
@@ -74,8 +77,3 @@ class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
         """Returns associated Blender object."""
-
-    @classmethod
-    def create(
-        cls: Type[D], states: MeshDataType, object_type: Type[D]
-    ) -> D: ...
