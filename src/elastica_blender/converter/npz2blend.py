@@ -56,9 +56,11 @@ def construct_blender_file(
         num_rods = position_history.shape[0]
         num_nodes = position_history.shape[3]
         rods = bsr.create_rod_collection(num_rods, num_nodes)
-        rods.update_history(
-            keyframes=time, position=position_history, radius=radius_history
-        )
+        for tidx, time in tqdm(enumerate(time), total=len(time)):
+            rods.update_states(
+                position=position_history[tidx], radius=radius_history[tidx]
+            )
+            rods.set_keyframe(tidx)
     else:
         for tag in tags:
             position_history = data[tag + "_position_history"]
@@ -66,9 +68,11 @@ def construct_blender_file(
             num_rods = position_history.shape[0]
             num_nodes = position_history.shape[3]
             rods = bsr.create_rod_collection(num_rods, num_nodes)
-            rods.update_history(
-                keyframes=time, position=position_history, radius=radius_history
-            )
+            for tidx, time in tqdm(enumerate(time), total=len(time)):
+                rods.update_states(
+                    position=position_history[tidx], radius=radius_history[tidx]
+                )
+                rods.set_keyframe(tidx)
 
     bsr.save(output)
 
