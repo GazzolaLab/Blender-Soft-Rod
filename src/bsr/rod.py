@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import bpy
 import numpy as np
+from numpy.typing import NDArray
 
 from .geometry import Cylinder, Sphere
 from .mixin import KeyFrameControlMixin
@@ -19,15 +20,15 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     Parameters
     ----------
-    positions : np.ndarray
+    positions : NDArray
         The positions of the sphere objects. Expected shape is (n_dim, n_nodes).
         n_dim = 3
-    radii : np.ndarray
+    radii : NDArray
         The radii of the sphere objects. Expected shape is (n_nodes-1,).
 
     """
 
-    def __init__(self, positions: np.ndarray, radii: np.ndarray) -> None:
+    def __init__(self, positions: NDArray, radii: NDArray) -> None:
         # check shape of positions and radii
         assert positions.ndim == 2, "positions must be 2D array"
         assert positions.shape[0] == 3, "positions must have 3 rows"
@@ -51,13 +52,11 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         return self._bpy_objs
 
     @classmethod
-    def create(
-        cls, states: dict[str, np.ndarray]
-    ) -> "RodWithSphereAndCylinder":
-        rod = cls(states["positions"], states["radii"])
+    def create(cls, states: dict[str, NDArray]) -> "RodWithSphereAndCylinder":
+        rod = cls(**states)
         return rod
 
-    def _build(self, positions: np.ndarray, radii: np.ndarray) -> None:
+    def _build(self, positions: NDArray, radii: NDArray) -> None:
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
         _radii[1:-1] /= 2.0
@@ -73,7 +72,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             )
             self.cylinders.append(cylinder)
 
-    def update_states(self, positions: np.ndarray, radii: np.ndarray) -> None:
+    def update_states(self, positions: NDArray, radii: NDArray) -> None:
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
         _radii[1:-1] /= 2.0
@@ -81,7 +80,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             sphere.update_states(positions[:, idx], radii[idx])
 
         for idx, cylinder in enumerate(self.cylinders):
-            cylinder.update_states(
+            cylinder.update_states(  # type: ignore[no-untyped-call]
                 positions[:, idx], positions[:, idx + 1], radii[idx]
             )
 

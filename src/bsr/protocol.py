@@ -27,9 +27,8 @@ class BlenderKeyframeManipulateProtocol(Protocol):
     def set_keyframe(self, keyframe: int) -> None: ...
 
 
-MeshDataType: TypeAlias = dict[str, NDArray]
+MeshDataType: TypeAlias = dict[str, Any]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
-P = ParamSpec("P")
 
 
 class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
@@ -45,14 +44,14 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     # def material(self): ...
 
     @property
-    def object(self) -> bpy.types.Object:
+    def object(self) -> Any:
         """Returns associated Blender object."""
 
     @classmethod
     def create(cls: Type[S], states: MeshDataType) -> S:
         """Creates a new mesh object with the given states."""
 
-    def update_states(self, *args: Any) -> bpy.types.Object:
+    def update_states(self, *args: Any) -> None:
         """Updates the mesh object with the given states."""
 
     # def update_material(self, material) -> None: ...  # TODO: For future implementation
@@ -60,19 +59,18 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
 
 class CompositeProtocol(BlenderMeshInterfaceProtocol, Protocol):
     @property
-    def object(self) -> dict[str, list[bpy.types.Object]]:
+    def object(
+        self,
+    ) -> dict[str, list[BlenderMeshInterfaceProtocol | bpy.types.Object]]:
         """Returns associated Blender object."""
 
 
-D = TypeVar("D", bound="StackProtocol", covariant=True)
-
-
-class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
-    DefaultType: Type[D]
+class StackProtocol(BlenderMeshInterfaceProtocol, Protocol):
+    DefaultType: Type[BlenderMeshInterfaceProtocol | bpy.types.Object]
 
     def __len__(self) -> int: ...
 
-    def __getitem__(self, index: int) -> D: ...
+    def __getitem__(self, index: int) -> BlenderMeshInterfaceProtocol: ...
 
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
