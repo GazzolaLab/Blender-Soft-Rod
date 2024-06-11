@@ -1,13 +1,13 @@
-__all__ = ["RodStack", "create_rod_collection"]
+__all__ = ["BaseStack", "RodStack", "create_rod_collection"]
 
-from typing import TYPE_CHECKING, Any, Protocol, Type
+from typing import TYPE_CHECKING, Any, Protocol, Type, overload
 from typing_extensions import Self
 
-from abc import ABC
 from collections.abc import Sequence
 
 import bpy
 import numpy as np
+from numpy.typing import NDArray
 from tqdm import tqdm
 
 from .mixin import KeyFrameControlMixin
@@ -16,33 +16,41 @@ from .rod import Rod
 from .typing import RodType
 
 
-class BaseStack(Sequence, KeyFrameControlMixin, ABC):
+class BaseStack(Sequence, KeyFrameControlMixin):
     DefaultType: Type[BlenderMeshInterfaceProtocol]
 
     def __init__(self) -> None:
         self._objs: list[BlenderMeshInterfaceProtocol] = []
 
-    def __getitem__(self, index: int) -> BlenderMeshInterfaceProtocol:
+    @overload
+    def __getitem__(self, index: int, /) -> BlenderMeshInterfaceProtocol: ...
+    @overload
+    def __getitem__(
+        self, index: slice, /
+    ) -> list[BlenderMeshInterfaceProtocol]: ...
+    def __getitem__(
+        self, index: int | slice
+    ) -> BlenderMeshInterfaceProtocol | list[BlenderMeshInterfaceProtocol]:
         return self._objs[index]
 
     def __len__(self) -> int:
         return len(self._objs)
 
     @property
-    def object(self) -> list[bpy.types.Object]:
+    def object(self) -> list[BlenderMeshInterfaceProtocol]:
         return self._objs
 
     def set_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
         """
-        for rod in self._objs:
-            rod.set_keyframe(keyframe)
+        for obj in self._objs:
+            obj.set_keyframe(keyframe)
 
     @classmethod
     def create(
         cls,
-        states: dict[str, np.ndarray],
+        states: dict[str, NDArray],
     ) -> Self:
         self = cls()
         keys = states.keys()
@@ -56,7 +64,7 @@ class BaseStack(Sequence, KeyFrameControlMixin, ABC):
             self._objs.append(obj)
         return self
 
-    def update_states(self, *variables) -> None:
+    def update_states(self, *variables: NDArray) -> None:
         """
         Updates the states of the objects.
         """
@@ -69,7 +77,7 @@ class BaseStack(Sequence, KeyFrameControlMixin, ABC):
 
 
 class RodStack(BaseStack):
-    DefaultType: Type[RodType] = Rod
+    DefaultType: Type[BlenderMeshInterfaceProtocol] = Rod
 
 
 # Alias for factory functions
@@ -77,7 +85,7 @@ create_rod_collection = RodStack.create
 
 
 if TYPE_CHECKING:
-    data = {
+    data: dict[str, NDArray] = {
         "positions": np.array([[[0, 0, 0], [1, 1, 1]]]),
         "radii": np.array([[1.0, 1.0]]),
     }
