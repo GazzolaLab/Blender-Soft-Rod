@@ -4,7 +4,15 @@ __all__ = [
     "StackProtocol",
 ]
 
-from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, Type, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ParamSpec,
+    Protocol,
+    Type,
+    TypeAlias,
+    TypeVar,
+)
 from typing_extensions import Self
 
 from abc import ABC, abstractmethod
@@ -18,7 +26,7 @@ class BlenderKeyframeManipulateProtocol(Protocol):
     def set_keyframe(self, keyframe: int) -> None: ...
 
 
-MeshDataType = dict[str, Any]
+MeshDataType: TypeAlias = dict[str, Any]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
 P = ParamSpec("P")
 
@@ -66,3 +74,8 @@ class StackProtocol(BlenderMeshInterfaceProtocol, Protocol[D]):
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
         """Returns associated Blender object."""
+
+    @classmethod
+    def create(
+        cls: Type[D], states: MeshDataType, object_type: Type[D]
+    ) -> D: ...
