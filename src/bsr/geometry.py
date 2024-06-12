@@ -217,7 +217,7 @@ class Frustum(KeyFrameControlMixin):
         self.obj.rotation_euler = (0, angles[1], angles[0])
         self.obj.scale[2] = depth
 
-        self.update_color(r, g, b, 1)
+        # self.update_color(r, g, b, 1)
 
     def update_states(self, position_1, position_2, radius_1, radius_2):
         self.update_position(position_1, position_2)
