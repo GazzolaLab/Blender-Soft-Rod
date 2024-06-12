@@ -14,6 +14,12 @@ from bsr.geometry import Cylinder, Sphere
             position_2=np.array([0, 0, 1]),
             radius=1.0,
         ),
+        Frustum(
+            position_1=np.array([0, 0, 0]),
+            position_2=np.array([0, 0, 1]),
+            radius_1=1.0,
+            radius_2=2.0,
+        ),
     ],
 )
 class TestBlenderMeshInterfaceObjects:
@@ -25,7 +31,7 @@ class TestBlenderMeshInterfaceObjects:
         # TODO : Test .create method using .states
         states = primitive.states
         new_object = type(primitive).create(states)
-        
+
         assert states == new_object.states
 
     def test_update_states_method(self, primitive):
