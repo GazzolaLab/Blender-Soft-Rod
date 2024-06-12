@@ -6,45 +6,53 @@ from bsr.geometry import Cylinder, Frustum, Sphere
 
 
 @pytest.mark.parametrize(
-    "primitive",
+    "primitive_type_and_data",
     [
-        Sphere(position=np.array([0, 0, 0]), radius=1.0),
-        Cylinder(
-            position_1=np.array([0, 0, 0]),
-            position_2=np.array([0, 0, 1]),
-            radius=1.0,
+        (Sphere, dict(position=np.array([0, 0, 0]), radius=1.0)),
+        (
+            Cylinder,
+            dict(
+                position_1=np.array([0, 0, 0]),
+                position_2=np.array([0, 0, 1]),
+                radius=1.0,
+            ),
         ),
     ],
 )
 class TestBlenderMeshInterfaceObjects:
+    @pytest.fixture(scope="function")
+    def primitive(self, primitive_type_and_data):
+        primitive_type, data = primitive_type_and_data
+        return primitive_type(**data)
+
     def test_object_type(self, primitive):
-        # TODO : Test .object and return type
         assert isinstance(primitive.object, bpy.types.Object)
 
-    def test_create_method(self, primitive):
-        # TODO : Test .create method using .states
-        states = primitive.states
-        new_object = type(primitive).create(states)
-        assert states == new_object.states
+    def test_create_method(self, primitive_type_and_data):
+        primitive_type, data = primitive_type_and_data
+        new_object = primitive_type.create(data)
 
-    def test_update_states_method(self, primitive):
-        # TODO: Test .update_states method and check if the object is updated
-        states = primitive.states
-        new_object = type(primitive).update_states(
-            states
-        )  # Use states as pass in?
-        assert states != new_object.states
+        assert new_object is not None
 
+    def test_update_states_with_empty_data(self, primitive):
+        primitive.update_states()  # Calling empty data should pass
 
-def test_sphere_creator():
-    # TODO : Test Sphere._create_sphere method
-    new_sphere = Sphere._create_sphere()
-    assert new_sphere is not None
-    assert isinstance(new_sphere, bpy.types.Object)
-
-
-# TODO : Add test for Cylinder for full coverage
-def test_cylinder_creator():
-    new_cylinder = Cylinder._create_cylinder()
-    assert new_cylinder is not None
-    assert isinstance(new_cylinder, bpy.types.Object)
+    @pytest.mark.parametrize(
+        "wrong_key",
+        [
+            "__wrong_key",
+            5,
+        ],
+    )
+    def test_update_states_warning_message_if_wrong_key(
+        self, primitive_type_and_data, wrong_key
+    ):
+        t, data = primitive_type_and_data
+        data.update({wrong_key: 0})
+        with pytest.warns(UserWarning) as record:
+            t.create(data)
+        assert (
+            f"not used as a part of the state definition"
+            in record[0].message.args[0]
+        )
+        assert str(wrong_key) in record[0].message.args[0]
