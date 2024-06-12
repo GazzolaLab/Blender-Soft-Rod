@@ -161,11 +161,19 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
         # self.object.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
-    # def update_color(self, r, g, b, a):
+    # def update_color(self, val):
+    #    # computing deformation heat-map
+    #    max_def = 0.07
+
+    #    h = -np.sqrt(val) / max_def + 240 / 360
+    #    v = np.sqrt(val) / max_def * 0.5 + 0.5
+
+    #    r, g, b = colorsys.hsv_to_rgb(h, 1, v)
     #    self.mat.diffuse_color = (r, g, b, a)
 
 
-class Frustum(KeyFrameControlMixin):
+# TODO: Will be implemented in the future
+class Frustum(KeyFrameControlMixin):  # pragma: no cover
     """
     This class provides a mesh interface for Blender Frustum objects.
     Frustum objects are created with the given positions and radii.
@@ -189,54 +197,49 @@ class Frustum(KeyFrameControlMixin):
         radius_1: float,
         radius_2: float,
     ):
-        self._obj = self._create_frustum(
-            position_1, position_2, radius_1, radius_2
-        )
-        self.update_states(position_1, position_2, radius_1, radius_2)
+        raise NotImplementedError
+        # self._obj = self._create_frustum(
+        #    position_1, position_2, radius_1, radius_2
+        # )
+        # self.update_states(position_1, position_2, radius_1, radius_2)
 
         # self.mat = bpy.data.materials.new(name="cyl_mat")
         # self.obj.active_material = self.mat
 
+    @classmethod
+    def create(cls, states: MeshDataType) -> "Frustum":
+        raise NotImplementedError
+        # return cls(
+        #    states["position_1"],
+        #    states["position_2"],
+        #    states["radius_1"],
+        #    states["radius_2"],
+        # )
+
+    @property
+    def object(self) -> bpy.types.Object:
+        raise NotImplementedError
+        return self._obj
+
     def _create_frustum(self, position_1, position_2, radius_1, radius_2):
-        depth, center, angles = calculate_cylinder_orientation(
-            position_1, position_2
-        )
-        bpy.ops.mesh.primitive_cone_add(
-            radius_1=radius_1, radius_2=radius_2, depth=1, location=center
-        )
-        frustum = bpy.context.active_object
-        frustum.rotation_euler = (0, angles[1], angles[0])
-        frustum.scale[2] = depth
-        return frustum
-
-    def update_position(self, position_1, position_2):
-        depth, center, angles = calculate_cylinder_orientation(
-            position_1, position_2
-        )
-        self.obj.location = (center[0], center[1], center[2])
-        self.obj.rotation_euler = (0, angles[1], angles[0])
-        self.obj.scale[2] = depth
-
-        self.update_color(r, g, b, 1)
+        raise NotImplementedError
+        # depth, center, angles = calculate_cylinder_orientation(
+        #     position_1, position_2
+        # )
+        # bpy.ops.mesh.primitive_cone_add(
+        #     radius1=radius_1, radius2=radius_2, depth=1,
+        # )
+        # frustum = bpy.context.active_object
+        # frustum.rotation_euler = (0, angles[1], angles[0])
+        # frustum.location = center
+        # frustum.scale[2] = depth
+        # return frustum
 
     def update_states(self, position_1, position_2, radius_1, radius_2):
-        self.update_position(position_1, position_2)
+        raise NotImplementedError
 
     def set_keyframe(self, keyframe: int) -> None:
-        self.obj.keyframe_insert(data_path="location", frame=keyframe)
-        self.obj.keyframe_insert(data_path="rotation_euler", frame=keyframe)
-        self.obj.keyframe_insert(data_path="scale", frame=keyframe)
-        # self.mat.keyframe_insert(data_path="diffuse_color", frame=time_step)
-
-    # def update_color(self, val):
-    #    # computing deformation heat-map
-    #    max_def = 0.07
-
-    #    h = -np.sqrt(val) / max_def + 240 / 360
-    #    v = np.sqrt(val) / max_def * 0.5 + 0.5
-
-    #    r, g, b = colorsys.hsv_to_rgb(h, 1, v)
-    #    self.mat.diffuse_color = (r, g, b, a)
+        raise NotImplementedError
 
 
 if TYPE_CHECKING:
