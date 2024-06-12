@@ -98,7 +98,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             sphere.update_states(positions[:, idx], radii[idx])
 
         for idx, cylinder in enumerate(self.cylinders):
-            cylinder.update_states(  # type: ignore[no-untyped-call]
+            cylinder.update_states(
                 positions[:, idx], positions[:, idx + 1], radii[idx]
             )
 

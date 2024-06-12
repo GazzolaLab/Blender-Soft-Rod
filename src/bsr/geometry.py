@@ -6,6 +6,7 @@ __all__ = ["Sphere", "Cylinder"]
 from typing import TYPE_CHECKING
 
 import warnings
+from numbers import Number
 
 import bpy
 import numpy as np
@@ -16,16 +17,33 @@ from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
 
 
 # TODO: use numba
-def calculate_cylinder_orientation(position_1, position_2):
+def calculate_cylinder_orientation(
+    position_1: NDArray, position_2: NDArray
+) -> tuple[float, NDArray, NDArray]:
     depth = np.linalg.norm(position_2 - position_1)
     dz = position_2[2] - position_1[2]
     dy = position_2[1] - position_1[1]
     dx = position_2[0] - position_1[0]
-    center = (position_1 + position_2) / 2
+    center = (position_1 + position_2) / 2.0
     phi = np.arctan2(dy, dx)
     theta = np.arccos(dz / depth)
     angles = np.array([phi, theta])
-    return depth, center, angles
+    return float(depth), center, angles
+
+
+# TODO: refactor into utility
+def _validate_position(position: NDArray) -> None:  # pragma: no cover
+    if position.shape != (3,):
+        raise ValueError("The shape of the position is incorrect.")
+    if np.isnan(position).any():
+        raise ValueError("The position contains NaN values.")
+
+
+def _validate_radius(radius: float) -> None:  # pragma: no cover
+    if not isinstance(radius, Number) or radius <= 0:
+        raise ValueError("The radius must be a positive float.")
+    if np.isnan(radius):
+        raise ValueError("The radius contains NaN values.")
 
 
 class Sphere(KeyFrameControlMixin):
@@ -86,18 +104,12 @@ class Sphere(KeyFrameControlMixin):
         """
 
         if position is not None:
-            if position.shape != (3,):
-                raise ValueError("The shape of the position is incorrect.")
-            if np.isnan(position).any():
-                raise ValueError("The position contains NaN values.")
+            _validate_position(position)
             self.object.location.x = position[0]
             self.object.location.y = position[1]
             self.object.location.z = position[2]
         if radius is not None:
-            if not isinstance(radius, float) or radius < 0:
-                raise ValueError("The radius must be a positive float.")
-            if np.isnan(radius):
-                raise ValueError("The radius contains NaN values.")
+            _validate_radius(radius)
             self.object.scale = (radius, radius, radius)
 
     def _create_sphere(self) -> bpy.types.Object:
@@ -118,7 +130,6 @@ class Sphere(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="location", frame=keyframe)
 
 
-# FIXME: This class needs to be modified to conform to the BlenderMeshInterfaceProtocol
 class Cylinder(KeyFrameControlMixin):
     """
     TODO: Add documentation
@@ -129,12 +140,19 @@ class Cylinder(KeyFrameControlMixin):
         position_1: NDArray,
         position_2: NDArray,
         radius: float,
-    ):
+    ) -> None:
         self._obj = self._create_cylinder(
             position_1,
             position_2,
             radius,
         )
+        # FIXME: This is a temporary solution
+        # Ideally, these modules should not contain any data
+        self._states = {
+            "position_1": position_1,
+            "position_2": position_2,
+            "radius": radius,
+        }
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
@@ -154,7 +172,30 @@ class Cylinder(KeyFrameControlMixin):
     def object(self) -> bpy.types.Object:
         return self._obj
 
-    def update_states(self, position_1, position_2, radius):
+    def update_states(
+        self,
+        position_1: NDArray | None = None,
+        position_2: NDArray | None = None,
+        radius: float | None = None,
+    ) -> None:
+        if position_1 is None and position_2 is None and radius is None:
+            return
+        if position_1 is not None:
+            _validate_position(position_1)
+            self._states["position_1"] = position_1
+        else:
+            position_1 = self._states["position_1"]
+        if position_2 is not None:
+            _validate_position(position_2)
+            self._states["position_2"] = position_2
+        else:
+            position_2 = self._states["position_2"]
+        if radius is not None:
+            _validate_radius(radius)
+            self._states["radius"] = radius
+        else:
+            radius = self._states["radius"]
+
         depth, center, angles = calculate_cylinder_orientation(
             position_1, position_2
         )
@@ -176,7 +217,9 @@ class Cylinder(KeyFrameControlMixin):
         depth, center, angles = calculate_cylinder_orientation(
             position_1, position_2
         )
-        bpy.ops.mesh.primitive_cylinder_add(radius=1.0, depth=1.0)
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=1.0, depth=1.0
+        )  # Fix keep these values as default.
         cylinder = bpy.context.active_object
         cylinder.rotation_euler = (0, angles[1], angles[0])
         cylinder.scale[2] = depth
@@ -230,7 +273,7 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
         position_2: NDArray,
         radius_1: float,
         radius_2: float,
-    ):
+    ) -> None:
         raise NotImplementedError
         # self._obj = self._create_frustum(
         #    position_1, position_2, radius_1, radius_2
@@ -253,9 +296,14 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
     @property
     def object(self) -> bpy.types.Object:
         raise NotImplementedError
-        return self._obj
 
-    def _create_frustum(self, position_1, position_2, radius_1, radius_2):
+    def _create_frustum(
+        self,
+        position_1: NDArray,
+        position_2: NDArray,
+        radius_1: float,
+        radius_2: float,
+    ) -> bpy.types.Object:
         raise NotImplementedError
         # depth, center, angles = calculate_cylinder_orientation(
         #     position_1, position_2
@@ -269,7 +317,13 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
         # frustum.scale[2] = depth
         # return frustum
 
-    def update_states(self, position_1, position_2, radius_1, radius_2):
+    def update_states(
+        self,
+        position_1: NDArray,
+        position_2: NDArray,
+        radius_1: float,
+        radius_2: float,
+    ) -> None:
         raise NotImplementedError
 
     def set_keyframe(self, keyframe: int) -> None:
