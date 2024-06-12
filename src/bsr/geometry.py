@@ -5,6 +5,8 @@ __all__ = ["Sphere", "Cylinder"]
 
 from typing import TYPE_CHECKING
 
+import warnings
+
 import bpy
 import numpy as np
 from numpy.typing import NDArray
@@ -49,6 +51,12 @@ class Sphere(KeyFrameControlMixin):
         """
         Basic factory method to create a new Sphere object.
         """
+        # TODO: make ["position", "radius"] a constant
+        remaining_keys = set(states.keys()) - {"position", "radius"}
+        if len(remaining_keys) > 0:
+            warnings.warn(
+                f"{list(remaining_keys)} are not used as a part of the state definition."
+            )
         return cls(states["position"], states["radius"])
 
     @property
@@ -58,7 +66,9 @@ class Sphere(KeyFrameControlMixin):
         """
         return self._obj
 
-    def update_states(self, position: NDArray, radius: float) -> None:
+    def update_states(
+        self, position: NDArray | None = None, radius: float | None = None
+    ) -> None:
         """
         Updates the position and radius of the sphere object.
 
@@ -68,12 +78,26 @@ class Sphere(KeyFrameControlMixin):
             The new position of the sphere object.
         radius : float
             The new radius of the sphere object.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the position or radius is incorrect, or if the data is NaN.
         """
+
         if position is not None:
+            if position.shape != (3,):
+                raise ValueError("The shape of the position is incorrect.")
+            if np.isnan(position).any():
+                raise ValueError("The position contains NaN values.")
             self.object.location.x = position[0]
             self.object.location.y = position[1]
             self.object.location.z = position[2]
         if radius is not None:
+            if not isinstance(radius, float) or radius < 0:
+                raise ValueError("The radius must be a positive float.")
+            if np.isnan(radius):
+                raise ValueError("The radius contains NaN values.")
             self.object.scale = (radius, radius, radius)
 
     def _create_sphere(self) -> bpy.types.Object:
@@ -114,6 +138,16 @@ class Cylinder(KeyFrameControlMixin):
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
+        # TODO: make ["position_1", "position_2", "radius"] a constant
+        remaining_keys = set(states.keys()) - {
+            "position_1",
+            "position_2",
+            "radius",
+        }
+        if len(remaining_keys) > 0:
+            warnings.warn(
+                f"{list(remaining_keys)} are not used as a part of the state definition."
+            )
         return cls(states["position_1"], states["position_2"], states["radius"])
 
     @property
