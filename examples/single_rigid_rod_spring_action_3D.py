@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
 import bsr
@@ -6,7 +5,10 @@ import bsr
 bsr.clear_mesh_objects()
 
 # Environment configuration
-k = 5  # spring constant
+k_x = 1  # spring constant
+k_y = 3  # spring constant
+k_z = 5  # spring constant
+k = np.array([k_x, k_y, k_z])
 
 
 def f(x):
@@ -18,14 +20,16 @@ def euler_forward_step(x, f, dt):
     return x + f(x) * dt
 
 
-def analytical_solution(t, y0, v0):
-    omega = np.sqrt(k)
-    return y0 * np.cos(omega * t) + v0 / omega * np.sin(omega * t)
-
-
 # Rod configuration
 N = 5
-velocity = np.arange(20, 45, N)  # initial z-velocities
+velocity = np.stack(  # initial velocities
+    [
+        np.arange(0, 25, N),
+        np.arange(10, 35, N),
+        np.arange(20, 45, N),
+    ],
+    axis=0,
+)  # (3, 5)
 position = np.stack(
     [
         np.zeros(N),  # x
@@ -47,27 +51,15 @@ dt = 10 ** (-3)
 framerate = 25
 simulation_ratio = int(1 / framerate / dt)
 time = np.arange(0, 10, dt)
-analytical_solution = analytical_solution(time, position[2], velocity)
 
 # Euler-Forward time stepper
 for time_index, t in enumerate(time[:-1]):
-    state = np.stack([position[2], velocity], axis=0)
-    position[2] = euler_forward_step(state, f, dt)
+    state = np.stack([position, velocity], axis=0)
+    position[:] = euler_forward_step(state, f, dt)
 
     if time_index % simulation_ratio == 0:
         # update the rod
         keyframe = int(time_index / simulation_ratio) + 1
         rod.update(keyframe=keyframe, positions=position, radius=radius)
 
-bsr.save("single_rigid_rod_spring_action.blend")
-
-# Plot L1 and L2 error
-l1_error = np.abs(analytical_solution - position[2]).sum(axis=0)
-l2_error = np.sqrt(np.square(analytical_solution - position[2]).sum(axis=0))
-plt.plot(velocity, l1_error, label="L1 error")
-plt.plot(velocity, l2_error, label="L2 error")
-plt.xlabel("Initial velocity")
-plt.ylabel("Error")
-plt.legend()
-plt.grid(True)
-plt.savefig("single_rigid_rod_spring_action_error.png", dpi=300)
+bsr.save("single_rigid_rod_spring_action_3D.blend")
