@@ -14,7 +14,7 @@ poetry-remove:
 #* Installation
 .PHONY: install
 install:
-	poetry install -n --with dev,docs
+	poetry install -n --with dev,docs,examples
 
 .PHONY: pre-commit-install
 pre-commit-install:
