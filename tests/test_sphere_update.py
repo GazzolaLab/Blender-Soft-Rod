@@ -17,22 +17,22 @@ from bsr.geometry import Sphere
 def test_update_states_with_data(possible_sphere_data):
     default_data = dict(position=np.array([0, 0, 0]), radius=1.0)
     primitive = Sphere.create(default_data)
+
+    np.testing.assert_allclose(
+        primitive.object.location, default_data["position"]
+    )
+    np.testing.assert_allclose(primitive.object.scale, default_data["radius"])
+
     primitive.update_states(**possible_sphere_data)
 
     if "position" in possible_sphere_data:
-        assert (
-            primitive.object.location.x == possible_sphere_data["position"][0]
-        )
-        assert (
-            primitive.object.location.y == possible_sphere_data["position"][1]
-        )
-        assert (
-            primitive.object.location.z == possible_sphere_data["position"][2]
+        np.testing.assert_allclose(
+            primitive.object.location, possible_sphere_data["position"]
         )
     if "radius" in possible_sphere_data:
-        assert primitive.object.scale[0] == possible_sphere_data["radius"]
-        assert primitive.object.scale[1] == possible_sphere_data["radius"]
-        assert primitive.object.scale[2] == possible_sphere_data["radius"]
+        np.testing.assert_allclose(
+            primitive.object.scale, possible_sphere_data["radius"]
+        )
 
 
 @pytest.mark.parametrize(
