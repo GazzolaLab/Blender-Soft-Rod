@@ -9,7 +9,6 @@ def clear_mesh_objects() -> None:
     bpy.ops.object.select_by_type(type="MESH")
     bpy.ops.object.delete()
 
-
 def scene_update() -> None:
     """
     Update the scene
@@ -18,3 +17,8 @@ def scene_update() -> None:
     (https://blender.stackexchange.com/questions/27667/incorrect-matrix-world-after-transformation)
     """
     bpy.context.view_layer.update()
+
+def clear_materials() -> None:
+    # Clear existing materials in the scene
+    for material in bpy.data.materials:
+        bpy.data.materials.remove(material)
