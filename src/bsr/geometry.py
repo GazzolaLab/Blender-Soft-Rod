@@ -64,13 +64,14 @@ class Sphere(KeyFrameControlMixin):
         self._obj = self._create_sphere()
         self.update_states(position, radius)
 
+    input_states = {"position", "radius"}
+
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
         """
         Basic factory method to create a new Sphere object.
         """
-        # TODO: make ["position", "radius"] a constant
-        remaining_keys = set(states.keys()) - {"position", "radius"}
+        remaining_keys = set(states.keys()) - cls.input_states
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
@@ -154,14 +155,11 @@ class Cylinder(KeyFrameControlMixin):
             "radius": radius,
         }
 
+    input_keys = {"position_1", "position_2", "radius"}
+
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
-        # TODO: make ["position_1", "position_2", "radius"] a constant
-        remaining_keys = set(states.keys()) - {
-            "position_1",
-            "position_2",
-            "radius",
-        }
+        remaining_keys = set(states.keys()) - cls.input_keys
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
@@ -218,7 +216,8 @@ class Cylinder(KeyFrameControlMixin):
             position_1, position_2
         )
         bpy.ops.mesh.primitive_cylinder_add(
-            radius=1.0, depth=1.0
+            radius=1.0,
+            depth=1.0,
         )  # Fix keep these values as default.
         cylinder = bpy.context.active_object
         cylinder.rotation_euler = (0, angles[1], angles[0])

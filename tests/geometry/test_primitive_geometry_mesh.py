@@ -96,6 +96,9 @@ def test_y_cylinder_radius_and_positions(position_one, length, radius):
 
     mesh_limit = get_mesh_limit(cylinder)
 
+    print("Expected limits:", (x_min, x_max, y_min, y_max, z_min, z_max))
+    print("Actual limits:", mesh_limit)
+
     np.testing.assert_allclose(
         (x_min, x_max, y_min, y_max, z_min, z_max),
         mesh_limit,
