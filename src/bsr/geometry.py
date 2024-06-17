@@ -11,6 +11,7 @@ from numbers import Number
 import bpy
 import numpy as np
 from numpy.typing import NDArray
+from utils import validate_position, validate_radius
 
 from .mixin import KeyFrameControlMixin
 from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
@@ -31,19 +32,19 @@ def calculate_cylinder_orientation(
     return float(depth), center, angles
 
 
-# TODO: refactor into utility
-def _validate_position(position: NDArray) -> None:  # pragma: no cover
-    if position.shape != (3,):
-        raise ValueError("The shape of the position is incorrect.")
-    if np.isnan(position).any():
-        raise ValueError("The position contains NaN values.")
+# TODO: refactor into utility - DONE
+# def _validate_position(position: NDArray) -> None:  # pragma: no cover
+#    if position.shape != (3,):
+#        raise ValueError("The shape of the position is incorrect.")
+#    if np.isnan(position).any():
+#        raise ValueError("The position contains NaN values.")
 
 
-def _validate_radius(radius: float) -> None:  # pragma: no cover
-    if not isinstance(radius, Number) or radius <= 0:
-        raise ValueError("The radius must be a positive float.")
-    if np.isnan(radius):
-        raise ValueError("The radius contains NaN values.")
+# def _validate_radius(radius: float) -> None:  # pragma: no cover
+#    if not isinstance(radius, Number) or radius <= 0:
+#        raise ValueError("The radius must be a positive float.")
+#    if np.isnan(radius):
+#        raise ValueError("The radius contains NaN values.")
 
 
 class Sphere(KeyFrameControlMixin):
@@ -105,12 +106,12 @@ class Sphere(KeyFrameControlMixin):
         """
 
         if position is not None:
-            _validate_position(position)
+            validate_position(position)
             self.object.location.x = position[0]
             self.object.location.y = position[1]
             self.object.location.z = position[2]
         if radius is not None:
-            _validate_radius(radius)
+            validate_radius(radius)
             self.object.scale = (radius, radius, radius)
 
     def _create_sphere(self) -> bpy.types.Object:
@@ -179,17 +180,17 @@ class Cylinder(KeyFrameControlMixin):
         if position_1 is None and position_2 is None and radius is None:
             return
         if position_1 is not None:
-            _validate_position(position_1)
+            validate_position(position_1)
             self._states["position_1"] = position_1
         else:
             position_1 = self._states["position_1"]
         if position_2 is not None:
-            _validate_position(position_2)
+            validate_position(position_2)
             self._states["position_2"] = position_2
         else:
             position_2 = self._states["position_2"]
         if radius is not None:
-            _validate_radius(radius)
+            validate_radius(radius)
             self._states["radius"] = radius
         else:
             radius = self._states["radius"]
@@ -220,8 +221,11 @@ class Cylinder(KeyFrameControlMixin):
             depth=1.0,
         )  # Fix keep these values as default.
         cylinder = bpy.context.active_object
+        cylinder.location = center
         cylinder.rotation_euler = (0, angles[1], angles[0])
         cylinder.scale[2] = depth
+        cylinder.scale[1] = radius
+        cylinder.scale[0] = radius
         return cylinder
 
     def set_keyframe(self, keyframe: int) -> None:
