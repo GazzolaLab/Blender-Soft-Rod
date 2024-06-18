@@ -6,6 +6,8 @@ import numpy as np
 import bsr
 from elastica_blender import BlenderRodCallback
 
+bsr.clear_mesh_objects()
+
 
 class TimoshenkoBeamSimulator(
     ea.BaseSystemCollection,
@@ -18,7 +20,7 @@ class TimoshenkoBeamSimulator(
 
 
 timoshenko_sim = TimoshenkoBeamSimulator()
-final_time = 5000.0
+final_time = 500.0
 
 # setting up test params
 n_elem = 100

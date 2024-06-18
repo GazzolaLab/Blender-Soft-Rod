@@ -31,14 +31,6 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
     input_states = {"positions", "radii"}
 
     def __init__(self, positions: NDArray, radii: NDArray) -> None:
-        # check shape of positions and radii
-        assert positions.ndim == 2, "positions must be 2D array"
-        assert positions.shape[0] == 3, "positions must have 3 rows"
-        assert radii.ndim == 1, "radii must be 1D array"
-        assert (
-            positions.shape[-1] == radii.shape[-1] + 1
-        ), "radii must have n_nodes-1 elements"
-
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
         self.cylinders: list[Cylinder] = []
@@ -93,15 +85,23 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         radii : NDArray
             The radii of the sphere objects. Expected shape is (n_nodes-1,).
         """
+        # check shape of positions and radii
+        assert positions.ndim == 2, "positions must be 2D array"
+        assert positions.shape[0] == 3, "positions must have 3 rows"
+        assert radii.ndim == 1, "radii must be 1D array"
+        assert (
+            positions.shape[-1] == radii.shape[-1] + 1
+        ), "radii must have n_nodes-1 elements"
+
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
         _radii[1:-1] /= 2.0
         for idx, sphere in enumerate(self.spheres):
-            sphere.update_states(positions[:, idx], radii[idx])
+            sphere.update_states(positions[:, idx], _radii[idx])
 
         for idx, cylinder in enumerate(self.cylinders):
             cylinder.update_states(
-                positions[:, idx], positions[:, idx + 1], radii[idx]
+                positions[:, idx], positions[:, idx + 1], _radii[idx]
             )
 
     def set_keyframe(self, keyframe: int) -> None:

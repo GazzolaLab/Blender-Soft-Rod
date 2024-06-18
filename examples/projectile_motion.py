@@ -17,7 +17,7 @@ b = 0.0  # air resistance coefficient
 time = np.arange(0, 5, dt)
 
 # Blender object
-sphere = Sphere(radius=0.5, position=(0, 0, 0))
+sphere = Sphere(radius=0.5, position=np.array((0, 0, 0)))
 
 # Analytical solution
 y_analytical = v0 * time - 0.5 * g * time**2
@@ -32,7 +32,7 @@ for i in range(1, len(time)):
 
     # Update sphere position
     sphere.update_states(position=np.array([0, 0, y]))
-    sphere.update_keyframe(i)
+    sphere.set_keyframe(i)
 
 # Blender file save
 bsr.save("projectile_motion.blend")

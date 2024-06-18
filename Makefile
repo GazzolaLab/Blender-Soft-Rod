@@ -80,5 +80,11 @@ pytestcache-remove:
 build-remove:
 	rm -rf build/
 
+.PHONY: exampleresult-remove
+exampleresult-remove:
+	rm -f examples/*.png
+	rm -f examples/*.blend
+	rm -f examples/*.blend1
+
 .PHONY: cleanup
-cleanup: pycache-remove dsstore-remove mypycache-remove ipynbcheckpoints-remove pytestcache-remove
+cleanup: pycache-remove dsstore-remove mypycache-remove ipynbcheckpoints-remove pytestcache-remove exampleresult-remove
