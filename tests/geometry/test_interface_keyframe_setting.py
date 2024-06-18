@@ -28,18 +28,36 @@ def count_number_of_keyframes_action(obj):
         return len(action.fcurves[0].keyframe_points)
 
 
-@pytest.mark.parametrize(
-    "primitive",
-    [
-        Sphere(position=np.array([0, 0, 0]), radius=1.0),
-        Cylinder(
-            position_1=np.array([0, 0, 0]),
-            position_2=np.array([0, 0, 1]),
-            radius=1.0,
-        ),
-    ],
-)
-def test_set_keyframe_count_for_primitive(primitive):
+def test_set_keyframe_count_for_primitive_sphere():
+    primitive = Sphere(position=np.array([0, 0, 0]), radius=1.0)
+
+    primitive.set_keyframe(1)
+    assert count_number_of_keyframes_action(primitive.object) == 1
+
+    primitive.set_keyframe(2)
+    assert count_number_of_keyframes_action(primitive.object) == 2
+
+    # Setting keyfrome at the same frame should not increase the number of keyframes:
+    primitive.set_keyframe(2)
+    assert count_number_of_keyframes_action(primitive.object) == 2
+
+    primitive.clear_animation()
+    assert count_number_of_keyframes_action(primitive.object) == 0
+
+    primitive.set_keyframe(1)
+    assert count_number_of_keyframes_action(primitive.object) == 1
+
+    # Clear the test
+    primitive.clear_animation()
+
+
+def test_set_keyframe_count_for_primitive_cylinder():
+    primitive = Cylinder(
+        position_1=np.array([0, 0, 0]),
+        position_2=np.array([0, 0, 1]),
+        radius=1.0,
+    )
+
     primitive.set_keyframe(1)
     assert count_number_of_keyframes_action(primitive.object) == 1
 
