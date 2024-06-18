@@ -22,7 +22,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
     Internally, we use a list-like structure to store the objects.
     """
 
-    DefaultType: Type[BlenderMeshInterfaceProtocol]
+    DefaultType: Type
 
     def __init__(self) -> None:
         self._objs: list[BlenderMeshInterfaceProtocol] = []
@@ -89,7 +89,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
 class RodStack(BaseStack):
     input_states = {"positions", "radii"}
-    DefaultType: Type[BlenderMeshInterfaceProtocol] = Rod
+    DefaultType: Type = Rod
 
 
 # Alias for factory functions

@@ -68,7 +68,7 @@ class CompositeProtocol(BlenderMeshInterfaceProtocol, Protocol):
 
 
 class StackProtocol(BlenderMeshInterfaceProtocol, Protocol):
-    DefaultType: Type[BlenderMeshInterfaceProtocol | bpy.types.Object]
+    DefaultType: Type
 
     def __len__(self) -> int: ...
 
