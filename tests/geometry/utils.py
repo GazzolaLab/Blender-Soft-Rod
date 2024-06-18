@@ -1,12 +1,8 @@
-# from numbers import Number
-
 import bpy
 import numpy as np
 
 from bsr.geometry import BlenderMeshInterfaceProtocol
 from bsr.macros import scene_update
-
-# from numpy.typing import NDArray
 
 
 def get_mesh_limit(interface: BlenderMeshInterfaceProtocol):
