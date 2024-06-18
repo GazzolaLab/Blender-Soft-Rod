@@ -141,11 +141,7 @@ class Cylinder(KeyFrameControlMixin):
         position_2: NDArray,
         radius: float,
     ) -> None:
-        self._obj = self._create_cylinder(
-            position_1,
-            position_2,
-            radius,
-        )
+        self._obj = self._create_cylinder()
         # FIXME: This is a temporary solution
         # Ideally, these modules should not contain any data
         self._states = {
@@ -153,6 +149,7 @@ class Cylinder(KeyFrameControlMixin):
             "position_2": position_2,
             "radius": radius,
         }
+        self.update_states(position_1, position_2, radius)
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
@@ -190,6 +187,10 @@ class Cylinder(KeyFrameControlMixin):
             self._states["position_2"] = position_2
         else:
             position_2 = self._states["position_2"]
+        if np.allclose(position_1, position_2):
+            raise ValueError(
+                f"Two positions must be different: {position_1} and {position_2}"
+            )
         if radius is not None:
             _validate_radius(radius)
             self._states["radius"] = radius
@@ -207,22 +208,14 @@ class Cylinder(KeyFrameControlMixin):
 
     def _create_cylinder(
         self,
-        position_1: NDArray,
-        position_2: NDArray,
-        radius: float,
     ) -> bpy.types.Object:
         """
         Creates a new cylinder object with the given end positions, radius, centerpoint and depth.
         """
-        depth, center, angles = calculate_cylinder_orientation(
-            position_1, position_2
-        )
         bpy.ops.mesh.primitive_cylinder_add(
             radius=1.0, depth=1.0
         )  # Fix keep these values as default.
         cylinder = bpy.context.active_object
-        cylinder.rotation_euler = (0, angles[1], angles[0])
-        cylinder.scale[2] = depth
         return cylinder
 
     def set_keyframe(self, keyframe: int) -> None:
