@@ -28,6 +28,8 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     """
 
+    input_states = {"positions", "radii"}
+
     def __init__(self, positions: NDArray, radii: NDArray) -> None:
         # check shape of positions and radii
         assert positions.ndim == 2, "positions must be 2D array"

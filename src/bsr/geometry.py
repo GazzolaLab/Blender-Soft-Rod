@@ -3,7 +3,7 @@ This module provides a set of geometry-mesh interfaces for blender objects.
 """
 __all__ = ["Sphere", "Cylinder"]
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import warnings
 from numbers import Number
@@ -47,7 +47,7 @@ def calculate_cylinder_orientation(
     return float(depth), center, angles
 
 
-def _validate_position(position: NDArray) -> None:  # pragma: no cover
+def _validate_position(position: NDArray) -> None:
     """
     Checks if inputted position values are valid
 
@@ -68,7 +68,7 @@ def _validate_position(position: NDArray) -> None:  # pragma: no cover
         raise ValueError("The position contains NaN values.")
 
 
-def _validate_radius(radius: float) -> None:  # pragma: no cover
+def _validate_radius(radius: float) -> None:
     """
     Checks if inputted radius value is valid
 
@@ -103,6 +103,8 @@ class Sphere(KeyFrameControlMixin):
 
     """
 
+    input_states = {"position", "radius"}
+
     def __init__(self, position: NDArray, radius: float) -> None:
         """
         Sphere class constructor
@@ -110,8 +112,6 @@ class Sphere(KeyFrameControlMixin):
 
         self._obj = self._create_sphere()
         self.update_states(position, radius)
-
-    input_states = {"position", "radius"}
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
@@ -210,11 +210,9 @@ class Cylinder(KeyFrameControlMixin):
         self._obj = self._create_cylinder()
         # FIXME: This is a temporary solution
         # Ideally, these modules should not contain any data
-        self._states = {
-            "position_1": position_1,
-            "position_2": position_2,
-            "radius": radius,
-        }
+        self._states_position_1 = position_1
+        self._states_position_2 = position_2
+        self._states_radius = radius
         self.update_states(position_1, position_2, radius)
 
     @classmethod
@@ -261,30 +259,31 @@ class Cylinder(KeyFrameControlMixin):
         ValueError
             If the shape of the positions or radius is incorrect, or if the data is NaN.
         """
-
         if position_1 is None and position_2 is None and radius is None:
             return
         if position_1 is not None:
+            position_1 = cast(NDArray[np.floating], position_1)
             _validate_position(position_1)
-            self._states["position_1"] = position_1
+            self._states_position_1 = position_1
         else:
-            position_1 = self._states["position_1"]
+            position_1 = self._states_position_1
         if position_2 is not None:
+            position_2 = cast(NDArray[np.floating], position_2)
             _validate_position(position_2)
-            self._states["position_2"] = position_2
+            self._states_position_2 = position_2
         else:
-            position_2 = self._states["position_2"]
-        if np.allclose(position_1, position_2):
-            raise ValueError(
-                f"Two positions must be different: {position_1} and {position_2}"
-            )
+            position_2 = self._states_position_2
         if radius is not None:
             _validate_radius(radius)
-            self._states["radius"] = radius
+            self._states_radius = radius
         else:
-            radius = self._states["radius"]
+            radius = self._states_radius
+
+        # Validation check
         if np.allclose(position_1, position_2):
-            raise ValueError("Endpoints are the same")
+            raise ValueError(
+                f"Two positions must be different: {(position_1 - position_2)=}"
+            )
 
         depth, center, angles = calculate_cylinder_orientation(
             position_1, position_2
@@ -338,6 +337,8 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
     radius_2 : float
         The radius of the second end of the frustum object.
     """
+
+    input_keys = {"position_1", "position_2", "radius_1", "radius_2"}
 
     def __init__(
         self,
