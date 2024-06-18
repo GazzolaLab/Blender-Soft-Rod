@@ -16,10 +16,26 @@ from .mixin import KeyFrameControlMixin
 from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
 
 
-# TODO: use numba
 def calculate_cylinder_orientation(
     position_1: NDArray, position_2: NDArray
 ) -> tuple[float, NDArray, NDArray]:
+    """
+    Calculates the centerpoint, depth, and rotational angle of the cylinder object.
+
+    Parameters
+    ----------
+    position_1 : NDArray
+        One endpoint position of the cylinder object. (3D)
+    position_2: NDArray
+        Other endpoint position of the cylinder object. (3D)
+
+    Returns
+    -------
+    tuple: float, NDArray, NDArray
+        Tuple containing the values for the depth, centerpoint and rotation angle (3D)
+
+    """
+
     depth = np.linalg.norm(position_2 - position_1)
     dz = position_2[2] - position_1[2]
     dy = position_2[1] - position_1[1]
@@ -31,8 +47,21 @@ def calculate_cylinder_orientation(
     return float(depth), center, angles
 
 
-# TODO: refactor into utility
 def _validate_position(position: NDArray) -> None:  # pragma: no cover
+    """
+    Checks if inputted position values are valid
+
+    Paramters
+    ---------
+    position: NDArray
+        Position input (endpoint or centerpoint depending on Object type)
+
+    Raises
+    ------
+    ValueError
+        If the position is the wrong shape or contains NaN values
+    """
+
     if position.shape != (3,):
         raise ValueError("The shape of the position is incorrect.")
     if np.isnan(position).any():
@@ -40,6 +69,20 @@ def _validate_position(position: NDArray) -> None:  # pragma: no cover
 
 
 def _validate_radius(radius: float) -> None:  # pragma: no cover
+    """
+    Checks if inputted radius value is valid
+
+    Parameters:
+    -----------
+    radius: Float
+        Radius input
+
+    Raises
+    ------
+    ValueError
+        If the radius is not positive, or contains NaN values
+    """
+
     if not isinstance(radius, Number) or radius <= 0:
         raise ValueError("The radius must be a positive float.")
     if np.isnan(radius):
@@ -61,16 +104,22 @@ class Sphere(KeyFrameControlMixin):
     """
 
     def __init__(self, position: NDArray, radius: float) -> None:
+        """
+        Sphere class constructor
+        """
+
         self._obj = self._create_sphere()
         self.update_states(position, radius)
+
+    input_states = {"position", "radius"}
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
         """
         Basic factory method to create a new Sphere object.
         """
-        # TODO: make ["position", "radius"] a constant
-        remaining_keys = set(states.keys()) - {"position", "radius"}
+
+        remaining_keys = set(states.keys()) - cls.input_states
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
@@ -82,6 +131,7 @@ class Sphere(KeyFrameControlMixin):
         """
         Access the Blender object.
         """
+
         return self._obj
 
     def update_states(
@@ -132,8 +182,20 @@ class Sphere(KeyFrameControlMixin):
 
 class Cylinder(KeyFrameControlMixin):
     """
-    TODO: Add documentation
+    This class provides a mesh interface for Blender Cylinder objects.
+    Cylinder objects are created with the given endpoint positions and radius.
+
+    Parameters
+    ----------
+    position_1 : NDArray
+        The first endpoint position of the cylinder object. (3D)
+    position_2 : NDArray
+        The second enspoint position of the cylinder object. (3D)
+    radius : float
+        The radius of the cylinder object.
     """
+
+    input_keys = {"position_1", "position_2", "radius"}
 
     def __init__(
         self,
@@ -141,6 +203,10 @@ class Cylinder(KeyFrameControlMixin):
         position_2: NDArray,
         radius: float,
     ) -> None:
+        """
+        Cylinder class constructor
+        """
+
         self._obj = self._create_cylinder()
         # FIXME: This is a temporary solution
         # Ideally, these modules should not contain any data
@@ -153,12 +219,11 @@ class Cylinder(KeyFrameControlMixin):
 
     @classmethod
     def create(cls, states: MeshDataType) -> "Cylinder":
-        # TODO: make ["position_1", "position_2", "radius"] a constant
-        remaining_keys = set(states.keys()) - {
-            "position_1",
-            "position_2",
-            "radius",
-        }
+        """
+        Basic factory method to create a new Cylinder object.
+        """
+
+        remaining_keys = set(states.keys()) - cls.input_keys
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
@@ -167,6 +232,10 @@ class Cylinder(KeyFrameControlMixin):
 
     @property
     def object(self) -> bpy.types.Object:
+        """
+        Access the Blender object.
+        """
+
         return self._obj
 
     def update_states(
@@ -175,6 +244,24 @@ class Cylinder(KeyFrameControlMixin):
         position_2: NDArray | None = None,
         radius: float | None = None,
     ) -> None:
+        """
+        Updates the position and radius of the cylinder object.
+
+        Parameters
+        ----------
+        position_1 : NDArray
+            The first new endpoint position of the cylinder object.
+        position_2 : NDArray
+            The second new endpoint position of the cylinder object.
+        radius : float
+            The new radius of the cylinder object.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the positions or radius is incorrect, or if the data is NaN.
+        """
+
         if position_1 is None and position_2 is None and radius is None:
             return
         if position_1 is not None:
@@ -196,6 +283,8 @@ class Cylinder(KeyFrameControlMixin):
             self._states["radius"] = radius
         else:
             radius = self._states["radius"]
+        if np.allclose(position_1, position_2):
+            raise ValueError("Endpoints are the same")
 
         depth, center, angles = calculate_cylinder_orientation(
             position_1, position_2
@@ -210,10 +299,11 @@ class Cylinder(KeyFrameControlMixin):
         self,
     ) -> bpy.types.Object:
         """
-        Creates a new cylinder object with the given end positions, radius, centerpoint and depth.
+        Creates a new cylinder object.
         """
         bpy.ops.mesh.primitive_cylinder_add(
-            radius=1.0, depth=1.0
+            radius=1.0,
+            depth=1.0,
         )  # Fix keep these values as default.
         cylinder = bpy.context.active_object
         return cylinder
@@ -229,17 +319,6 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="location", frame=keyframe)
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
-        # self.object.keyframe_insert(data_path="diffuse_color", frame=keyframe)
-
-    # def update_color(self, val):
-    #    # computing deformation heat-map
-    #    max_def = 0.07
-
-    #    h = -np.sqrt(val) / max_def + 240 / 360
-    #    v = np.sqrt(val) / max_def * 0.5 + 0.5
-
-    #    r, g, b = colorsys.hsv_to_rgb(h, 1, v)
-    #    self.mat.diffuse_color = (r, g, b, a)
 
 
 # TODO: Will be implemented in the future
