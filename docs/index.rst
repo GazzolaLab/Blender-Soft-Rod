@@ -22,6 +22,7 @@ TODO: Description of the project.
 
    api/file
    api/geometry
+   api/collective
 
 .. toctree::
    :maxdepth: 2
