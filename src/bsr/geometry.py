@@ -16,7 +16,6 @@ from .mixin import KeyFrameControlMixin
 from .protocol import BlenderMeshInterfaceProtocol, MeshDataType
 
 
-# TODO: use numba
 def calculate_cylinder_orientation(
     position_1: NDArray, position_2: NDArray
 ) -> tuple[float, NDArray, NDArray]:
