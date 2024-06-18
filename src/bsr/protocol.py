@@ -36,6 +36,8 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     This protocol defines the interface for Blender mesh objects.
     """
 
+    input_states: set[str]
+
     # TODO: For future implementation
     # @property
     # def data(self): ...

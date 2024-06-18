@@ -88,6 +88,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
 
 class RodStack(BaseStack):
+    input_states = {"positions", "radii"}
     DefaultType: Type[BlenderMeshInterfaceProtocol] = Rod
 
 

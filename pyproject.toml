@@ -173,4 +173,6 @@ branch = true
 omit = [
     "*/.local/*",
 	"setup.py",
+    "*/protocol.py",
+    "macros.py",
 ]
