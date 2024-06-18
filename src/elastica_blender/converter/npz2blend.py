@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 import numpy as np
+from tqdm import tqdm
 
 import bsr
 
@@ -53,22 +54,30 @@ def construct_blender_file(
     if tags is None:
         position_history = data["position_history"]
         radius_history = data["radius_history"]
-        num_rods = position_history.shape[0]
-        num_nodes = position_history.shape[3]
-        rods = bsr.create_rod_collection(num_rods, num_nodes)
-        rods.update_history(
-            keyframes=time, position=position_history, radius=radius_history
-        )
+        init_state = {
+            "position": position_history[:, 0, ...],
+            "radius": radius_history[:, 0, ...],
+        }
+        rods = bsr.create_rod_collection(init_state)
+        for tidx, _ in tqdm(enumerate(time), total=len(time)):
+            rods.update_states(
+                position_history[:, tidx, ...], radius_history[:, tidx, ...]
+            )
+            rods.set_keyframe(tidx)
     else:
         for tag in tags:
             position_history = data[tag + "_position_history"]
             radius_history = data[tag + "_radius_history"]
-            num_rods = position_history.shape[0]
-            num_nodes = position_history.shape[3]
-            rods = bsr.create_rod_collection(num_rods, num_nodes, tag)
-            rods.update_history(
-                keyframes=time, position=position_history, radius=radius_history
-            )
+            init_state = {
+                "position": position_history[:, 0, ...],
+                "radius": radius_history[:, 0, ...],
+            }
+            rods = bsr.create_rod_collection(init_state)
+            for tidx, _ in tqdm(enumerate(time), total=len(time)):
+                rods.update_states(
+                    position_history[:, tidx, ...], radius_history[:, tidx, ...]
+                )
+                rods.set_keyframe(tidx)
 
     bsr.save(output)
 

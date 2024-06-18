@@ -25,6 +25,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosectionlabel",
+    "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
     "sphinx_click",
     "numpydoc",
@@ -38,6 +39,7 @@ autodoc_default_flags = [
     "undoc-members",
     "private-members",
     "special-members",
+    "inherited-members",
 ]
 source_suffix = [".rst", ".md"]
 
