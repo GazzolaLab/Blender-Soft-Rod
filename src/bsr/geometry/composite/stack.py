@@ -10,10 +10,9 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm import tqdm
 
-from .mixin import KeyFrameControlMixin
-from .protocol import BlenderMeshInterfaceProtocol, StackProtocol
-from .rod import Rod
-from .typing import RodType
+from bsr.tools.keyframe_mixin import KeyFrameControlMixin
+from bsr.geometry.composite.rod import Rod
+from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, StackProtocol
 
 
 class BaseStack(Sequence, KeyFrameControlMixin):

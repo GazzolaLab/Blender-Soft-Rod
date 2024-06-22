@@ -8,7 +8,7 @@ from elastica import CallBackBaseClass
 from elastica.typing import RodType
 
 import bsr
-from bsr.geometry import Cylinder, Sphere
+from bsr import Cylinder, Sphere
 
 
 class BlenderRodCallback(CallBackBaseClass):

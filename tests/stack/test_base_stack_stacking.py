@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from bsr.stack import BaseStack
+from bsr.geometry.composite.stack import BaseStack
 
 
 class MockObjectToStack:

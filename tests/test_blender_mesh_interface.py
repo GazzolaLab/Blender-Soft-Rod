@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 import pytest
 
-from bsr.geometry import Cylinder, Sphere
+from bsr.geometry.primitives.simple import Cylinder, Sphere
 
 
 class TestBlenderMeshInterfaceObjectsSphere:

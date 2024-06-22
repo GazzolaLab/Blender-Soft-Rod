@@ -2,7 +2,7 @@ import bpy.types as bpy_types
 import numpy as np
 import pytest
 
-from bsr.geometry import Cylinder
+from bsr.geometry.primitives.simple import Cylinder
 
 
 @pytest.mark.parametrize(

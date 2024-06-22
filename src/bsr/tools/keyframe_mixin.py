@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import bpy
 
-from .protocol import BlenderMeshInterfaceProtocol
+from bsr.geometry.protocol import BlenderMeshInterfaceProtocol
 
 
 # Base class

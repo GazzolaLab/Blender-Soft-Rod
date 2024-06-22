@@ -9,9 +9,9 @@ import bpy
 import numpy as np
 from numpy.typing import NDArray
 
-from .geometry import Cylinder, Sphere
-from .mixin import KeyFrameControlMixin
-from .protocol import CompositeProtocol
+from bsr.tools.keyframe_mixin import KeyFrameControlMixin
+from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.geometry.protocol import CompositeProtocol
 
 
 class RodWithSphereAndCylinder(KeyFrameControlMixin):

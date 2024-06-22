@@ -1,6 +1,6 @@
 import pytest
 
-from bsr.stack import BaseStack
+from bsr.geometry.composite.stack import BaseStack
 
 
 def test_object_property():
