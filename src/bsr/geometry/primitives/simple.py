@@ -12,8 +12,8 @@ import bpy
 import numpy as np
 from numpy.typing import NDArray
 
-from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, MeshDataType
+from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
 def calculate_cylinder_orientation(

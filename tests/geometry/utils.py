@@ -1,8 +1,8 @@
 import bpy
 import numpy as np
 
-from bsr.geometry.protocol import BlenderMeshInterfaceProtocol
 from bsr.blender_commands.macros import scene_update
+from bsr.geometry.protocol import BlenderMeshInterfaceProtocol
 
 
 def get_mesh_limit(interface: BlenderMeshInterfaceProtocol):
