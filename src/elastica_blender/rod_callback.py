@@ -1,5 +1,7 @@
 __all__ = ["BlenderRodCallback"]
 
+from typing import Any
+
 import bpy
 import numpy as np
 from elastica import CallBackBaseClass
@@ -14,7 +16,7 @@ class BlenderRodCallback(CallBackBaseClass):
     PyElastica callback to save rod state to Blender.
     """
 
-    def __init__(self, step_skip: int, *args, **kwargs) -> None:
+    def __init__(self, step_skip: int, *args: Any, **kwargs: Any) -> None:
         CallBackBaseClass.__init__(self)
         self.every = step_skip
         self.keyframe = 0
@@ -26,13 +28,14 @@ class BlenderRodCallback(CallBackBaseClass):
     ) -> None:
         if self.stop or current_step % self.every != 0:
             return
-        if np.isnan(system.position_collection).any() or np.isnan(system.radius).any():
+        if (
+            np.isnan(system.position_collection).any()
+            or np.isnan(system.radius).any()
+        ):
             self.stop = True
             return
         if current_step == 0:
-            self.bpy_objs = bsr.Rod(
-                system.position_collection, system.radius
-            )
+            self.bpy_objs = bsr.Rod(system.position_collection, system.radius)
         else:
             self.bpy_objs.update_states(
                 positions=system.position_collection,

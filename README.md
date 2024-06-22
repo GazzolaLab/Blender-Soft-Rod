@@ -1,9 +1,37 @@
-# Blender-Soft-Arm-Simulation
+# Blender Soft Arm
 
-## How to build documentation
+The Blender Soft Arm (bsr) includes data visualization tools and analysis for soft-arm robotics data.
+The slender body is defined by a series of points and radius, and the data is visualized in [Blender](https://www.blender.org/).
 
-We will provide external link for documentation once the repository is public.
-For now, use the following command to build the documentation:
+## How to install
+
+Easiest way to install the stable version of the package is to use `pip`:
+
+```sh
+pip install bsr
+```
+
+## Examples
+
+We provide minimal [example scripts](.examples) to demonstrate the usage of the package.
+
+## Development version
+
+The development version includes unit-tests, documentation, examples, and other development tools.
+We primarily use [`poetry`](https://python-poetry.org/) to manage the dependencies and the development environment.
+Necessary commands are provided in the `Makefile`.
+
+```sh
+git clone https://github.com/GazzolaLab/Blender-Soft-Rod.git
+cd Blender-Soft-Rod
+make install  # Assuming you have poetry installed.
+make pre-commit-install
+```
+
+Below are additional commands that you can use to manage the development environment.
+
+- Documentation
+
 ```sh
 cd docs
 make clean
@@ -11,37 +39,19 @@ make html
 open build/html/index.html
 ```
 
-## How setup development environment
-
-We are using `poetry` to maintain the dependency trees for this project. To install `poetry` run the following command:
-
-```sh
-# https://python-poetry.org/docs/#installing-with-the-official-installer
-make poetry-download
-```
-
-To remove the poetry, simply run `make poetry-remove`.
-
-To install the dependencies for development, run the following command:
-
-```sh
-make install
-make pre-commit-install
-```
-
-### Unittests
+- Unittests
 
 ```sh
 make test
 ```
 
-### Code formatting
+- Code formatting
 
 ```sh
 make formatting
 ```
 
-### Check type-hinting
+- Check type-hinting
 
 ```sh
 make mypy
