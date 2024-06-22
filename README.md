@@ -9,7 +9,6 @@
 </div>
 
 ----
-# Blender Soft Arm
 
 The Blender Soft Arm (bsr) includes data visualization tools and analysis for soft-arm robotics data.
 The slender body is defined by a series of points and radius, and the data is visualized in [Blender](https://www.blender.org/).
