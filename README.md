@@ -5,10 +5,14 @@
 <a href='https://blender-soft-rod.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/blender-soft-rod/badge/?version=latest' alt='Documentation Status' />
 </a>
+<a href='https://github.com/GazzolaLab/Blender-Soft-Rod/actions'>
+    <img src='https://github.com/GazzolaLab/Blender-Soft-Rod/actions/workflows/main.yml/badge.svg' alt='CI' />
+</a>
 
 </div>
 
 ----
+
 
 The Blender Soft Arm (bsr) includes data visualization tools and analysis for soft-arm robotics data.
 The slender body is defined by a series of points and radius, and the data is visualized in [Blender](https://www.blender.org/).
@@ -66,3 +70,4 @@ make formatting
 ```sh
 make mypy
 ```
+
