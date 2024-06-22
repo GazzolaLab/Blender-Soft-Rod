@@ -3,12 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Blender SoftRod Tools's documentation!
+Blender SoftRod Tools's documentation
 =================================================
 
-Python software for integrating soft-rods visualization into blender for rendering and analysis.
+Python software for integrating soft-rods visualization into Blender for rendering and analysis.
 
-TODO: Description of the project.
 
 .. toctree::
    :maxdepth: 2
@@ -20,9 +19,9 @@ TODO: Description of the project.
    :maxdepth: 2
    :caption: API:
 
-   api/file
-   api/geometry
-   api/collective
+   api/geometry-primitives
+   api/geometry-composite
+   api/blender_commands
 
 .. toctree::
    :maxdepth: 2

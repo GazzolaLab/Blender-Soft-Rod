@@ -1,3 +1,14 @@
+<div align="center">
+<h1> Blender Soft Arm </h1>
+
+<img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
+<a href='https://blender-soft-rod.readthedocs.io/en/latest/?badge=latest'>
+    <img src='https://readthedocs.org/projects/blender-soft-rod/badge/?version=latest' alt='Documentation Status' />
+</a>
+
+</div>
+
+----
 # Blender Soft Arm
 
 The Blender Soft Arm (bsr) includes data visualization tools and analysis for soft-arm robotics data.
