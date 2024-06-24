@@ -1,4 +1,7 @@
 import numpy as np
+from numpy.typing import NDArray
+
+from numbers import Number
 
 
 def _validate_position(position: NDArray) -> None:
@@ -60,5 +63,5 @@ def _validate_radii(radii: NDArray) -> None:
 
     if (radii <= 0).any():
         raise ValueError("The radius must be a positive float.")
-    if np.isnan(radius).any():
+    if np.isnan(radii).any():
         raise ValueError("The radius contains NaN values.")

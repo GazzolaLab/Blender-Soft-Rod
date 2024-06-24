@@ -82,13 +82,14 @@ class BezierSplinePipe(KeyFrameControlMixin):
             If the shape of the position or radius is incorrect, or if the data is NaN.
         """
 
-        if position is not None:
-            _validate_position(position)
+        spline = self.object.splines[0]
+        if positions is not None:
+            _validate_position(positions)
             for i, point in enumerate(spline.bezier_points):
                 x, y, z = positions[:, i]
                 point.co = (x, y, z)
-        if radius is not None:
-            _validate_radii(radius)
+        if radii is not None:
+            _validate_radii(radii)
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
 
