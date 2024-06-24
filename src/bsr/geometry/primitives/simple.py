@@ -15,6 +15,8 @@ from numpy.typing import NDArray
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, MeshDataType
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
+from .utils import _validate_position, _validate_radius
+
 
 def calculate_cylinder_orientation(
     position_1: NDArray, position_2: NDArray
@@ -47,48 +49,6 @@ def calculate_cylinder_orientation(
     return float(depth), center, angles
 
 
-def _validate_position(position: NDArray) -> None:
-    """
-    Checks if inputted position values are valid
-
-    Paramters
-    ---------
-    position: NDArray
-        Position input (endpoint or centerpoint depending on Object type)
-
-    Raises
-    ------
-    ValueError
-        If the position is the wrong shape or contains NaN values
-    """
-
-    if position.shape != (3,):
-        raise ValueError("The shape of the position is incorrect.")
-    if np.isnan(position).any():
-        raise ValueError("The position contains NaN values.")
-
-
-def _validate_radius(radius: float) -> None:
-    """
-    Checks if inputted radius value is valid
-
-    Parameters:
-    -----------
-    radius: Float
-        Radius input
-
-    Raises
-    ------
-    ValueError
-        If the radius is not positive, or contains NaN values
-    """
-
-    if not isinstance(radius, Number) or radius <= 0:
-        raise ValueError("The radius must be a positive float.")
-    if np.isnan(radius):
-        raise ValueError("The radius contains NaN values.")
-
-
 class Sphere(KeyFrameControlMixin):
     """
     This class provides a mesh interface for Blender Sphere objects.
@@ -119,6 +79,7 @@ class Sphere(KeyFrameControlMixin):
         Basic factory method to create a new Sphere object.
         """
 
+        # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
         remaining_keys = set(states.keys()) - cls.input_states
         if len(remaining_keys) > 0:
             warnings.warn(
@@ -221,6 +182,7 @@ class Cylinder(KeyFrameControlMixin):
         Basic factory method to create a new Cylinder object.
         """
 
+        # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
         remaining_keys = set(states.keys()) - cls.input_keys
         if len(remaining_keys) > 0:
             warnings.warn(
