@@ -8,6 +8,9 @@ def clear_mesh_objects() -> None:
     bpy.ops.object.select_all(action="DESELECT")
     bpy.ops.object.select_by_type(type="MESH")
     bpy.ops.object.delete()
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.ops.object.select_by_type(type="CURVE")
+    bpy.ops.object.delete()
 
 
 def scene_update() -> None:
