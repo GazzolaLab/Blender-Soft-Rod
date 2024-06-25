@@ -107,7 +107,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
         curve_data.dimensions = "3D"
 
         spline = curve_data.splines.new(type="BEZIER")
-        spline.bezier_points.add(number_of_points - 1)
+        spline.bezier_points.add(number_of_points - 1)  # First point is already there
 
         # Set the spline points and radii
         for i in range(number_of_points):
@@ -116,6 +116,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         # Create a new object with the curve data
         curve_object = bpy.data.objects.new("spline_curve_object", curve_data)
+        curve_object.data.resolution_u = 1
         bpy.context.collection.objects.link(curve_object)
 
         # Create a bevel object for the pipe profile
@@ -147,8 +148,10 @@ class BezierSplinePipe(KeyFrameControlMixin):
         ----------
         keyframe : int
         """
-        self.object.keyframe_insert(data_path="location", frame=keyframe)
-        self.object.keyframe_insert(data_path="radius", frame=keyframe)
+        spline = self.object.splines[0]
+        for i, point in enumerate(spline.bezier_points):
+            point.keyframe_insert(data_path="co", frame=keyframe)
+            point.keyframe_insert(data_path="radius", frame=keyframe)
 
 
 if TYPE_CHECKING:
