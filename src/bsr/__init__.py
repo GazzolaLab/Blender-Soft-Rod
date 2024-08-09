@@ -1,7 +1,9 @@
-from typing import Optional
+from typing import Final, Optional
 
 import sys
 from importlib import metadata as importlib_metadata
+
+import bpy
 
 # Exposed functions and classes (API)
 # Note: These should not be imported within the package to avoid circular imports
@@ -23,7 +25,7 @@ def get_version() -> str:
         return "unknown"
 
 
-version: str = get_version()
+VERSION: Final[str] = get_version()
 
 
 class Frame:
@@ -54,10 +56,26 @@ class Frame:
             assert (
                 isinstance(frame, int) and frame >= 0
             ), "frame must be a positive integer or 0"
-
-        import bpy
-
         bpy.context.scene.frame_end = frame
 
 
 frame = Frame()
+
+
+def find_area(area_type: str) -> Optional[bpy.types.Area]:
+    try:
+        for area in bpy.data.window_managers[0].windows[0].screen.areas:
+            if area.type == area_type:
+                return area
+        return None
+    except:
+        return None
+
+
+def set_view_distance(distance: float) -> None:
+    assert (
+        isinstance(distance, (int, float)) and distance > 0
+    ), "distance must be a positive number"
+    area_view_3d = find_area("VIEW_3D")
+    region_3d = area_view_3d.spaces[0].region_3d
+    region_3d.view_distance = distance
