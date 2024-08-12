@@ -34,5 +34,8 @@ def set_view_distance(distance: float) -> None:
         isinstance(distance, (int, float)) and distance > 0
     ), "distance must be a positive number"
     area_view_3d = find_area("VIEW_3D")
-    region_3d = area_view_3d.spaces[0].region_3d
-    region_3d.view_distance = distance
+    try:
+        region_3d = area_view_3d.spaces[0].region_3d
+        region_3d.view_distance = distance
+    except:
+        assert False, "No 3D view or 3D region found"
