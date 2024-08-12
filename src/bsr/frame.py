@@ -4,6 +4,16 @@ import bpy
 
 
 class Frame:
+    """
+    This class provides methods for manipulating the frame of the scene.
+
+    Parameters
+    ----------
+    frame : int, optional
+        The initial frame of the scene. The default is 0.
+
+    """
+
     def __init__(self, frame: int = 0):
         self.__frame = frame
 
@@ -15,16 +25,36 @@ class Frame:
 
     @property
     def current_frame(self) -> int:
+        """
+        Return the current frame number of the scene.
+        """
         return self.__frame
 
     @current_frame.setter
     def current_frame(self, frame: int) -> None:
+        """
+        Set the current frame number of the scene.
+
+        Parameters
+        ----------
+        frame : int
+            The current frame number of the scene.
+        """
         assert (
             isinstance(frame, int) and frame >= 0
         ), "frame must be a positive integer or 0"
         self.__frame = frame
 
     def set_frame_end(self, frame: Optional[int] = None) -> None:
+        """
+        Set the end frame number of the scene.
+
+        Parameters
+        ----------
+        frame : int, optional
+            The end frame number of the scene. The default is None.
+            If None, the current frame number is used.
+        """
         if frame is None:
             frame = self.__frame
         else:
