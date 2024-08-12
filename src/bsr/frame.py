@@ -2,6 +2,7 @@ from typing import Optional
 
 import bpy
 
+from .utilities.singleton import Singleton
 
 class FrameManager(Singleton):
     """
