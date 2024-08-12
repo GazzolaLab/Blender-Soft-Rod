@@ -3,18 +3,21 @@ from typing import Optional
 import bpy
 
 
-class Frame:
+class FrameManager(Singleton):
     """
     This class provides methods for manipulating the frame of the scene.
-
-    Parameters
-    ----------
-    frame : int, optional
-        The initial frame of the scene. The default is 0.
-
+    Only one instance exist, which you can access by: bsr.frame.
     """
 
     def __init__(self, frame: int = 0):
+        """
+        Constructor for frame manager.
+            
+        Parameters
+        ----------
+        frame : int, optional
+            The initial frame of the scene. The default is 0.
+        """
         self.__frame = frame
 
     def update(self, forwardframe: int = 1) -> None:
