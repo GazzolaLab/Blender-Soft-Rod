@@ -11,7 +11,7 @@ class FrameManager(Singleton):
     Only one instance exist, which you can access by: bsr.frame.
     """
 
-    def __init__(self, frame: int = 0):
+    def __init__(self) -> None:
         """
         Constructor for frame manager.
 
@@ -20,7 +20,7 @@ class FrameManager(Singleton):
         frame : int, optional
             The initial frame of the scene. The default is 0.
         """
-        self.__frame = frame
+        self.__frame: int = 0
 
     def update(self, forwardframe: int = 1) -> None:
         assert (
