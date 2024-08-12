@@ -3,7 +3,7 @@ from typing import Optional
 import bpy
 
 
-def find_area(area_type: str) -> Optional[bpy.types.Area]:
+def find_area(area_type: str) -> bpy.types.Area:
     """
     Return the area of the given type in the current screen
 
@@ -16,9 +16,9 @@ def find_area(area_type: str) -> Optional[bpy.types.Area]:
         for area in bpy.data.window_managers[0].windows[0].screen.areas:
             if area.type == area_type:
                 return area
-        return None
+        raise ValueError(f"No area of type {area_type} found")
     except:
-        return None
+        assert False, "No area found"
 
 
 def set_view_distance(distance: float) -> None:
