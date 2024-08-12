@@ -14,11 +14,6 @@ class FrameManager(Singleton):
     def __init__(self) -> None:
         """
         Constructor for frame manager.
-
-        Parameters
-        ----------
-        frame : int, optional
-            The initial frame of the scene. The default is 0.
         """
         self.__frame: int = 0
 
