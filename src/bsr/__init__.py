@@ -13,7 +13,7 @@ from .blender_commands.macros import (
     clear_mesh_objects,
     scene_update,
 )
-from .frame import Frame
+from .frame import FrameManager
 from .geometry.composite.rod import Rod
 from .geometry.composite.stack import RodStack, create_rod_collection
 from .geometry.primitives.simple import Cylinder, Sphere
@@ -28,4 +28,4 @@ def get_version() -> str:
 
 
 version: Final[str] = get_version()
-frame: Frame = Frame()
+frame = FrameManager()
