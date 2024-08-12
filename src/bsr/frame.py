@@ -15,9 +15,18 @@ class FrameManager(Singleton):
         """
         Constructor for frame manager.
         """
-        self.__frame: int = 0
+        if not self.isInstantiated:
+            self.__frame: int = 0
 
     def update(self, forwardframe: int = 1) -> None:
+        """
+        Update the current frame number of the scene.
+
+        Parameters
+        ----------
+        forwardframe : int, optional
+            The number of frames to move forward. The default is 1.
+        """
         assert (
             isinstance(forwardframe, int) and forwardframe > 0
         ), "forwardframe must be a positive integer"
