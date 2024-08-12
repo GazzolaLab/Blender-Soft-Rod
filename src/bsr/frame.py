@@ -4,6 +4,7 @@ import bpy
 
 from .utilities.singleton import Singleton
 
+
 class FrameManager(Singleton):
     """
     This class provides methods for manipulating the frame of the scene.
@@ -13,7 +14,7 @@ class FrameManager(Singleton):
     def __init__(self, frame: int = 0):
         """
         Constructor for frame manager.
-            
+
         Parameters
         ----------
         frame : int, optional
