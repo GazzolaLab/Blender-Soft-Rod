@@ -22,6 +22,7 @@ Python software for integrating soft-rods visualization into Blender for renderi
    api/geometry-primitives
    api/geometry-composite
    api/blender_commands
+   api/blender_frame_manager
 
 .. toctree::
    :maxdepth: 2
