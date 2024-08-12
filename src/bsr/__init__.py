@@ -25,7 +25,7 @@ def get_version() -> str:
         return "unknown"
 
 
-VERSION: Final[str] = get_version()
+version: Final[str] = get_version()
 
 
 class Frame:
