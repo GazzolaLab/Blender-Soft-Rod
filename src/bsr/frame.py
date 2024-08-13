@@ -2,10 +2,10 @@ from typing import Optional
 
 import bpy
 
-from .utilities.singleton import Singleton
+from .utilities.singleton import SingletonMeta
 
 
-class FrameManager(Singleton):
+class FrameManager(metaclass=SingletonMeta):
     """
     This class provides methods for manipulating the frame of the scene.
     Only one instance exist, which you can access by: bsr.frame.
@@ -15,8 +15,7 @@ class FrameManager(Singleton):
         """
         Constructor for frame manager.
         """
-        if not self.isInstantiated:
-            self.__frame: int = 0
+        self.__frame: int = 0
 
     def update(self, forwardframe: int = 1) -> None:
         """

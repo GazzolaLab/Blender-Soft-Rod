@@ -1,14 +1,7 @@
-from typing_extensions import Self
+class SingletonMeta(type):
+    __instance: dict = {}
 
-
-class Singleton:
-    __instance = None
-
-    def __new__(cls):  # type: ignore
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
-    @property
-    def isInstantiated(self) -> bool:
-        return self.__instance is not None
+    def __call__(cls, *args, **kwargs):  # type: ignore
+        if cls not in cls.__instance:
+            cls.__instance[cls] = super().__call__(*args, **kwargs)
+        return cls.__instance[cls]

@@ -28,4 +28,4 @@ def get_version() -> str:
 
 
 version: Final[str] = get_version()
-frame = FrameManager()
+frame_manager = FrameManager()

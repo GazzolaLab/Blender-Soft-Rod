@@ -1,40 +1,36 @@
-import pytest
-
-from bsr.utilities.singleton import Singleton
+from bsr.utilities.singleton import SingletonMeta
 
 
-class TestClass(Singleton):
+class TempClass(metaclass=SingletonMeta):
     def __init__(self):
-        if not self.isInstantiated:
-            self.value = None
+        self.value = None
 
 
-class TestTheOtherClass(Singleton):
+class TempTheOtherClass(metaclass=SingletonMeta):
     def __init__(self):
-        if not self.isInstantiated:
-            self.value = None
+        self.value = None
 
 
-class TestSingletonMixin:
+class TestSingletonMeta:
     def test_singleton_instance(self):
-        obj1 = TestClass()
-        obj2 = TestClass()  # 20 should be ignored
+        obj1 = TempClass()
+        obj2 = TempClass()
 
         # Both obj1 and obj2 should be the same instance
         assert obj1 is obj2
 
     def test_singleton_maintains_state(self):
-        obj1 = TestClass()
+        obj1 = TempClass()
         obj1.value = 1
-        obj2 = TestClass()
+        obj2 = TempClass()
 
         # obj2 should have the same value as obj1
         assert obj2.value == 1
 
     def test_different_subclasses_are_different_singletons(self):
 
-        obj1 = TestClass()
-        obj2 = TestTheOtherClass()
+        obj1 = TempClass()
+        obj2 = TempTheOtherClass()
 
         # obj1 and obj2 should be different instances
         assert obj1 is not obj2
