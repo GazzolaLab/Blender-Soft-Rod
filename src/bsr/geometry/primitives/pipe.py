@@ -107,7 +107,9 @@ class BezierSplinePipe(KeyFrameControlMixin):
         curve_data.dimensions = "3D"
 
         spline = curve_data.splines.new(type="BEZIER")
-        spline.bezier_points.add(number_of_points - 1)  # First point is already there
+        spline.bezier_points.add(
+            number_of_points - 1
+        )  # First point is already there
 
         # Set the spline points and radii
         for i in range(number_of_points):

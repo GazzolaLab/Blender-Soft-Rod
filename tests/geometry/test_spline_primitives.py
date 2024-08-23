@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from bsr.geometry.primitive.pipe import BezierSplinePipe
 
@@ -51,8 +51,8 @@ def test_update_states_with_wrong_shape(impossible_shaped_data):
     "nan_data",
     [
         # TODO
-        dict(), # nan in position data
-        dict(), # nan in radius data
+        dict(),  # nan in position data
+        dict(),  # nan in radius data
     ],
 )
 def test_update_states_with_nan_values(nan_data):
@@ -75,4 +75,3 @@ def test_bezier_spline_creator():
     assert new_bezier_spline is not None
     assert old_bezier_spline is not new_bezier_spline
     assert isinstance(new_bezier_spline, bpy_types.Object)
-

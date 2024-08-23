@@ -13,12 +13,11 @@ from .blender_commands.macros import (
     clear_mesh_objects,
     scene_update,
 )
-
 from .frame import FrameManager
-from .geometry.composite.rod import Rod, RodWithCylinder
+from .geometry.composite.rod import Rod, RodWithBox, RodWithCylinder
 from .geometry.composite.stack import RodStack, create_rod_collection
-from .geometry.primitives.simple import Cylinder, Sphere
 from .geometry.primitives.pipe import BezierSplinePipe
+from .geometry.primitives.simple import Cylinder, Sphere
 from .viewport import find_area, set_view_distance
 
 
