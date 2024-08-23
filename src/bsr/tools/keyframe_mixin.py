@@ -10,7 +10,7 @@ class KeyFrameControlMixin(ABC):
     """
     This mixin class provides methods for manipulating keyframes.
     By adding this mixin, the class will conform to the BlenderKeyframeManipulateProtocol.
-    Otherwise, each meethods must be implemented in the class.
+    Otherwise, each methods must be implemented in the class.
     """
 
     def clear_animation(self: BlenderMeshInterfaceProtocol) -> None:

@@ -1,5 +1,9 @@
+from typing import Final, Optional
+
 import sys
 from importlib import metadata as importlib_metadata
+
+import bpy
 
 # Exposed functions and classes (API)
 # Note: These should not be imported within the package to avoid circular imports
@@ -9,10 +13,13 @@ from .blender_commands.macros import (
     clear_mesh_objects,
     scene_update,
 )
+
+from .frame import FrameManager
 from .geometry.composite.rod import Rod, RodWithCylinder
 from .geometry.composite.stack import RodStack, create_rod_collection
 from .geometry.primitives.simple import Cylinder, Sphere
 from .geometry.primitives.pipe import BezierSplinePipe
+from .viewport import find_area, set_view_distance
 
 
 def get_version() -> str:
@@ -22,4 +29,5 @@ def get_version() -> str:
         return "unknown"
 
 
-version: str = get_version()
+version: Final[str] = get_version()
+frame_manager = FrameManager()
