@@ -1,7 +1,7 @@
 __doc__ = """
 Rod class for creating and updating rods in Blender
 """
-__all__ = ["RodWithSphereAndCylinder", "Rod"]
+__all__ = ["RodWithSphereAndCylinder", "Rod", "RodWithCylinder", "RodWithBox"]
 
 from typing import TYPE_CHECKING
 
@@ -9,7 +9,7 @@ import bpy
 import numpy as np
 from numpy.typing import NDArray
 
-from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.geometry.primitives.simple import Box, Cylinder, Sphere
 from bsr.geometry.protocol import CompositeProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
@@ -114,6 +114,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         for idx, cylinder in enumerate(self.cylinders):
             cylinder.set_keyframe(keyframe)
 
+
 class RodWithCylinder(RodWithSphereAndCylinder):
     """
     Rod class for managing visualization and rendering in Blender
@@ -180,6 +181,86 @@ class RodWithCylinder(RodWithSphereAndCylinder):
         """
         for idx, cylinder in enumerate(self.cylinders):
             cylinder.set_keyframe(keyframe)
+
+
+class RodWithBox(RodWithSphereAndCylinder):
+    """
+    Rod class for managing visualization and rendering in Blender
+
+    This class creates sphere objects to represent position and cube to represent director
+
+    Parameters
+    ----------
+    positions : NDArray
+        The positions of the sphere objects. Expected shape is (n_dim, n_nodes).
+        n_dim = 3
+    radii : NDArray
+        The radii of the sphere objects. Expected shape is (n_nodes-1,).
+
+    """
+
+    input_states = {"positions", "radii", "directors"}
+
+    def __init__(
+        self, positions: NDArray, radii: NDArray, directors: NDArray
+    ) -> None:
+        # create cylinder objects
+        self.boxes: list[Box] = []
+        self._bpy_objs: dict[str, list[bpy.types.Object]] = {
+            "box": self.boxes,
+        }
+
+        self._build(positions, radii, directors)
+
+    def _build(
+        self, positions: NDArray, radii: NDArray, directors: NDArray
+    ) -> None:
+        n_elems = directors.shape[-1]
+        for j in range(n_elems):
+            box = Box(
+                positions[:, j],
+                positions[:, j + 1],
+                radii[j],
+                directors[..., j],
+            )
+            self.boxes.append(box)
+
+    def update_states(
+        self, positions: NDArray, radii: NDArray, directors: NDArray
+    ) -> None:
+        """
+        Update the states of the rod object
+
+        Parameters
+        ----------
+        positions : NDArray
+            The positions of the sphere objects. Expected shape is (n_nodes, 3).
+        radii : NDArray
+            The radii of the sphere objects. Expected shape is (n_nodes-1,).
+        """
+        # check shape of positions and radii
+        assert positions.ndim == 2, "positions must be 2D array"
+        assert positions.shape[0] == 3, "positions must have 3 rows"
+        assert radii.ndim == 1, "radii must be 1D array"
+        assert (
+            positions.shape[-1] == radii.shape[-1] + 1
+        ), "radii must have n_nodes-1 elements"
+
+        for idx, box in enumerate(self.boxes):
+            box.update_states(
+                positions[:, idx],
+                positions[:, idx + 1],
+                radii[idx],
+                directors[..., idx],
+            )
+
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Set keyframe for the rod object
+        """
+        for idx, box in enumerate(self.boxes):
+            box.set_keyframe(keyframe)
+
 
 # Alias
 Rod = RodWithSphereAndCylinder

@@ -1,7 +1,29 @@
-import numpy as np
-from numpy.typing import NDArray
-
 from numbers import Number
+
+import numpy as np
+from numba import njit
+from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation
+
+
+# @njit(cache=True)
+def _matrix_to_euler(matrix: NDArray) -> NDArray:
+    """
+    Converts a rotation matrices to Euler angles
+
+    Parameters
+    ----------
+    matrix: NDArray
+        A batch of rotation matrices. Given row-wise)
+
+    Returns
+    -------
+    NDArray
+        A batch of Euler angles
+    """
+    R = Rotation.from_matrix(matrix.T)
+    euler = R.as_euler("xyz")
+    return euler
 
 
 def _validate_position(position: NDArray) -> None:
@@ -65,3 +87,22 @@ def _validate_radii(radii: NDArray) -> None:
         raise ValueError("The radius must be a positive float.")
     if np.isnan(radii).any():
         raise ValueError("The radius contains NaN values.")
+
+
+def _validate_rotation_matrix(director: NDArray) -> None:
+    """
+    Checks if inputted rotation matrix is valid
+
+    Parameters:
+    -----------
+    director: NDArray
+        Rotation matrix input
+
+    Raises
+    ------
+    ValueError
+        If the rotation matrix is not a 3x3 matrix, or contains NaN values
+    """
+
+    if np.isnan(director).any():
+        raise ValueError("The director contains NaN values.")

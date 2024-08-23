@@ -10,9 +10,9 @@ def get_mesh_limit(interface: BlenderMeshInterfaceProtocol):
     obj = interface.object
 
     if obj.type == "CURVE":
-        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_all(action="DESELECT")
         obj.select_set(True)
-        bpy.ops.object.convert(target='MESH')
+        bpy.ops.object.convert(target="MESH")
 
     scene_update()
 
