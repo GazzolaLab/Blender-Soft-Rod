@@ -13,6 +13,7 @@ from .blender_commands.macros import (
     clear_mesh_objects,
     deselect_all,
     scene_update,
+    select_camera,
 )
 from .frame import FrameManager
 from .geometry.composite.rod import Rod
