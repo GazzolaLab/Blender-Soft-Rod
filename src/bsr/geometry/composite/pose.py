@@ -3,12 +3,14 @@ Pose class for creating and updating poses in Blender
 """
 __all__ = ["Pose"]
 
+from typing import TYPE_CHECKING
 
 import bpy
 import numpy as np
 from numpy.typing import NDArray
 
 from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.geometry.protocol import CompositeProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
@@ -112,3 +114,11 @@ class Pose(KeyFrameControlMixin):
 
         for cylinder in self.cylinders:
             cylinder.set_keyframe(keyframe)
+
+
+if TYPE_CHECKING:
+    data = {
+        "position": np.array([0.0, 0.0, 0.0]),
+        "directors": np.diag([1.0, 1.0, 1.0]),
+    }
+    _: CompositeProtocol = Pose.create(data)
