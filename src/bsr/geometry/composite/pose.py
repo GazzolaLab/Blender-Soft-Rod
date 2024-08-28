@@ -26,15 +26,15 @@ class Pose(KeyFrameControlMixin):
     directors : NDArray
         The directors of the pose. Expected shape is (n_dim, n_dim).
         n_dim = 3
-    unit_length : int, optional
-        The length of the director. The default is 1.
 
     """
 
-    input_states = {"position", "directors", "unit_length"}
+    input_states = {"position", "directors"}
 
     def __init__(
-        self, position: NDArray, directors: NDArray, unit_length: int = 1
+        self,
+        position: NDArray,
+        directors: NDArray,
     ) -> None:
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
@@ -43,10 +43,16 @@ class Pose(KeyFrameControlMixin):
             "spheres": self.spheres,
             "cylinders": self.cylinders,
         }
-        self.__unit_length = unit_length
+        self.__unit_length = 1.0
         self.__ratio = 0.1
 
         self._build(position, directors)
+
+    def set_unit_length(self, unit_length: float) -> None:
+        """
+        Set the unit length of the pose object
+        """
+        self.__unit_length = unit_length
 
     @property
     def object(self) -> dict[str, bpy.types.Object]:
@@ -56,11 +62,11 @@ class Pose(KeyFrameControlMixin):
         return self._bpy_objs
 
     @classmethod
-    def create(cls, states: dict[str, NDArray | int]) -> "Pose":
+    def create(cls, states: dict[str, NDArray]) -> "Pose":
         """
         Create a Pose object from the given states
 
-        States must have the following keys: position(n_dim,), director(n_dim, n_dim), unit_length
+        States must have the following keys: position(n_dim,), director(n_dim, n_dim), unit_length (optional)
         """
         pose = cls(**states)
         return pose
