@@ -56,7 +56,7 @@ class Pose(KeyFrameControlMixin):
         return self._bpy_objs
 
     @classmethod
-    def create(cls, states: dict[str, NDArray]) -> "Pose":
+    def create(cls, states: dict[str, NDArray | int]) -> "Pose":
         """
         Create a Pose object from the given states
 
