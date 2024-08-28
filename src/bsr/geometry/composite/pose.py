@@ -32,6 +32,7 @@ class Pose(KeyFrameControlMixin):
         position: NDArray,
         directors: NDArray,
         unit_length: float = 1.0,
+        thickness_ratio: float = 0.1,
     ) -> None:
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
@@ -41,7 +42,7 @@ class Pose(KeyFrameControlMixin):
             "cylinders": self.cylinders,
         }
         self.__unit_length = unit_length
-        self.__ratio = 0.1
+        self.__ratio = thickness_ratio
 
         self._build(position, directors)
 
@@ -59,7 +60,7 @@ class Pose(KeyFrameControlMixin):
         # create the sphere object at the position
         sphere = Sphere(
             position,
-            3 * self.__unit_length * self.__ratio,
+            self.__unit_length * self.__ratio,
         )
         self.spheres.append(sphere)
 
