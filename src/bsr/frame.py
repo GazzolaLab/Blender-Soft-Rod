@@ -5,23 +5,6 @@ import bpy
 from .utilities.singleton import SingletonMeta
 
 
-def isnumber(value: int | float) -> bool:
-    """
-    Check if the value is a number.
-
-    Parameters
-    ----------
-    value : int or float
-        The value to check.
-
-    Returns
-    -------
-    bool
-        True if the value is a number, False otherwise.
-    """
-    return isinstance(value, int) or isinstance(value, float)
-
-
 class FrameManager(metaclass=SingletonMeta):
     """
     This class provides methods for manipulating the frame of the scene.
@@ -88,7 +71,7 @@ class FrameManager(metaclass=SingletonMeta):
             ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_end = frame
 
-    def set_frame_rate(self, fps: float | int) -> None:
+    def set_frame_rate(self, fps: int | float) -> None:
         """
         Set the frame rate of the scene.
 
@@ -97,7 +80,7 @@ class FrameManager(metaclass=SingletonMeta):
         fps : float
             The frame rate of the scene. (Frame per second)
         """
-        assert isnumber(fps), "fps must be a number"
+        assert isinstance(fps, (int, float)), "fps must be a number"
         assert fps > 0, "fps must be a positive value"
         bpy.context.scene.render.fps = int(fps)
         bpy.context.scene.render.fps_base = int(fps) / fps
