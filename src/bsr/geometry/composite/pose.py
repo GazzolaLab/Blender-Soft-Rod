@@ -3,14 +3,10 @@ Pose class for creating and updating poses in Blender
 """
 __all__ = ["Pose"]
 
-from typing import TYPE_CHECKING
-
 import bpy
-import numpy as np
 from numpy.typing import NDArray
 
 from bsr.geometry.primitives.simple import Cylinder, Sphere
-from bsr.geometry.protocol import CompositeProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
@@ -35,6 +31,7 @@ class Pose(KeyFrameControlMixin):
         self,
         position: NDArray,
         directors: NDArray,
+        unit_length: float = 1.0,
     ) -> None:
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
@@ -43,16 +40,10 @@ class Pose(KeyFrameControlMixin):
             "spheres": self.spheres,
             "cylinders": self.cylinders,
         }
-        self.__unit_length = 1.0
+        self.__unit_length = unit_length
         self.__ratio = 0.1
 
         self._build(position, directors)
-
-    def set_unit_length(self, unit_length: float) -> None:
-        """
-        Set the unit length of the pose object
-        """
-        self.__unit_length = unit_length
 
     @property
     def object(self) -> dict[str, bpy.types.Object]:
@@ -60,16 +51,6 @@ class Pose(KeyFrameControlMixin):
         Return the dictionary of Blender objects: spheres and cylinders
         """
         return self._bpy_objs
-
-    @classmethod
-    def create(cls, states: dict[str, NDArray]) -> "Pose":
-        """
-        Create a Pose object from the given states
-
-        States must have the following keys: position(n_dim,), director(n_dim, n_dim), unit_length (optional)
-        """
-        pose = cls(**states)
-        return pose
 
     def _build(self, position: NDArray, directors: NDArray) -> None:
         """
@@ -120,11 +101,3 @@ class Pose(KeyFrameControlMixin):
 
         for cylinder in self.cylinders:
             cylinder.set_keyframe(keyframe)
-
-
-if TYPE_CHECKING:
-    data = {
-        "position": np.array([0.0, 0.0, 0.0]),
-        "directors": np.diag([1.0, 1.0, 1.0]),
-    }
-    _: CompositeProtocol = Pose.create(data)

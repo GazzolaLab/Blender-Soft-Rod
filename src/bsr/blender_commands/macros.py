@@ -24,3 +24,8 @@ def clear_materials() -> None:
     # Clear existing materials in the scene
     for material in bpy.data.materials:
         bpy.data.materials.remove(material)
+
+
+def deselect_all() -> None:
+    # Deselect all objects
+    bpy.ops.object.select_all(action="DESELECT")
