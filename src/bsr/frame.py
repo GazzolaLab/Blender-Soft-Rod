@@ -94,4 +94,7 @@ class FrameManager(metaclass=SingletonMeta):
         float
             The frame rate of the scene. (Frame per second)
         """
-        return bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+        fps: float = (
+            bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+        )
+        return fps
