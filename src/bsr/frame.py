@@ -70,3 +70,31 @@ class FrameManager(metaclass=SingletonMeta):
                 isinstance(frame, int) and frame >= 0
             ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_end = frame
+
+    def set_frame_rate(self, fps: int | float) -> None:
+        """
+        Set the frame rate of the scene.
+
+        Parameters
+        ----------
+        fps : float
+            The frame rate of the scene. (Frame per second)
+        """
+        assert isinstance(fps, (int, float)), "fps must be a number"
+        assert fps > 0, "fps must be a positive value"
+        bpy.context.scene.render.fps = int(fps)
+        bpy.context.scene.render.fps_base = int(fps) / fps
+
+    def get_frame_rate(self) -> float:
+        """
+        Get the frame rate of the scene.
+
+        Returns
+        -------
+        float
+            The frame rate of the scene. (Frame per second)
+        """
+        fps: float = (
+            bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+        )
+        return fps

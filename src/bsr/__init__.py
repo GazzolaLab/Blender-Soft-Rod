@@ -11,7 +11,9 @@ from .blender_commands.file import reload, save
 from .blender_commands.macros import (
     clear_materials,
     clear_mesh_objects,
+    deselect_all,
     scene_update,
+    select_camera,
 )
 from .frame import FrameManager
 from .geometry.composite.rod import Rod
