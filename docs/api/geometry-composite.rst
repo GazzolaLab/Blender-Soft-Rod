@@ -12,3 +12,8 @@ Stacked geometry
 
 .. automodule:: bsr.geometry.composite.stack
    :members:
+
+Pose geometry
+-------------
+.. automodule:: bsr.geometry.composite.pose
+   :members:
