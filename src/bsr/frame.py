@@ -1,8 +1,11 @@
 from typing import Optional
+import logging
 
 import bpy
 
 from .utilities.singleton import SingletonMeta
+
+logger = logging.getLogger(__name__)
 
 
 class FrameManager(metaclass=SingletonMeta):
@@ -70,3 +73,4 @@ class FrameManager(metaclass=SingletonMeta):
                 isinstance(frame, int) and frame >= 0
             ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_end = frame
+        logger.info(f"Timeline redefined to {frame} frames.")
