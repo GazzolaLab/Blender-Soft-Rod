@@ -15,6 +15,7 @@ from .blender_commands.macros import (
     scene_update,
     select_camera,
 )
+from .camera import CameraManager
 from .frame import FrameManager
 from .geometry.composite.rod import Rod
 from .geometry.composite.stack import RodStack, create_rod_collection
@@ -30,4 +31,5 @@ def get_version() -> str:
 
 
 version: Final[str] = get_version()
+camera_manager = CameraManager()
 frame_manager = FrameManager()
