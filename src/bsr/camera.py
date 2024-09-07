@@ -16,7 +16,7 @@ class CameraManager(metaclass=SingletonMeta):
         """
         Constructor for camera manager.
         """
-        self.__look_at_location = None
+        self.__look_at_location: Optional[np.ndarray] = None
         self.__sky = np.array([0, 0, 1])
 
     @property
@@ -47,7 +47,8 @@ class CameraManager(metaclass=SingletonMeta):
         bool
             True if the film is transparent, False otherwise.
         """
-        return bpy.context.scene.render.film_transparent
+        film_transparent: bool = bpy.context.scene.render.film_transparent
+        return film_transparent
 
     @property
     def location(self) -> np.ndarray:
