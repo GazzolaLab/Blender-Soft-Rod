@@ -13,9 +13,9 @@ def main(filename: str = "camera_movement"):
 
     bsr.clear_mesh_objects()
 
-    bsr.camera_manager.look_at = np.array([0, 0, 0])
+    bsr.camera_manager.look_at = np.array([0., 0., 0.])
 
-    for k, angle in enumerate(np.linspace(0, 360, frame_rate * total_time + 1)):
+    for k, angle in enumerate(np.linspace(0., 360., frame_rate * total_time + 1)):
         bsr.camera_manager.location = np.array(
             [
                 camera_radius * np.cos(np.radians(angle)),
