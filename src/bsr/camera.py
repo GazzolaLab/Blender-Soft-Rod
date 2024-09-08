@@ -18,7 +18,7 @@ class CameraManager(KeyFrameControlMixin):
         """
         self.name = name
         self.__look_at_location: Optional[np.ndarray] = None
-        self.__sky = np.array([0., 0., 1.])
+        self.__sky = np.array([0.0, 0.0, 1.0])
 
     @property
     def camera(self) -> bpy.types.Object:
