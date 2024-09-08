@@ -13,7 +13,6 @@ from .blender_commands.macros import (
     clear_mesh_objects,
     deselect_all,
     scene_update,
-    select_camera,
 )
 from .camera import CameraManager
 from .frame import FrameManager

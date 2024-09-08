@@ -3,19 +3,20 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from .utilities.singleton import SingletonMeta
+from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
-class CameraManager(metaclass=SingletonMeta):
+class CameraManager(KeyFrameControlMixin):
     """
     This class provides methods for manipulating the camera of the scene.
     Only one instance exist, which you can access by: bsr.camera_manager.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, name="Camera") -> None:
         """
         Constructor for camera manager.
         """
+        self.name = name
         self.__look_at_location: Optional[np.ndarray] = None
         self.__sky = np.array([0, 0, 1])
 
@@ -24,7 +25,24 @@ class CameraManager(metaclass=SingletonMeta):
         """
         Return the camera object.
         """
-        return bpy.data.objects["Camera"]
+        return bpy.data.objects[self.name]
+
+    def select(self) -> None:
+        """
+        Select the camera object.
+        """
+        bpy.context.view_layer.objects.active = self.camera
+
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Sets a keyframe at the given frame.
+
+        Parameters
+        ----------
+        keyframe : int
+        """
+        self.camera.keyframe_insert(data_path="location", frame=keyframe)
+        self.camera.keyframe_insert(data_path="rotation_euler", frame=keyframe)
 
     def set_film_transparent(self, transparent: bool = True) -> None:
         """
