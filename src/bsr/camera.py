@@ -167,5 +167,5 @@ class CameraManager(KeyFrameControlMixin):
         up = np.cross(right, direction)
 
         return np.array(
-            [[*right, 0.], [*up, 0.], [*(-direction), 0.], [*location, 1.]]
+            [[*right, 0.0], [*up, 0.0], [*(-direction), 0.0], [*location, 1.0]]
         )
