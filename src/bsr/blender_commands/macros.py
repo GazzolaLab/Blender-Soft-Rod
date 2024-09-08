@@ -32,8 +32,3 @@ def clear_materials() -> None:
 def deselect_all() -> None:
     # Deselect all objects
     bpy.ops.object.select_all(action="DESELECT")
-
-
-def select_camera() -> None:
-    # Select the camera object
-    bpy.context.view_layer.objects.active = bpy.data.objects["Camera"]
