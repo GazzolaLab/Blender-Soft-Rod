@@ -15,9 +15,7 @@ def main(filename: str = "camera_movement"):
 
     bsr.camera_manager.look_at = np.array([0.0, 0.0, 0.0])
 
-    for k, angle in enumerate(
-        np.linspace(0.0, 360.0, frame_rate * total_time + 1)
-    ):
+    for angle in np.linspace(0.0, 360.0, frame_rate * total_time + 1):
         bsr.camera_manager.location = np.array(
             [
                 camera_radius * np.cos(np.radians(angle)),
@@ -25,7 +23,7 @@ def main(filename: str = "camera_movement"):
                 camera_heigh,
             ]
         )
-        bsr.camera_manager.set_keyframe(k)
+        bsr.camera_manager.set_keyframe(bsr.frame_manager.current_frame)
         bsr.frame_manager.update()
 
     # Set the final keyframe number
