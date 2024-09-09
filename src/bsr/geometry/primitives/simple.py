@@ -3,7 +3,7 @@ This module provides a set of geometry-mesh interfaces for blender objects.
 """
 __all__ = ["Sphere", "Cylinder"]
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import warnings
 from numbers import Number
@@ -131,6 +131,14 @@ class Sphere(KeyFrameControlMixin):
         return cls(states["position"], states["radius"])
 
     @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
+
+    @property
     def object(self) -> bpy.types.Object:
         """
         Access the Blender object.
@@ -166,7 +174,7 @@ class Sphere(KeyFrameControlMixin):
             _validate_radius(radius)
             self.object.scale = (radius, radius, radius)
 
-    def update_material(self, color: NDArray | None = None) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
         """
         Updates the material of the sphere object.
 
@@ -175,7 +183,12 @@ class Sphere(KeyFrameControlMixin):
         color : NDArray
             The new color of the sphere object in RGBA format.
         """
-        if color is not None:
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
             assert color.shape == (
                 4,
             ), "Keyword argument color should be a 1D array with 4 elements: RGBA."
@@ -255,6 +268,14 @@ class Cylinder(KeyFrameControlMixin):
         return cls(states["position_1"], states["position_2"], states["radius"])
 
     @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
+
+    @property
     def object(self) -> bpy.types.Object:
         """
         Access the Blender object.
@@ -320,16 +341,21 @@ class Cylinder(KeyFrameControlMixin):
         self.object.scale[0] = radius
         self.object.scale[1] = radius
 
-    def update_material(self, color: NDArray | None = None) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
         """
         Updates the material of the cylinder object.
 
         Parameters
         ----------
-        color : NDArray
-            The new color of the cylinder object in RGBA format.
+        kwargs : dict
+            Keyword arguments for the material update.
         """
-        if color is not None:
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
             assert color.shape == (
                 4,
             ), "Keyword argument `color` should be a 1D array with 4 elements: RGBA."

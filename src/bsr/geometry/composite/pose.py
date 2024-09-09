@@ -3,10 +3,14 @@ Pose class for creating and updating poses in Blender
 """
 __all__ = ["Pose"]
 
+from typing import TYPE_CHECKING, Any
+
 import bpy
+import numpy as np
 from numpy.typing import NDArray
 
 from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.geometry.protocol import CompositeProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
@@ -44,7 +48,22 @@ class Pose(KeyFrameControlMixin):
         self.__unit_length = unit_length
         self.__ratio = thickness_ratio
 
+        # create sphere and cylinder materials
+        self.spheres_material: list[bpy.types.Material] = []
+        self.cylinders_material: list[bpy.types.Material] = []
+        self._bpy_materials: dict[str, bpy.types.Material] = {
+            "spheres": self.spheres_material,
+            "cylinders": self.cylinders_material,
+        }
+
         self._build(position, directors)
+
+    @property
+    def material(self) -> dict[str, bpy.types.Material]:
+        """
+        Return the dictionary of Blender materials: spheres and cylinders
+        """
+        return self._bpy_materials
 
     @property
     def object(self) -> dict[str, bpy.types.Object]:
@@ -52,6 +71,17 @@ class Pose(KeyFrameControlMixin):
         Return the dictionary of Blender objects: spheres and cylinders
         """
         return self._bpy_objs
+
+    @classmethod
+    def create(cls, states: dict[str, NDArray]) -> "Pose":
+        """
+        Create a Pose object from the given states
+
+        States must have the following keys: position(n_dim,), directors(n_dim, n_dim)
+        """
+        position = states["position"]
+        directors = states["directors"]
+        return cls(position, directors)
 
     def _build(self, position: NDArray, directors: NDArray) -> None:
         """
@@ -73,12 +103,14 @@ class Pose(KeyFrameControlMixin):
                 self.__unit_length * self.__ratio,
             )
             self.cylinders.append(cylinder)
+            self.cylinders_material.append(cylinder.material)
 
             sphere = Sphere(
                 tip_position,
                 self.__unit_length * self.__ratio,
             )
             self.spheres.append(sphere)
+            self.spheres_material.append(sphere.material)
 
     def update_states(self, position: NDArray, directors: NDArray) -> None:
         """
@@ -93,7 +125,7 @@ class Pose(KeyFrameControlMixin):
             sphere = self.spheres[i + 1]
             sphere.update_states(tip_position)
 
-    def update_material(self, **kwargs) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
         """
         Updates the material of the pose object
         """
@@ -112,3 +144,13 @@ class Pose(KeyFrameControlMixin):
 
         for cylinder in self.cylinders:
             cylinder.set_keyframe(keyframe)
+
+
+if TYPE_CHECKING:
+    data = {
+        "position": np.array([0.0, 0.0, 0.0]),
+        "directors": np.array(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        ),
+    }
+    _: CompositeProtocol = Pose.create(data)

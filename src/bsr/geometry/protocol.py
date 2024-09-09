@@ -49,10 +49,10 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     def create(cls: Type[S], states: MeshDataType) -> S:
         """Creates a new mesh object with the given states."""
 
-    def update_states(self, **kwargs: Any) -> None:
+    def update_states(self, *args: Any) -> None:
         """Updates the mesh object with the given states."""
 
-    def update_material(self, **kwargs: Any) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
         """Updates the material of the mesh object."""
 
 

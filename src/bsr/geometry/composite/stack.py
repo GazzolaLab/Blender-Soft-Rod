@@ -25,6 +25,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
     def __init__(self) -> None:
         self._objs: list[BlenderMeshInterfaceProtocol] = []
+        self._mats: list[BlenderMeshInterfaceProtocol] = []
 
     @overload
     def __getitem__(self, index: int, /) -> BlenderMeshInterfaceProtocol: ...
@@ -39,6 +40,13 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
     def __len__(self) -> int:
         return len(self._objs)
+
+    @property
+    def material(self) -> list[BlenderMeshInterfaceProtocol]:
+        """
+        Returns the materials in the stack.
+        """
+        return self._mats
 
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
@@ -72,6 +80,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
             state = {k: v[oidx] for k, v in states.items()}
             obj = self.DefaultType.create(state)
             self._objs.append(obj)
+            self._mats.append(obj.material)
         return self
 
     def update_states(self, *variables: NDArray) -> None:
@@ -84,6 +93,21 @@ class BaseStack(Sequence, KeyFrameControlMixin):
             )
         for idx in range(len(self)):
             self[idx].update_states(*[v[idx] for v in variables])
+
+    def update_material(self, **kwargs: dict[str, NDArray]) -> None:
+        """
+        Updates the material of the objects.
+        """
+        for material_key, material_values in kwargs.items():
+            assert isinstance(
+                material_values, np.ndarray
+            ), "Values of kwargs must be a numpy array"
+            if material_values.shape[0] != len(self):
+                raise IndexError(
+                    "All values must have the same length as the stack"
+                )
+            for idx in range(len(self)):
+                self[idx].update_material({material_key: material_values[idx]})
 
 
 class RodStack(BaseStack):
