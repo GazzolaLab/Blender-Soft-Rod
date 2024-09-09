@@ -104,6 +104,16 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
                 positions[:, idx], positions[:, idx + 1], _radii[idx]
             )
 
+    def update_material(self, **kwargs) -> None:
+        """
+        Updates the material of the rod object
+        """
+        for shperes in self.spheres:
+            shperes.update_material(**kwargs)
+
+        for cylinder in self.cylinders:
+            cylinder.update_material(**kwargs)
+
     def set_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object

@@ -93,6 +93,16 @@ class Pose(KeyFrameControlMixin):
             sphere = self.spheres[i + 1]
             sphere.update_states(tip_position)
 
+    def update_material(self, **kwargs) -> None:
+        """
+        Updates the material of the pose object
+        """
+        for shperes in self.spheres:
+            shperes.update_material(**kwargs)
+
+        for cylinder in self.cylinders:
+            cylinder.update_material(**kwargs)
+
     def set_keyframe(self, keyframe: int) -> None:
         """
         Set the keyframe for the pose object

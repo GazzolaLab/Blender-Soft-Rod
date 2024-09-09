@@ -37,8 +37,9 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     # @property
     # def data(self): ...
 
-    # @property
-    # def material(self): ...
+    @property
+    def material(self) -> Any:
+        """Returns the material of the Blender mesh."""
 
     @property
     def object(self) -> Any:
@@ -48,10 +49,11 @@ class BlenderMeshInterfaceProtocol(BlenderKeyframeManipulateProtocol, Protocol):
     def create(cls: Type[S], states: MeshDataType) -> S:
         """Creates a new mesh object with the given states."""
 
-    def update_states(self, *args: Any) -> None:
+    def update_states(self, **kwargs: Any) -> None:
         """Updates the mesh object with the given states."""
 
-    # def update_material(self, material) -> None: ...  # TODO: For future implementation
+    def update_material(self, **kwargs: Any) -> None:
+        """Updates the material of the mesh object."""
 
 
 class CompositeProtocol(BlenderMeshInterfaceProtocol, Protocol):

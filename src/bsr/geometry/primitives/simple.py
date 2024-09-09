@@ -111,6 +111,10 @@ class Sphere(KeyFrameControlMixin):
         """
 
         self._obj = self._create_sphere()
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
         self.update_states(position, radius)
 
     @classmethod
@@ -162,6 +166,24 @@ class Sphere(KeyFrameControlMixin):
             _validate_radius(radius)
             self.object.scale = (radius, radius, radius)
 
+    def update_material(self, color: NDArray | None = None) -> None:
+        """
+        Updates the material of the sphere object.
+
+        Parameters
+        ----------
+        color : NDArray
+            The new color of the sphere object in RGBA format.
+        """
+        if color is not None:
+            assert color.shape == (
+                4,
+            ), "Keyword argument color should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Keyword argument color should be in the range of [0, 1]."
+            self._material.diffuse_color = tuple(color)
+
     def _create_sphere(self) -> bpy.types.Object:
         """
         Creates a new sphere object with the given position and radius.
@@ -208,6 +230,10 @@ class Cylinder(KeyFrameControlMixin):
         """
 
         self._obj = self._create_cylinder()
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
         # FIXME: This is a temporary solution
         # Ideally, these modules should not contain any data
         self._states_position_1 = position_1
@@ -293,6 +319,24 @@ class Cylinder(KeyFrameControlMixin):
         self.object.scale[2] = depth
         self.object.scale[0] = radius
         self.object.scale[1] = radius
+
+    def update_material(self, color: NDArray | None = None) -> None:
+        """
+        Updates the material of the cylinder object.
+
+        Parameters
+        ----------
+        color : NDArray
+            The new color of the cylinder object in RGBA format.
+        """
+        if color is not None:
+            assert color.shape == (
+                4,
+            ), "Keyword argument `color` should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Values of the keyword argument `color` should be in the range of [0, 1]."
+            self._material.diffuse_color = tuple(color)
 
     def _create_cylinder(
         self,
