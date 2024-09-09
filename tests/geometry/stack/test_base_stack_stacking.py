@@ -7,6 +7,11 @@ from bsr.geometry.composite.stack import BaseStack
 class MockObjectToStack:
     def __init__(self, value):
         self.value = value
+        self.material_properties = {}
+
+    @property
+    def material(self):
+        return self.material_properties
 
     @property
     def object(self):
@@ -18,6 +23,9 @@ class MockObjectToStack:
 
     def update_states(self, value):
         self.value = value
+
+    def update_material(self, **kwargs):
+        self.material_properties.update(kwargs)
 
 
 class MockStack(BaseStack[MockObjectToStack]):
@@ -93,6 +101,11 @@ def test_update_wrong_size(update_data):
 class MockObjectToStack2:
     def __init__(self, value1, value2):
         self.value = (value1, value2)
+        self.material_properties = {}
+
+    @property
+    def material(self):
+        return self.material_properties
 
     @property
     def object(self):
@@ -104,6 +117,9 @@ class MockObjectToStack2:
 
     def update_states(self, value1, value2):
         self.value = (value1, value2)
+
+    def update_material(self, **kwargs):
+        self.material_properties.update(kwargs)
 
 
 class Mock2Stack(BaseStack[MockObjectToStack2]):
