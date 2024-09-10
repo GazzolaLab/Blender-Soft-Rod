@@ -41,7 +41,7 @@ def main(filename: str = "director_demo"):
     # create a pose, i.e. position and director, using Pose class
     # start circling around (CCW) the origin on a unit circle trajectory
     # the moving direction is the tangent of the circle, which should be d2
-    # the z axis should be d3, and d1 = d3 cross d2
+    # the z axis should be d3, and d1 = d2 cross d3
     # the pose should be updated every frame, and will go around a circle with period 1 sec.
 
     # Task 2
