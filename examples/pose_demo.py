@@ -29,7 +29,7 @@ def angle_to_color(angle: float) -> np.ndarray:
     return np.array([r, g, b, 1.0])
 
 
-def main(filename: str = "director_demo"):
+def main(filename: str = "pose_demo"):
 
     frame_rate = 60
     total_time = 5
@@ -45,7 +45,7 @@ def main(filename: str = "director_demo"):
     # the pose should be updated every frame, and will go around a circle with period 1 second
 
     # Task 2
-    # the color of the director should change based on the angle
+    # the color of the pose should change based on the angle
     # use the angle_to_color function defined above to compute the color code
     # the angle is in degrees, and the function returns a numpy array of RGBA values
     # the color of the pose can be updated throught pose.update_material(color=...)
