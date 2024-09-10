@@ -42,7 +42,7 @@ def main(filename: str = "director_demo"):
     # start circling around (CCW) the origin on a unit circle trajectory
     # the moving direction is the tangent of the circle, which should be d2
     # the z axis should be d3, and d1 = d2 cross d3
-    # the pose should be updated every frame, and will go around a circle with period 1 sec.
+    # the pose should be updated every frame, and will go around a circle with period 1 second
 
     # Task 2
     # the color of the director should change based on the angle
