@@ -1,6 +1,7 @@
 import numpy as np
 
 import bsr
+from bsr.geometry.composite.pose import Pose
 
 
 def angle_to_color(angle: float) -> np.ndarray:
@@ -37,16 +38,17 @@ def main(filename: str = "director_demo"):
     bsr.clear_mesh_objects()
 
     # Task 1
-    # create a pose, i.e. position and director
+    # create a pose, i.e. position and director, using Pose class
     # start circling around (CCW) the origin on a unit circle trajectory
     # the moving direction is the tangent of the circle, which should be d2
     # the z axis should be d3, and d1 = d3 cross d2
     # the pose should be updated every frame, and will go around a circle with period 1 sec.
 
     # Task 2
-    # the color of the director should also change based on the angle
+    # the color of the director should change based on the angle
     # use the angle_to_color function defined above to compute the color code
     # the angle is in degrees, and the function returns a numpy array of RGBA values
+    # the color of the pose can be updated throught pose.update_material(color=...)
 
     # Set the final keyframe number
     bsr.frame_manager.set_frame_end()
