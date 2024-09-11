@@ -9,7 +9,6 @@ from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 class CameraManager(KeyFrameControlMixin):
     """
     This class provides methods for manipulating the camera of the scene.
-    Only one instance exist, which you can access by: bsr.camera_manager.
     """
 
     def __init__(self, name: str = "Camera") -> None:
