@@ -63,7 +63,7 @@ def main(filename: str = "pose_demo"):
     bsr.deselect_all()
 
     # Select the camera object
-    bsr.camera_manager.select()
+    bsr.camera.select()
 
     # Save as .blend file
     bsr.save(filename + ".blend")

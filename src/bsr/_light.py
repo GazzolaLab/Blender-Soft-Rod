@@ -4,19 +4,19 @@ import numpy as np
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
-class LightManager(KeyFrameControlMixin):
+class Light(KeyFrameControlMixin):
     """
     This class provides methods for manipulating the light of the scene.
     """
 
     def __init__(self, name: str = "Light") -> None:
         """
-        Constructor for light manager.
+        Constructor for light.
         """
         self.name = name
 
     @property
-    def light(self) -> bpy.types.Object:
+    def _light(self) -> bpy.types.Object:
         """
         Return the light object.
         """
@@ -26,14 +26,14 @@ class LightManager(KeyFrameControlMixin):
         """
         Select the light object.
         """
-        bpy.context.view_layer.objects.active = self.light
+        bpy.context.view_layer.objects.active = self._light
 
     @property
     def location(self) -> np.ndarray:
         """
         Return the current location of the light.
         """
-        return np.array(self.light.location)
+        return np.array(self._light.location)
 
     @location.setter
     def location(self, location: np.ndarray) -> None:
@@ -44,7 +44,7 @@ class LightManager(KeyFrameControlMixin):
         ----------
         location : np.ndarray
         """
-        self.light.location = location
+        self._light.location = location
 
     def set_keyframe(self, keyframe: int) -> None:
         """
@@ -54,4 +54,4 @@ class LightManager(KeyFrameControlMixin):
         ----------
         keyframe : int
         """
-        self.light.keyframe_insert(data_path="location", frame=keyframe)
+        self._light.keyframe_insert(data_path="location", frame=keyframe)

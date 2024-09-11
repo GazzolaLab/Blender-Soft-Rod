@@ -13,17 +13,17 @@ def main(filename: str = "camera_movement"):
 
     bsr.clear_mesh_objects()
 
-    bsr.camera_manager.look_at = np.array([0.0, 0.0, 0.0])
+    bsr.camera.look_at = np.array([0.0, 0.0, 0.0])
 
     for angle in np.linspace(0.0, 360.0, frame_rate * total_time + 1):
-        bsr.camera_manager.location = np.array(
+        bsr.camera.location = np.array(
             [
                 camera_radius * np.cos(np.radians(angle)),
                 camera_radius * np.sin(np.radians(angle)),
                 camera_heigh,
             ]
         )
-        bsr.camera_manager.set_keyframe(bsr.frame_manager.current_frame)
+        bsr.camera.set_keyframe(bsr.frame_manager.current_frame)
         bsr.frame_manager.update()
 
     # Set the final keyframe number
@@ -39,7 +39,7 @@ def main(filename: str = "camera_movement"):
     bsr.deselect_all()
 
     # Select the camera object
-    bsr.camera_manager.select()
+    bsr.camera.select()
 
     # Save as .blend file
     bsr.save(filename + ".blend")

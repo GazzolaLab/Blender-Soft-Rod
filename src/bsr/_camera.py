@@ -6,21 +6,21 @@ import numpy as np
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
-class CameraManager(KeyFrameControlMixin):
+class Camera(KeyFrameControlMixin):
     """
     This class provides methods for manipulating the camera of the scene.
     """
 
     def __init__(self, name: str = "Camera") -> None:
         """
-        Constructor for camera manager.
+        Constructor for camera.
         """
         self.name = name
         self.__look_at_location: Optional[np.ndarray] = None
         self.__sky = np.array([0.0, 0.0, 1.0])
 
     @property
-    def camera(self) -> bpy.types.Object:
+    def _camera(self) -> bpy.types.Object:
         """
         Return the camera object.
         """
@@ -30,7 +30,7 @@ class CameraManager(KeyFrameControlMixin):
         """
         Select the camera object.
         """
-        bpy.context.view_layer.objects.active = self.camera
+        bpy.context.view_layer.objects.active = self._camera
 
     def set_keyframe(self, keyframe: int) -> None:
         """
@@ -40,8 +40,8 @@ class CameraManager(KeyFrameControlMixin):
         ----------
         keyframe : int
         """
-        self.camera.keyframe_insert(data_path="location", frame=keyframe)
-        self.camera.keyframe_insert(data_path="rotation_euler", frame=keyframe)
+        self._camera.keyframe_insert(data_path="location", frame=keyframe)
+        self._camera.keyframe_insert(data_path="rotation_euler", frame=keyframe)
 
     def set_film_transparent(self, transparent: bool = True) -> None:
         """
@@ -72,7 +72,7 @@ class CameraManager(KeyFrameControlMixin):
         """
         Return the current location of the camera.
         """
-        return np.array(self.camera.location)
+        return np.array(self._camera.location)
 
     @location.setter
     def location(self, location: np.ndarray) -> None:
@@ -88,9 +88,9 @@ class CameraManager(KeyFrameControlMixin):
             location, np.ndarray
         ), "location must be a numpy array"
         assert len(location) == 3, "location must have 3 elements"
-        self.camera.location = location
+        self._camera.location = location
         if self.__look_at_location is not None:
-            self.camera.matrix_world = self.compute_matrix_world(
+            self._camera.matrix_world = self.compute_matrix_world(
                 location=self.location,
                 direction=self.__look_at_location - self.location,
                 sky=self.__sky,
@@ -122,7 +122,7 @@ class CameraManager(KeyFrameControlMixin):
         ), "camera and look at location must be different"
 
         self.__look_at_location = location
-        self.camera.matrix_world = self.compute_matrix_world(
+        self._camera.matrix_world = self.compute_matrix_world(
             location=self.location,
             direction=self.__look_at_location - self.location,
             sky=self.__sky,

@@ -235,7 +235,7 @@ def main(
     bsr.deselect_all()
 
     # Select the camera object
-    bsr.camera_manager.select()
+    bsr.camera.select()
 
     # Save the simulation
     env.save("BR2_simulation")
