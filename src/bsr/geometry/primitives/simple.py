@@ -186,7 +186,7 @@ class Sphere(KeyFrameControlMixin):
 
         if "color" in kwargs:
             color = kwargs["color"]
-            if isinstance(color, tuple or list):
+            if isinstance(color, (tuple, list)):
                 color = np.array(color)
             assert isinstance(
                 color, np.ndarray
@@ -355,7 +355,7 @@ class Cylinder(KeyFrameControlMixin):
 
         if "color" in kwargs:
             color = kwargs["color"]
-            if isinstance(color, tuple or list):
+            if isinstance(color, (tuple, list)):
                 color = np.array(color)
             assert isinstance(
                 color, np.ndarray
