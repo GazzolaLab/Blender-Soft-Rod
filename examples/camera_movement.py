@@ -28,11 +28,11 @@ def main(
         unit_length=0.25,
     )
 
-    # Set the initial keyframe number
-    bsr.frame_manager.set_frame_start(0)
-
     # Set the current frame number
     bsr.frame_manager.frame_current = 0
+
+    # Set the initial keyframe number
+    bsr.frame_manager.set_frame_start()
 
     # Set the camera orbiting keyframes
     angles = np.linspace(0.0, 360.0, frame_rate * total_time, endpoint=False)
