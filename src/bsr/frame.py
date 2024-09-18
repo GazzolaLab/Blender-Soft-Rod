@@ -47,6 +47,20 @@ class FrameManager(metaclass=SingletonMeta):
         ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_current = frame
 
+    @property
+    def frame_start(self) -> int:
+        """
+        Return the start frame number of the scene.
+        """
+        return int(bpy.context.scene.frame_start)
+
+    @property
+    def frame_end(self) -> int:
+        """
+        Return the end frame number of the scene.
+        """
+        return int(bpy.context.scene.frame_end)
+
     def set_frame_start(self, frame: Optional[int] = None) -> None:
         """
         Set the start frame number of the scene.
