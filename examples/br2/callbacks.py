@@ -166,5 +166,5 @@ class BlenderBR2CallBack(BasicCallBackBaseClass):
             centerline_position=system.position_collection,
             centerline_director=system.director_collection,
         )
-        self.bpy_objs.set_keyframe(bsr.frame_manager.current_frame)
+        self.bpy_objs.set_keyframe(bsr.frame_manager.frame_current)
         bsr.frame_manager.update()
