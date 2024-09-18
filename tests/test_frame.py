@@ -11,10 +11,6 @@ class TestFrameManager:
     def test_frame_manager_singleton(self):
         assert FrameManager() is FrameManager()
 
-    def test_frame_manager_current_frame(self):
-        frame_manager = FrameManager()
-        assert frame_manager.frame_current == 0
-
     def test_frame_manager_current_frame_setter(self):
         frame_manager = FrameManager()
         frame_manager.frame_current = 10

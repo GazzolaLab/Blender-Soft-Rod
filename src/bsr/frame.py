@@ -11,12 +11,6 @@ class FrameManager(metaclass=SingletonMeta):
     Only one instance exist, which you can access by: bsr.frame.
     """
 
-    def __init__(self) -> None:
-        """
-        Constructor for frame manager.
-        """
-        bpy.context.scene.frame_current = 0
-
     def update(self, forwardframe: int = 1) -> None:
         """
         Update the current frame number of the scene.
