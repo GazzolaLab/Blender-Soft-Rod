@@ -55,7 +55,7 @@ def main(
             bsr.frame_manager.update()
         else:
             # Set the final keyframe number
-            bsr.frame_manager.set_frame_end(bsr.frame_manager.frame_current)
+            bsr.frame_manager.set_frame_end()
 
     # Set the frame rate
     bsr.frame_manager.set_frame_rate(fps=frame_rate)
