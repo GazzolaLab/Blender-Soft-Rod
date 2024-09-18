@@ -298,7 +298,7 @@ class Camera(KeyFrameControlMixin):
         Parameters
         ----------
         frames : int, list, tuple or np.array, optional
-            The frames to render. Default is None.
+            The frames to render. Default is None, which means rendering the current frame only.
         """
         frame_manager = FrameManager()
 
