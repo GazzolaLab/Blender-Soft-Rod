@@ -1,8 +1,12 @@
-from typing import Optional
+from typing import Optional, Union
+
+from pathlib import Path
 
 import bpy
 import numpy as np
+from numpy.typing import NDArray
 
+from bsr.frame import FrameManager
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 
@@ -15,16 +19,19 @@ class Camera(KeyFrameControlMixin):
         """
         Constructor for camera.
         """
-        self.name = name
+        self._name = name
+        self._sky = np.array([0.0, 0.0, 1.0])
         self.__look_at_location: Optional[np.ndarray] = None
-        self.__sky = np.array([0.0, 0.0, 1.0])
+        self.__render_folder_path: Optional[Path] = None
+        self.__render_file_name: Optional[str] = None
+        self.__render_file_type: Optional[str] = None
 
     @property
     def _camera(self) -> bpy.types.Object:
         """
         Return the camera object.
         """
-        return bpy.data.objects[self.name]
+        return bpy.data.objects[self._name]
 
     def select(self) -> None:
         """
@@ -93,7 +100,7 @@ class Camera(KeyFrameControlMixin):
             self._camera.matrix_world = self.compute_matrix_world(
                 location=self.location,
                 direction=self.__look_at_location - self.location,
-                sky=self.__sky,
+                sky=self._sky,
             )
 
     @property
@@ -125,7 +132,7 @@ class Camera(KeyFrameControlMixin):
         self._camera.matrix_world = self.compute_matrix_world(
             location=self.location,
             direction=self.__look_at_location - self.location,
-            sky=self.__sky,
+            sky=self._sky,
         )
 
     @staticmethod
@@ -168,3 +175,140 @@ class Camera(KeyFrameControlMixin):
         return np.array(
             [[*right, 0.0], [*up, 0.0], [*(-direction), 0.0], [*location, 1.0]]
         )
+
+    def set_resolution(self, width: int, height: int) -> None:
+        """
+        Set the resolution of the camera.
+
+        Parameters
+        ----------
+        width : int
+            The width of the camera.
+        height : int
+            The height of the camera.
+        """
+        assert isinstance(width, int), "width must be an integer"
+        assert isinstance(height, int), "height must be an integer"
+        self.select()
+        bpy.context.scene.render.resolution_x = width
+        bpy.context.scene.render.resolution_y = height
+
+    def set_file_path(
+        self,
+        file_name: Union[str, Path],
+        folder_path: Optional[Union[str, Path]] = None,
+    ) -> None:
+        """
+        Set the file path for rendering.
+
+        Parameters
+        ----------
+        file_name : str or Path
+            The name of the file.
+        folder_path : str or Path, optional
+            The folder path. Default is None.
+        """
+        # check the type of arguments
+        assert isinstance(
+            file_name, (str, Path)
+        ), f"file_name {file_name} must be a string or Path."
+        file_name = Path(file_name)
+        if folder_path is not None:
+            assert isinstance(
+                folder_path, (str, Path)
+            ), f"folder_path {folder_path} must be a string or Path."
+            folder_path = Path(folder_path)
+        else:
+            folder_path = Path()
+
+        # check the file name extension
+        if file_name.suffix != "":
+            assert file_name.suffix in [
+                ".png"
+            ], f"file_name {file_name} must have a .png extension."
+
+        # check if the file_name has a parent folder
+        if len(file_name.parts) > 1:
+            assert (
+                file_name.parent != folder_path
+            ), "parent folder of file_name conflicts with folder_path. Please only provide file_name."
+            folder_path = Path(file_name.parent)
+            file_name = Path(file_name.name)
+
+        # check if the folder path exists
+        if not folder_path.exists():
+            print(f"folder_path {folder_path} does not exist")
+            print(f"Creating folder_path {folder_path}")
+            folder_path.mkdir(parents=True)
+
+        self.__render_file_type = file_name.suffix
+        self.__render_file_name = file_name.stem
+        self.__render_folder_path = folder_path
+
+    def get_file_path(
+        self, frame: Optional[int] = None, number_of_digits: int = 4
+    ) -> str:
+        """
+        Get the file path for rendering.
+        """
+        # check if the render file path is set
+        assert (
+            self.__render_folder_path is not None
+        ), "render file path is not set"
+        assert (
+            self.__render_file_name is not None
+        ), "render file name is not set"
+        assert (
+            self.__render_file_type is not None
+        ), "render file type is not set"
+
+        if frame is None:
+            file_path = self.__render_folder_path / Path(
+                self.__render_file_name + self.__render_file_type
+            )
+        else:
+            assert isinstance(frame, int), f"frame {frame} must be an integer"
+            # TODO: enlarge the frame number to adapt for more than 4 digits
+            file_path = self.__render_folder_path / Path(
+                self.__render_file_name
+                + f"_{frame:04d}"
+                + self.__render_file_type
+            )
+        return str(file_path)
+
+    def render(
+        self, frames: Optional[Union[int, list, tuple, NDArray]] = None
+    ) -> None:
+        """
+        Render the scene.
+        """
+        frame_manager = FrameManager()
+
+        # Set the current frame to 50
+        if frames is not None:
+            if isinstance(frames, int):
+                frames = (frames,)
+            elif isinstance(frames, (list, tuple)):
+                frames = tuple(frames)
+            elif isinstance(frames, np.ndarray):
+                assert frames.ndim == 1, "frames must be a 1D array"
+                assert np.issubdtype(
+                    frames.dtype, np.integer
+                ), "frames must be an integer array"
+                frames = tuple(frames)
+            else:
+                raise ValueError(
+                    "frames must be an integer, list, tuple or 1D numpy array"
+                )
+        else:
+            frames = (frame_manager.frame_current,)
+
+        frame_current = frame_manager.frame_current
+
+        for frame in frames:
+            frame = int(frame)
+            frame_manager.frame_current = frame
+            bpy.context.scene.render.filepath = self.get_file_path(frame)
+            bpy.ops.render.render(write_still=True)
+
+        frame_manager.frame_current = frame_current
