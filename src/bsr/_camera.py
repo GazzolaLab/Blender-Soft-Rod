@@ -302,18 +302,21 @@ class Camera(KeyFrameControlMixin):
         """
         frame_manager = FrameManager()
 
-        # Set the current frame to 50
+        # check the type of the argument: frames
         if frames is not None:
             if isinstance(frames, int):
                 frames = (frames,)
             elif isinstance(frames, (list, tuple)):
+                assert all(
+                    isinstance(frame, int) for frame in frames
+                ), "frames must be a list or tuple of integers"
                 frames = tuple(frames)
             elif isinstance(frames, np.ndarray):
                 assert frames.ndim == 1, "frames must be a 1D array"
                 assert np.issubdtype(
                     frames.dtype, np.integer
                 ), "frames must be an integer array"
-                frames = tuple(frames)
+                frames = tuple(int(frame) for frame in frames)
             else:
                 raise ValueError(
                     "frames must be an integer, list, tuple or 1D numpy array"
@@ -325,7 +328,6 @@ class Camera(KeyFrameControlMixin):
 
         max_frame_digits = len(str(np.max(frames)))
         for frame in frames:
-            frame = int(frame)
             frame_manager.frame_current = frame
             bpy.context.scene.render.filepath = self.get_file_path(
                 frame, max_frame_digits
