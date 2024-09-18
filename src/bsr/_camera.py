@@ -252,6 +252,18 @@ class Camera(KeyFrameControlMixin):
     ) -> str:
         """
         Get the file path for rendering.
+
+        Parameters
+        ----------
+        frame : int, optional
+            The frame number. Default is None.
+        number_of_digits : int, optional
+            The number of digits for the frame number. Default is 4.
+
+        Returns
+        -------
+        str
+            The file path for rendering.
         """
         # check if the render file path is set
         assert (
@@ -282,6 +294,11 @@ class Camera(KeyFrameControlMixin):
     ) -> None:
         """
         Render the scene.
+
+        Parameters
+        ----------
+        frames : int, list, tuple or np.array, optional
+            The frames to render. Default is None.
         """
         frame_manager = FrameManager()
 
