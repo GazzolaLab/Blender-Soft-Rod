@@ -246,7 +246,9 @@ class Camera(KeyFrameControlMixin):
         self.__render_folder_path = folder_path
 
     def get_file_path(
-        self, frame: Optional[int] = None, number_of_digits: int = 4
+        self,
+        frame: Optional[int] = None,
+        number_of_digits: int = 4,
     ) -> str:
         """
         Get the file path for rendering.
@@ -268,10 +270,9 @@ class Camera(KeyFrameControlMixin):
             )
         else:
             assert isinstance(frame, int), f"frame {frame} must be an integer"
-            # TODO: enlarge the frame number to adapt for more than 4 digits
             file_path = self.__render_folder_path / Path(
                 self.__render_file_name
-                + f"_{frame:04d}"
+                + f"_{frame:0{number_of_digits}d}"
                 + self.__render_file_type
             )
         return str(file_path)
@@ -305,10 +306,13 @@ class Camera(KeyFrameControlMixin):
 
         frame_current = frame_manager.frame_current
 
+        max_frame_digits = len(str(np.max(frames)))
         for frame in frames:
             frame = int(frame)
             frame_manager.frame_current = frame
-            bpy.context.scene.render.filepath = self.get_file_path(frame)
+            bpy.context.scene.render.filepath = self.get_file_path(
+                frame, max_frame_digits
+            )
             bpy.ops.render.render(write_still=True)
 
         frame_manager.frame_current = frame_current
