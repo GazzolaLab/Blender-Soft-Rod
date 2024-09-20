@@ -56,22 +56,7 @@ class Pose(KeyFrameControlMixin):
             "cylinders": self.cylinders_material,
         }
 
-        # create sphere and cylinder materials
-        self.spheres_material: list[bpy.types.Material] = []
-        self.cylinders_material: list[bpy.types.Material] = []
-        self._bpy_materials: dict[str, bpy.types.Material] = {
-            "spheres": self.spheres_material,
-            "cylinders": self.cylinders_material,
-        }
-
         self._build(positions, directors)
-
-    @property
-    def material(self) -> dict[str, bpy.types.Material]:
-        """
-        Return the dictionary of Blender materials: spheres and cylinders
-        """
-        return self._bpy_materials
 
     @property
     def material(self) -> dict[str, bpy.types.Material]:
