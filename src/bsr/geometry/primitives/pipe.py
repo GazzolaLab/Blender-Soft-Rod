@@ -32,6 +32,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
     """
 
     input_states = {"positions", "radii"}
+    name = "bspline"
 
     def __init__(self, positions: NDArray, radii: NDArray) -> None:
         """
@@ -39,6 +40,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
         """
 
         self._obj = self._create_bezier_spline(radii.size)
+        self._obj.name = self.name
         self.update_states(positions, radii)
 
     @classmethod
