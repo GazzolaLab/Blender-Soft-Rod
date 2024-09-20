@@ -16,8 +16,8 @@ class Pose(KeyFrameControlMixin):
 
     Parameters
     ----------
-    position : NDArray
-        The position of pose. Expected shape is (n_dim,).
+    positions : NDArray
+        The positions of pose. Expected shape is (n_dim,).
         n_dim = 3
     directors : NDArray
         The directors of the pose. Expected shape is (n_dim, n_dim).
@@ -25,11 +25,11 @@ class Pose(KeyFrameControlMixin):
 
     """
 
-    input_states = {"position", "directors"}
+    input_states = {"positions", "directors"}
 
     def __init__(
         self,
-        position: NDArray,
+        positions: NDArray,
         directors: NDArray,
         unit_length: float = 1.0,
         thickness_ratio: float = 0.1,
@@ -44,7 +44,7 @@ class Pose(KeyFrameControlMixin):
         self.__unit_length = unit_length
         self.__ratio = thickness_ratio
 
-        self._build(position, directors)
+        self._build(positions, directors)
 
     @property
     def object(self) -> dict[str, bpy.types.Object]:
@@ -53,22 +53,22 @@ class Pose(KeyFrameControlMixin):
         """
         return self._bpy_objs
 
-    def _build(self, position: NDArray, directors: NDArray) -> None:
+    def _build(self, positions: NDArray, directors: NDArray) -> None:
         """
-        Build the pose object from the given position and directors
+        Build the pose object from the given positions and directors
         """
-        # create the sphere object at the position
+        # create the sphere object at the positions
         sphere = Sphere(
-            position,
+            positions,
             self.__unit_length * self.__ratio,
         )
         self.spheres.append(sphere)
 
         # create cylinder and sphere objects for each director
         for i in range(directors.shape[1]):
-            tip_position = position + directors[:, i] * self.__unit_length
+            tip_position = positions + directors[:, i] * self.__unit_length
             cylinder = Cylinder(
-                position,
+                positions,
                 tip_position,
                 self.__unit_length * self.__ratio,
             )
@@ -80,15 +80,15 @@ class Pose(KeyFrameControlMixin):
             )
             self.spheres.append(sphere)
 
-    def update_states(self, position: NDArray, directors: NDArray) -> None:
+    def update_states(self, positions: NDArray, directors: NDArray) -> None:
         """
         Update the states of the pose object
         """
-        self.spheres[0].update_states(position)
+        self.spheres[0].update_states(positions)
 
         for i, cylinder in enumerate(self.cylinders):
-            tip_position = position + directors[:, i] * self.__unit_length
-            cylinder.update_states(position, tip_position)
+            tip_position = positions + directors[:, i] * self.__unit_length
+            cylinder.update_states(positions, tip_position)
 
             sphere = self.spheres[i + 1]
             sphere.update_states(tip_position)
