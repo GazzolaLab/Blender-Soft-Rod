@@ -13,7 +13,14 @@ from typing import (
     TypeAlias,
     TypeVar,
 )
-from typing_extensions import Self
+
+import sys
+
+# Check python version
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 from abc import ABC, abstractmethod
 
