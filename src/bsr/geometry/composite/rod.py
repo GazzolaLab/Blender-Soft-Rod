@@ -115,7 +115,6 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             cylinder.set_keyframe(keyframe)
 
 
-
 class RodWithBox(RodWithSphereAndCylinder):
     """
     Rod class for managing visualization and rendering in Blender
@@ -194,7 +193,7 @@ class RodWithBox(RodWithSphereAndCylinder):
         for idx, box in enumerate(self.boxes):
             box.set_keyframe(keyframe)
 
-||||||| Stash base
+
 class RodWithCylinder(RodWithSphereAndCylinder):
     """
     Rod class for managing visualization and rendering in Blender
