@@ -23,6 +23,7 @@ from numpy.typing import NDArray
 from bsr.tools.protocol import BlenderKeyframeManipulateProtocol
 
 MeshDataType: TypeAlias = dict[str, Any]
+SplineDataType: TypeAlias = dict[str, Any]
 S = TypeVar("S", bound="BlenderMeshInterfaceProtocol")
 
 

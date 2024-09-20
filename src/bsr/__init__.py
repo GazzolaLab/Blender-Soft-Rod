@@ -16,8 +16,9 @@ from .blender_commands.macros import (
 )
 from .camera import CameraManager
 from .frame import FrameManager
-from .geometry.composite.rod import Rod
+from .geometry.composite.rod import Rod, RodWithBox, RodWithCylinder
 from .geometry.composite.stack import RodStack, create_rod_collection
+from .geometry.primitives.pipe import BezierSplinePipe
 from .geometry.primitives.simple import Cylinder, Sphere
 from .viewport import find_area, set_view_distance
 

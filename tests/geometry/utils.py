@@ -7,8 +7,13 @@ from bsr.geometry.protocol import BlenderMeshInterfaceProtocol
 
 def get_mesh_limit(interface: BlenderMeshInterfaceProtocol):
     """(For testing) Given blender mesh object, return xyz limit"""
-
     obj = interface.object
+
+    if obj.type == "CURVE":
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.ops.object.convert(target="MESH")
+
     scene_update()
 
     vertices_coords = []
