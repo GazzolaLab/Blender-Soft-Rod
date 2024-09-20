@@ -20,8 +20,8 @@ class Pose(KeyFrameControlMixin):
 
     Parameters
     ----------
-    position : NDArray
-        The position of pose. Expected shape is (n_dim,).
+    positions : NDArray
+        The positions of pose. Expected shape is (n_dim,).
         n_dim = 3
     directors : NDArray
         The directors of the pose. Expected shape is (n_dim, n_dim).
@@ -29,11 +29,11 @@ class Pose(KeyFrameControlMixin):
 
     """
 
-    input_states = {"position", "directors"}
+    input_states = {"positions", "directors"}
 
     def __init__(
         self,
-        position: NDArray,
+        positions: NDArray,
         directors: NDArray,
         unit_length: float = 1.0,
         thickness_ratio: float = 0.1,
@@ -56,7 +56,22 @@ class Pose(KeyFrameControlMixin):
             "cylinders": self.cylinders_material,
         }
 
-        self._build(position, directors)
+        # create sphere and cylinder materials
+        self.spheres_material: list[bpy.types.Material] = []
+        self.cylinders_material: list[bpy.types.Material] = []
+        self._bpy_materials: dict[str, bpy.types.Material] = {
+            "spheres": self.spheres_material,
+            "cylinders": self.cylinders_material,
+        }
+
+        self._build(positions, directors)
+
+    @property
+    def material(self) -> dict[str, bpy.types.Material]:
+        """
+        Return the dictionary of Blender materials: spheres and cylinders
+        """
+        return self._bpy_materials
 
     @property
     def material(self) -> dict[str, bpy.types.Material]:
@@ -79,26 +94,26 @@ class Pose(KeyFrameControlMixin):
 
         States must have the following keys: position(n_dim,), directors(n_dim, n_dim)
         """
-        position = states["position"]
+        positions = states["positions"]
         directors = states["directors"]
-        return cls(position, directors)
+        return cls(positions, directors)
 
-    def _build(self, position: NDArray, directors: NDArray) -> None:
+    def _build(self, positions: NDArray, directors: NDArray) -> None:
         """
-        Build the pose object from the given position and directors
+        Build the pose object from the given positions and directors
         """
-        # create the sphere object at the position
+        # create the sphere object at the positions
         sphere = Sphere(
-            position,
+            positions,
             self.__unit_length * self.__ratio,
         )
         self.spheres.append(sphere)
 
         # create cylinder and sphere objects for each director
         for i in range(directors.shape[1]):
-            tip_position = position + directors[:, i] * self.__unit_length
+            tip_position = positions + directors[:, i] * self.__unit_length
             cylinder = Cylinder(
-                position,
+                positions,
                 tip_position,
                 self.__unit_length * self.__ratio,
             )
@@ -112,15 +127,15 @@ class Pose(KeyFrameControlMixin):
             self.spheres.append(sphere)
             self.spheres_material.append(sphere.material)
 
-    def update_states(self, position: NDArray, directors: NDArray) -> None:
+    def update_states(self, positions: NDArray, directors: NDArray) -> None:
         """
         Update the states of the pose object
         """
-        self.spheres[0].update_states(position)
+        self.spheres[0].update_states(positions)
 
         for i, cylinder in enumerate(self.cylinders):
-            tip_position = position + directors[:, i] * self.__unit_length
-            cylinder.update_states(position, tip_position)
+            tip_position = positions + directors[:, i] * self.__unit_length
+            cylinder.update_states(positions, tip_position)
 
             sphere = self.spheres[i + 1]
             sphere.update_states(tip_position)

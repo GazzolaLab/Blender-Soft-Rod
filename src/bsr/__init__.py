@@ -18,6 +18,7 @@ from .blender_commands.macros import (
     scene_update,
 )
 from .frame import FrameManager
+from .geometry.composite.pose import Pose
 from .geometry.composite.rod import Rod
 from .geometry.composite.stack import RodStack, create_rod_collection
 from .geometry.primitives.simple import Cylinder, Sphere

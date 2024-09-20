@@ -1,7 +1,7 @@
 import numpy as np
 
 import bsr
-from bsr.geometry.composite.pose import Pose
+from bsr import Pose
 
 
 def main(
@@ -23,7 +23,7 @@ def main(
 
     # Set a frame at the origin
     _ = Pose(
-        position=np.zeros(3),
+        positions=np.zeros(3),
         directors=np.identity(3),
         unit_length=0.25,
     )
@@ -35,7 +35,9 @@ def main(
     bsr.frame_manager.set_frame_start()
 
     # Set the camera orbiting keyframes
-    angles = np.linspace(0.0, 360.0, frame_rate * total_time, endpoint=False)
+    angles = np.linspace(
+        0.0, 360.0, int(frame_rate * total_time), endpoint=False
+    )
     for k, angle in enumerate(angles):
 
         # Set the camera location

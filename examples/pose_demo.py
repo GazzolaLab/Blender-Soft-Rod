@@ -1,7 +1,7 @@
 import numpy as np
 
 import bsr
-from bsr.geometry.composite.pose import Pose
+from bsr import Pose
 
 
 def angle_to_color(angle: float) -> np.ndarray:
