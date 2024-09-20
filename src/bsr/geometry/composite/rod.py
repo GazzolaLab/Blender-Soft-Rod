@@ -261,6 +261,7 @@ class RodWithBox(RodWithSphereAndCylinder):
         for idx, box in enumerate(self.boxes):
             box.set_keyframe(keyframe)
 
+
 # Alias
 Rod = RodWithSphereAndCylinder
 
