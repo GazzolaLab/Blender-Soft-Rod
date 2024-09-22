@@ -104,6 +104,13 @@ class Camera(KeyFrameControlMixin):
             )
 
     @property
+    def orientation(self) -> np.ndarray:
+        """
+        Return the current orientation of the camera.
+        """
+        return np.array(self._camera.matrix_world)[:3, :3]
+
+    @property
     def look_at(self) -> Optional[np.ndarray]:
         """
         Return the location the camera is looking at.
@@ -170,10 +177,38 @@ class Camera(KeyFrameControlMixin):
 
         direction = direction / np.linalg.norm(direction)
         right = np.cross(direction, sky)
+        right = right / np.linalg.norm(right)
         up = np.cross(right, direction)
-
         return np.array(
             [[*right, 0.0], [*up, 0.0], [*(-direction), 0.0], [*location, 1.0]]
+        )
+
+    def rotate(self, angle: float) -> None:
+        """
+        Rotate the camera around the look-at-axis.
+
+        Parameters
+        ----------
+        angle : float
+            The angle (degree) to rotate the camera.
+        """
+        assert isinstance(angle, (int, float)), "angle must be a number"
+        angle_rad = np.deg2rad(angle)
+        rotation_matrix = np.array(
+            [
+                [np.cos(angle_rad), -np.sin(angle_rad), 0],
+                [np.sin(angle_rad), np.cos(angle_rad), 0],
+                [0, 0, 1],
+            ]
+        )
+        orientation = self.orientation @ rotation_matrix
+        self._camera.matrix_world = np.array(
+            [
+                [*orientation[:, 0], 0.0],
+                [*orientation[:, 1], 0.0],
+                [*orientation[:, 2], 0.0],
+                [*self.location, 1.0],
+            ]
         )
 
     def set_resolution(self, width: int, height: int) -> None:
