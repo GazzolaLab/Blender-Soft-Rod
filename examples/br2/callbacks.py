@@ -160,12 +160,11 @@ class BlenderBR2CallBack(BasicCallBackBaseClass):
             default_centerline_position=system.position_collection,
             default_centerline_director=system.director_collection,
         )
-        self.keyframe = 0
 
     def save_params(self, system: ea.CosseratRod, time: float) -> None:
         self.bpy_objs.update_states(
             centerline_position=system.position_collection,
             centerline_director=system.director_collection,
         )
-        self.bpy_objs.set_keyframe(self.keyframe)
-        self.keyframe += 1
+        self.bpy_objs.set_keyframe(bsr.frame_manager.frame_current)
+        bsr.frame_manager.update()

@@ -3,7 +3,9 @@ Rod class for creating and updating rods in Blender
 """
 __all__ = ["RodWithSphereAndCylinder", "Rod"]
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from collections import defaultdict
 
 import bpy
 import numpy as np
@@ -39,7 +41,22 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             "cylinder": self.cylinders,
         }
 
+        # create sphere and cylinder materials
+        self.spheres_material: list[bpy.types.Material] = []
+        self.cylinders_material: list[bpy.types.Material] = []
+        self._bpy_materials: dict[str, list[bpy.types.Material]] = {
+            "sphere": self.spheres_material,
+            "cylinder": self.cylinders_material,
+        }
+
         self._build(positions, radii)
+
+    @property
+    def material(self) -> dict[str, list[bpy.types.Material]]:
+        """
+        Return the dictionary of Blender materials: sphere and cylinder
+        """
+        return self._bpy_materials
 
     @property
     def object(self) -> dict[str, list[bpy.types.Object]]:
@@ -65,6 +82,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         for j in range(positions.shape[-1]):
             sphere = Sphere(positions[:, j], _radii[j])
             self.spheres.append(sphere)
+            self.spheres_material.append(sphere.material)
 
         for j in range(radii.shape[-1]):
             cylinder = Cylinder(
@@ -73,6 +91,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
                 radii[j],
             )
             self.cylinders.append(cylinder)
+            self.cylinders_material.append(cylinder.material)
 
     def update_states(self, positions: NDArray, radii: NDArray) -> None:
         """
@@ -103,6 +122,16 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             cylinder.update_states(
                 positions[:, idx], positions[:, idx + 1], _radii[idx]
             )
+
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the rod object
+        """
+        for shperes in self.spheres:
+            shperes.update_material(**kwargs)
+
+        for cylinder in self.cylinders:
+            cylinder.update_material(**kwargs)
 
     def set_keyframe(self, keyframe: int) -> None:
         """

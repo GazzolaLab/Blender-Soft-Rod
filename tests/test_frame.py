@@ -11,25 +11,21 @@ class TestFrameManager:
     def test_frame_manager_singleton(self):
         assert FrameManager() is FrameManager()
 
-    def test_frame_manager_current_frame(self):
-        frame_manager = FrameManager()
-        assert frame_manager.current_frame == 0
-
     def test_frame_manager_current_frame_setter(self):
         frame_manager = FrameManager()
-        frame_manager.current_frame = 10
-        assert frame_manager.current_frame == 10
+        frame_manager.frame_current = 10
+        assert frame_manager.frame_current == 10
 
     def test_frame_manager_current_frame_setter_with_wrong_frame(self):
         frame_manager = FrameManager()
         with pytest.raises(AssertionError):
-            frame_manager.current_frame = -1
+            frame_manager.frame_current = -1
 
     def test_frame_manager_update(self):
         frame_manager = FrameManager()
-        frame_manager.current_frame = 0
+        frame_manager.frame_current = 0
         frame_manager.update(10)
-        assert frame_manager.current_frame == 10
+        assert frame_manager.frame_current == 10
 
     def test_frame_manager_update_with_wrong_forwardframe(self):
         frame_manager = FrameManager()
@@ -43,7 +39,7 @@ class TestFrameManager:
 
     def test_frame_manager_set_frame_end_with_none(self):
         frame_manager = FrameManager()
-        frame_manager.current_frame = 0
+        frame_manager.frame_current = 0
         frame_manager.update(250)
         frame_manager.set_frame_end()
         assert bpy.context.scene.frame_end == 250

@@ -75,7 +75,6 @@ class BaseEnvironment(ABC):
 
 class BR2Environment(BaseEnvironment):
     def __init__(self, *args, **kwargs) -> None:
-        bsr.clear_mesh_objects()
         super().__init__(*args, **kwargs)
 
     def setup(
@@ -209,6 +208,8 @@ def main(
     time_step: float = 1.0e-5,
     recording_fps: int = 30,
 ):
+    bsr.clear_mesh_objects()
+
     # Initialize the environment
     env = BR2Environment(
         final_time=final_time, time_step=time_step, recording_fps=recording_fps
@@ -220,6 +221,21 @@ def main(
     for step in tqdm(range(env.total_steps)):
         time = env.step(time=time)
     print("Simulation finished!")
+
+    # Set the final keyframe number
+    bsr.frame_manager.set_frame_end()
+
+    # Set the frame rate
+    bsr.frame_manager.set_frame_rate(fps=recording_fps)
+
+    # Set the view distance
+    bsr.set_view_distance(distance=1)
+
+    # Deslect all objects
+    bsr.deselect_all()
+
+    # Select the camera object
+    bsr.camera.select()
 
     # Save the simulation
     env.save("BR2_simulation")
