@@ -2,6 +2,7 @@ import numpy as np
 
 import bsr
 from bsr import Pose
+import bpy
 
 
 def angle_to_color(angle: float) -> np.ndarray:
@@ -29,47 +30,52 @@ def angle_to_color(angle: float) -> np.ndarray:
     return np.array([r, g, b, 1.0])
 
 
-def main(filename: str = "pose_demo2"):
+def main(filename: str = "pose_demo5"):
 
+    # initial values for frame rate and period
     frame_rate = 60
     total_time = 5
+
+    # calculates total number of frames in the visualization
     total_frames = frame_rate * total_time
 
 
-    # clear all mesh objects
+    # clears all mesh objects
     bsr.clear_mesh_objects()
     bsr.frame_manager.set_frame_start()
-
-    # Task 1
-    # create a pose, i.e. position and director, using Pose class
-    # start circling around (CCW) the origin on a unit circle trajectory
-    # the moving direction is the tangent of the circle, which should be d2
-    # the z axis should be d3, and d1 = d2 cross d3
-    # the pose should be updated every frame, and will go around a circle with period 1 second
-
+    
+    # intializes pose instance and angle
     pose_object = Pose(positions=np.array([1, 0, 0]), directors=np.eye(3),thickness_ratio=0.1)
     theta = 0
+
+    # iterates through each frame in total time duration
     for frame in range(total_frames):
         theta = 2*np.pi*frame/total_frames
+
+        # defines path of of motion for positions of pose object
         new_positions = np.array([np.cos(theta), np.sin(theta), 0])
         pose_object.positions = new_positions
+
+        # defines directors of pose object
         d2 = np.array([-np.sin(theta), np.cos(theta), 0])
         d3 = np.array([0, 0, 1])
         d1 = np.cross(d2, d3)
         new_directors = np.column_stack((d1, d2, d3))
         pose_object.directors = new_directors
+
+        # updates positions and directors of pose object at each keyframe
         pose_object.update_states(new_positions, new_directors)
+
+        # converts angle to rgb color value at each frame
+        color = angle_to_color(np.degrees(theta))
+
+        # updates pose object's colors
+        pose_object.update_material(color = color)
+
+        # sets and updates keyframes
         pose_object.set_keyframe(frame)
         bsr.frame_manager.update()
     
-    # Task 2
-    # the color of the pose should change based on the angle
-    # use the angle_to_color function defined above to compute the color code
-    # the angle is in degrees, and the function returns a numpy array of RGBA values
-    # the color of the pose can be updated throught pose.update_material(color=...)
-
-    
-
     # Set the final keyframe number
     bsr.frame_manager.set_frame_end()
 
