@@ -216,7 +216,6 @@ class Sphere(KeyFrameControlMixin):
         """
         self.object.keyframe_insert(data_path="location", frame=keyframe)
         self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
-        
 
 
 class Cylinder(KeyFrameControlMixin):
@@ -229,7 +228,7 @@ class Cylinder(KeyFrameControlMixin):
     position_1 : NDArray
         The first endpoint position of the cylinder object. (3D)
     position_2 : NDArray
-        The second enspoint position of the cylinder object. (3D)
+        The second endpoint position of the cylinder object. (3D)
     radius : float
         The radius of the cylinder object.
     """
@@ -395,7 +394,7 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
         self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
-        
+
 
 # TODO: Will be implemented in the future
 class Frustum(KeyFrameControlMixin):  # pragma: no cover
