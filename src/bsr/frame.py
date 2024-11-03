@@ -11,19 +11,19 @@ class FrameManager(metaclass=SingletonMeta):
     Only one instance exist, which you can access by: bsr.frame.
     """
 
-    def update(self, forwardframe: int = 1) -> None:
+    def update(self, forward_frame: int = 1) -> None:
         """
         Update the current frame number of the scene.
 
         Parameters
         ----------
-        forwardframe : int, optional
+        forward_frame : int, optional
             The number of frames to move forward. The default is 1.
         """
         assert (
-            isinstance(forwardframe, int) and forwardframe > 0
-        ), "forwardframe must be a positive integer"
-        bpy.context.scene.frame_current += forwardframe
+            isinstance(forward_frame, int) and forward_frame > 0
+        ), "forward_frame must be a positive integer"
+        bpy.context.scene.frame_current += forward_frame
 
     @property
     def frame_current(self) -> int:
