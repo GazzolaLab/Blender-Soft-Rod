@@ -74,11 +74,11 @@ class TestFrameManager:
 
     def test_frame_manager_enumerate(self):
         frame_manager = FrameManager()
-        frame_start = 10
-        for frame_current, frame in frame_manager.enumerate(
-            range(5), frame_current_init=frame_start
+        frame_init = 10
+        for frame_current, step in frame_manager.enumerate(
+            range(5), frame_current_init=frame_init
         ):
-            assert frame_current == (frame + frame_start)
+            assert frame_current == (step + frame_init)
             assert frame_manager.frame_current == frame_current
         assert frame_manager.frame_end == 14
         assert frame_manager.frame_current == 15
