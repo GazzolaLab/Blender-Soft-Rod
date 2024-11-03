@@ -72,7 +72,7 @@ class FrameManager(metaclass=SingletonMeta):
         """
         assert (
             isinstance(frame, int) and frame >= 0
-        ), "frame must be a positive integer or 0"
+        ), "frame must be a nonnegative integer"
         bpy.context.scene.frame_start = frame
 
     @property
@@ -100,7 +100,7 @@ class FrameManager(metaclass=SingletonMeta):
         """
         assert (
             isinstance(frame, int) and frame >= 0
-        ), "frame must be a positive integer or 0"
+        ), "frame must be a nonnegative integer"
         bpy.context.scene.frame_end = frame
 
     @property
@@ -134,7 +134,7 @@ class FrameManager(metaclass=SingletonMeta):
         bpy.context.scene.render.fps_base = int(fps) / fps
 
     def enumerate(
-        self, iterable: Iterable, frame_current: Optional[int] = None
+        self, iterable: Iterable, frame_current_init: Optional[int] = None
     ) -> Iterable:
         """
         Enumerate through the frames of the scene.
@@ -143,12 +143,15 @@ class FrameManager(metaclass=SingletonMeta):
         ----------
         iterable : Iterable
             An iterable object to enumerate.
-        frame_current : int, optional
-            The current frame number of the scene. The default is None.
+        frame_current_init : int, optional
+            The initial current frame number of the scene. The default is None.
             If None, the number self.frame_current is used.
         """
-        if frame_current is not None:
-            self.frame_current = frame_current
+        if frame_current_init is not None:
+            assert (
+                isinstance(frame_current_init, int) and frame_current_init >= 0
+            ), "frame_current_init must be a nonnegative integer"
+            self.frame_current = frame_current_init
         for item in iterable:
             yield self.frame_current, item
             self.update()  # Update the frame number

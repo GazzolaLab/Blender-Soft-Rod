@@ -76,7 +76,7 @@ class TestFrameManager:
         frame_manager = FrameManager()
         frame_start = 10
         for frame_current, frame in frame_manager.enumerate(
-            range(5), frame_current=frame_start
+            range(5), frame_current_init=frame_start
         ):
             assert frame_current == (frame + frame_start)
             assert frame_manager.frame_current == frame_current

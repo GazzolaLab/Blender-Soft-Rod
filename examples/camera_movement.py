@@ -44,7 +44,7 @@ def main(
     bsr.frame_manager.frame_start = frame_start
 
     for frame_current, angle in bsr.frame_manager.enumerate(
-        angles, frame_current=frame_start
+        angles, frame_current_init=frame_start
     ):
 
         # Set the camera location
