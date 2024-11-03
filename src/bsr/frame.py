@@ -11,12 +11,6 @@ class FrameManager(metaclass=SingletonMeta):
     Only one instance exist, which you can access by: bsr.frame.
     """
 
-    def __init__(self) -> None:
-        """
-        Constructor for frame manager.
-        """
-        self.__frame: int = 0
-
     def update(self, forwardframe: int = 1) -> None:
         """
         Update the current frame number of the scene.
@@ -29,17 +23,17 @@ class FrameManager(metaclass=SingletonMeta):
         assert (
             isinstance(forwardframe, int) and forwardframe > 0
         ), "forwardframe must be a positive integer"
-        self.__frame += forwardframe
+        bpy.context.scene.frame_current += forwardframe
 
     @property
-    def current_frame(self) -> int:
+    def frame_current(self) -> int:
         """
         Return the current frame number of the scene.
         """
-        return self.__frame
+        return int(bpy.context.scene.frame_current)
 
-    @current_frame.setter
-    def current_frame(self, frame: int) -> None:
+    @frame_current.setter
+    def frame_current(self, frame: int) -> None:
         """
         Set the current frame number of the scene.
 
@@ -51,7 +45,21 @@ class FrameManager(metaclass=SingletonMeta):
         assert (
             isinstance(frame, int) and frame >= 0
         ), "frame must be a positive integer or 0"
-        self.__frame = frame
+        bpy.context.scene.frame_current = frame
+
+    @property
+    def frame_start(self) -> int:
+        """
+        Return the start frame number of the scene.
+        """
+        return int(bpy.context.scene.frame_start)
+
+    @property
+    def frame_end(self) -> int:
+        """
+        Return the end frame number of the scene.
+        """
+        return int(bpy.context.scene.frame_end)
 
     def set_frame_start(self, frame: Optional[int] = None) -> None:
         """
@@ -64,7 +72,7 @@ class FrameManager(metaclass=SingletonMeta):
             If None, the current frame number is used.
         """
         if frame is None:
-            frame = self.__frame
+            frame = bpy.context.scene.frame_current
         else:
             assert (
                 isinstance(frame, int) and frame >= 0
@@ -82,7 +90,7 @@ class FrameManager(metaclass=SingletonMeta):
             If None, the current frame number is used.
         """
         if frame is None:
-            frame = self.__frame
+            frame = bpy.context.scene.frame_current
         else:
             assert (
                 isinstance(frame, int) and frame >= 0

@@ -3,7 +3,7 @@ This module provides a set of geometry-mesh interfaces for blender objects.
 """
 __all__ = ["Sphere", "Cylinder"]
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import warnings
 from numbers import Number
@@ -111,6 +111,10 @@ class Sphere(KeyFrameControlMixin):
         """
 
         self._obj = self._create_sphere()
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
         self.update_states(position, radius)
 
     @classmethod
@@ -125,6 +129,14 @@ class Sphere(KeyFrameControlMixin):
                 f"{list(remaining_keys)} are not used as a part of the state definition."
             )
         return cls(states["position"], states["radius"])
+
+    @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
 
     @property
     def object(self) -> bpy.types.Object:
@@ -162,6 +174,31 @@ class Sphere(KeyFrameControlMixin):
             _validate_radius(radius)
             self.object.scale = (radius, radius, radius)
 
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the sphere object.
+
+        Parameters
+        ----------
+        color : NDArray
+            The new color of the sphere object in RGBA format.
+        """
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            if isinstance(color, (tuple, list)):
+                color = np.array(color)
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
+            assert color.shape == (
+                4,
+            ), "Keyword argument color should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Keyword argument color should be in the range of [0, 1]."
+            self.material.diffuse_color = tuple(color)
+
     def _create_sphere(self) -> bpy.types.Object:
         """
         Creates a new sphere object with the given position and radius.
@@ -178,6 +215,7 @@ class Sphere(KeyFrameControlMixin):
         keyframe : int
         """
         self.object.keyframe_insert(data_path="location", frame=keyframe)
+        self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
 
 class Cylinder(KeyFrameControlMixin):
@@ -190,7 +228,7 @@ class Cylinder(KeyFrameControlMixin):
     position_1 : NDArray
         The first endpoint position of the cylinder object. (3D)
     position_2 : NDArray
-        The second enspoint position of the cylinder object. (3D)
+        The second endpoint position of the cylinder object. (3D)
     radius : float
         The radius of the cylinder object.
     """
@@ -208,6 +246,10 @@ class Cylinder(KeyFrameControlMixin):
         """
 
         self._obj = self._create_cylinder()
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
         # FIXME: This is a temporary solution
         # Ideally, these modules should not contain any data
         self._states_position_1 = position_1
@@ -227,6 +269,14 @@ class Cylinder(KeyFrameControlMixin):
                 f"{list(remaining_keys)} are not used as a part of the state definition."
             )
         return cls(states["position_1"], states["position_2"], states["radius"])
+
+    @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
 
     @property
     def object(self) -> bpy.types.Object:
@@ -294,6 +344,31 @@ class Cylinder(KeyFrameControlMixin):
         self.object.scale[0] = radius
         self.object.scale[1] = radius
 
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the cylinder object.
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for the material update.
+        """
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            if isinstance(color, (tuple, list)):
+                color = np.array(color)
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
+            assert color.shape == (
+                4,
+            ), "Keyword argument `color` should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Values of the keyword argument `color` should be in the range of [0, 1]."
+            self.material.diffuse_color = tuple(color)
+
     def _create_cylinder(
         self,
     ) -> bpy.types.Object:
@@ -318,6 +393,7 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="location", frame=keyframe)
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
+        self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
 
 # TODO: Will be implemented in the future
