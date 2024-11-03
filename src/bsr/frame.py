@@ -135,7 +135,7 @@ class FrameManager(metaclass=SingletonMeta):
 
     def enumerate(
         self, iterable: Iterable, frame_current: Optional[int] = None
-    ):
+    ) -> Iterable:
         """
         Enumerate through the frames of the scene.
 
