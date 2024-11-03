@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Iterable, Optional
 
 import bpy
 
@@ -8,7 +8,7 @@ from .utilities.singleton import SingletonMeta
 class FrameManager(metaclass=SingletonMeta):
     """
     This class provides methods for manipulating the frame of the scene.
-    Only one instance exist, which you can access by: bsr.frame.
+    Only one instance exist, which you can access by: bsr.frame_manager.
     """
 
     def update(self, forward_frame: int = 1) -> None:
@@ -124,3 +124,26 @@ class FrameManager(metaclass=SingletonMeta):
             bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
         )
         return fps
+
+    def enumerate(
+        self, iterable: Iterable, frame_current: Optional[int] = None
+    ):
+        """
+        Enumerate through the frames of the scene.
+
+        Parameters
+        ----------
+        iterable : Iterable
+            An iterable object to enumerate.
+        frame_current : int, optional
+            The current frame number of the scene. The default is None.
+            If None, the number self.frame_current is used.
+        """
+        if frame_current is not None:
+            self.frame_current = frame_current
+        for k, item in enumerate(iterable):
+            yield self.frame_current, item
+            if k != len(iterable) - 1:
+                self.update()  # Update the frame number
+            else:
+                self.set_frame_end()  # Set the final frame number
