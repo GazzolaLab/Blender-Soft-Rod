@@ -11,19 +11,19 @@ class FrameManager(metaclass=SingletonMeta):
     Only one instance exist, which you can access by: bsr.frame_manager.
     """
 
-    def update(self, forward_frame: int = 1) -> None:
+    def update(self, frame_forward: int = 1) -> None:
         """
         Update the current frame number of the scene.
 
         Parameters
         ----------
-        forward_frame : int, optional
+        frame_forward : int, optional
             The number of frames to move forward. The default is 1.
         """
         assert (
-            isinstance(forward_frame, int) and forward_frame > 0
-        ), "forward_frame must be a positive integer"
-        bpy.context.scene.frame_current += forward_frame
+            isinstance(frame_forward, int) and frame_forward > 0
+        ), "frame_forward must be a positive integer"
+        bpy.context.scene.frame_current += frame_forward
 
     @property
     def frame_current(self) -> int:
@@ -51,53 +51,75 @@ class FrameManager(metaclass=SingletonMeta):
     def frame_start(self) -> int:
         """
         Return the start frame number of the scene.
-        """
-        return int(bpy.context.scene.frame_start)
 
-    @property
-    def frame_end(self) -> int:
+        Returns
+        -------
+        int
+            The start frame number of the scene.
         """
-        Return the end frame number of the scene.
-        """
-        return int(bpy.context.scene.frame_end)
+        frame_start = int(bpy.context.scene.frame_start)
+        return frame_start
 
-    def set_frame_start(self, frame: Optional[int] = None) -> None:
+    @frame_start.setter
+    def frame_start(self, frame: int) -> None:
         """
         Set the start frame number of the scene.
 
         Parameters
         ----------
-        frame : int, optional
-            The start frame number of the scene. The default is None.
-            If None, the current frame number is used.
+        frame : int
+            The start frame number of the scene.
         """
-        if frame is None:
-            frame = bpy.context.scene.frame_current
-        else:
-            assert (
-                isinstance(frame, int) and frame >= 0
-            ), "frame must be a positive integer or 0"
+        assert (
+            isinstance(frame, int) and frame >= 0
+        ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_start = frame
 
-    def set_frame_end(self, frame: Optional[int] = None) -> None:
+    @property
+    def frame_end(self) -> int:
+        """
+        Return the end frame number of the scene.
+
+        Returns
+        -------
+        int
+            The end frame number of the scene.
+        """
+        frame_end = int(bpy.context.scene.frame_end)
+        return frame_end
+
+    @frame_end.setter
+    def frame_end(self, frame: int) -> None:
         """
         Set the end frame number of the scene.
 
         Parameters
         ----------
-        frame : int, optional
-            The end frame number of the scene. The default is None.
-            If None, the current frame number is used.
+        frame : int
+            The end frame number of the scene.
         """
-        if frame is None:
-            frame = bpy.context.scene.frame_current
-        else:
-            assert (
-                isinstance(frame, int) and frame >= 0
-            ), "frame must be a positive integer or 0"
+        assert (
+            isinstance(frame, int) and frame >= 0
+        ), "frame must be a positive integer or 0"
         bpy.context.scene.frame_end = frame
 
-    def set_frame_rate(self, fps: int | float) -> None:
+    @property
+    def frame_rate(self) -> float:
+        """
+        Return the frame rate of the scene.
+
+        Returns
+        -------
+        float
+            The frame rate of the scene. (Frame per second)
+        """
+        fps: float = (
+            bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+        )
+        return fps
+
+    @frame_rate.setter
+    def frame_rate(self, fps: int | float) -> None:
         """
         Set the frame rate of the scene.
 
@@ -110,20 +132,6 @@ class FrameManager(metaclass=SingletonMeta):
         assert fps > 0, "fps must be a positive value"
         bpy.context.scene.render.fps = int(fps)
         bpy.context.scene.render.fps_base = int(fps) / fps
-
-    def get_frame_rate(self) -> float:
-        """
-        Get the frame rate of the scene.
-
-        Returns
-        -------
-        float
-            The frame rate of the scene. (Frame per second)
-        """
-        fps: float = (
-            bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
-        )
-        return fps
 
     def enumerate(
         self, iterable: Iterable, frame_current: Optional[int] = None
@@ -141,9 +149,7 @@ class FrameManager(metaclass=SingletonMeta):
         """
         if frame_current is not None:
             self.frame_current = frame_current
-        for k, item in enumerate(iterable):
+        for item in iterable:
             yield self.frame_current, item
-            if k != len(iterable) - 1:
-                self.update()  # Update the frame number
-            else:
-                self.set_frame_end()  # Set the final frame number
+            self.update()  # Update the frame number
+        self.frame_end = self.frame_current - 1  # Set the final frame number

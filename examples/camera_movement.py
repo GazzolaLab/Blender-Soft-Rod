@@ -41,7 +41,7 @@ def main(
 
     # Set the initial frame
     frame_start = 0
-    bsr.frame_manager.set_frame_start(frame=frame_start)
+    bsr.frame_manager.frame_start = frame_start
 
     for frame_current, angle in bsr.frame_manager.enumerate(
         angles, frame_current=frame_start
@@ -60,7 +60,7 @@ def main(
         bsr.camera.set_keyframe(frame_current)
 
     # Set the frame rate
-    bsr.frame_manager.set_frame_rate(fps=frame_rate)
+    bsr.frame_manager.frame_rate = frame_rate
 
     # Set the view distance
     bsr.set_view_distance(distance=5)
