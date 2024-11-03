@@ -30,7 +30,8 @@ class FrameManager(metaclass=SingletonMeta):
         """
         Return the current frame number of the scene.
         """
-        return int(bpy.context.scene.frame_current)
+        frame_current = int(bpy.context.scene.frame_current)
+        return frame_current
 
     @frame_current.setter
     def frame_current(self, frame: int) -> None:
