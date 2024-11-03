@@ -90,3 +90,4 @@ def main(
 
 if __name__ == "__main__":
     main()
+    # ffmpeg -threads 8 -r 60 -i render/camera_movement_%03d.png -b:v 90M -c:v prores -pix_fmt yuva444p10le camera_movement.mov

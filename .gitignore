@@ -1,5 +1,6 @@
-# image files
+# rendered files
 *.png
+*.mov
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
