@@ -1,8 +1,8 @@
+import bpy
 import numpy as np
 
 import bsr
 from bsr import Pose
-import bpy
 
 
 def angle_to_color(angle: float) -> np.ndarray:
@@ -39,18 +39,19 @@ def main(filename: str = "pose_demo5"):
     # calculates total number of frames in the visualization
     total_frames = frame_rate * total_time
 
-
     # clears all mesh objects
     bsr.clear_mesh_objects()
     bsr.frame_manager.set_frame_start()
-    
+
     # intializes pose instance and angle
-    pose_object = Pose(positions=np.array([1, 0, 0]), directors=np.eye(3),thickness_ratio=0.1)
+    pose_object = Pose(
+        positions=np.array([1, 0, 0]), directors=np.eye(3), thickness_ratio=0.1
+    )
     theta = 0
 
     # iterates through each frame in total time duration
     for frame in range(total_frames):
-        theta = 2*np.pi*frame/total_frames
+        theta = 2 * np.pi * frame / total_frames
 
         # defines path of of motion for positions of pose object
         new_positions = np.array([np.cos(theta), np.sin(theta), 0])
@@ -70,12 +71,12 @@ def main(filename: str = "pose_demo5"):
         color = angle_to_color(np.degrees(theta))
 
         # updates pose object's colors
-        pose_object.update_material(color = color)
+        pose_object.update_material(color=color)
 
         # sets and updates keyframes
         pose_object.set_keyframe(frame)
         bsr.frame_manager.update()
-    
+
     # Set the final keyframe number
     bsr.frame_manager.set_frame_end()
 

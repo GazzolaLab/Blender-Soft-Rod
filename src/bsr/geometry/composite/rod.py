@@ -78,7 +78,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         ----------
         states: dict[str, NDArray]
             A dictionary where keys are state names and values are NDArrays.
-        
+
         Returns
         -------
         RodWithSphereAndCylinder

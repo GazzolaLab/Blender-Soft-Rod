@@ -34,7 +34,7 @@ def calculate_cylinder_orientation(
     Returns
     -------
     tuple: float, NDArray, NDArray
-        Tuple containing the values for the depth, centerpoint and rotation angle. 
+        Tuple containing the values for the depth, centerpoint and rotation angle.
         Expected shape is (n_dim, n_dim)
         n_dim = 3
     """
@@ -119,7 +119,7 @@ class Sphere(KeyFrameControlMixin):
         self._obj.data.materials.append(self._material)
         self.update_states(position, radius)
 
-    #TODO: Find better way to represnet radius
+    # TODO: Find better way to represnet radius
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
         """
@@ -136,7 +136,7 @@ class Sphere(KeyFrameControlMixin):
         -------
         Sphere
             A sphere object with the defined center position and radius
-        
+
         Raises
         ------
         Warning
@@ -236,7 +236,6 @@ class Sphere(KeyFrameControlMixin):
         """
         self.object.keyframe_insert(data_path="location", frame=keyframe)
         self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
-        
 
 
 class Cylinder(KeyFrameControlMixin):
@@ -291,7 +290,7 @@ class Cylinder(KeyFrameControlMixin):
         -------
         Cylinder
             A Cylinder object with the defined endpoint positions and radius
-        
+
         Raises
         ------
         Warning
@@ -429,7 +428,7 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
         self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
-        
+
 
 # TODO: Will be implemented in the future
 class Frustum(KeyFrameControlMixin):  # pragma: no cover

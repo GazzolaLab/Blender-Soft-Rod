@@ -21,18 +21,19 @@ from bsr.geometry.composite.rod import Rod
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, StackProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
+
 class BaseStack(Sequence, KeyFrameControlMixin):
     """
     This class provides a mesh interface for a BaseStack of objects.
     BaseStacks are created using given positions and radii.
-    
+
     Parameters
     ----------
     positions: NDArray
         Positions of each object in the stack. Expected dimension is (n_dim, n_nodes)
         n_dim = 3
     radii: NDArray
-        Radii of each object in the stack. Expected dimension is (n_nodes-1,) 
+        Radii of each object in the stack. Expected dimension is (n_nodes-1,)
     """
 
     DefaultType: Type
@@ -94,12 +95,12 @@ class BaseStack(Sequence, KeyFrameControlMixin):
         ----------
         states: dict[str, NDArray]
             A dictionary where keys are state names and values are NDarrays.
-        
+
         Returns
         -------
         Self
             An instance of the BaseStack with objects containing the states
-        
+
         Raises
         ------
         AssertionError
@@ -167,8 +168,9 @@ class RodStack(BaseStack):
         Positions of each Rod in the stack. Expected dimension is (n_dim, n_nodes).
         n_dim = 3
     radii: NDArray
-        Radii of each Rod in the stack. Expected dimension is (n_nodes-1,). 
+        Radii of each Rod in the stack. Expected dimension is (n_nodes-1,).
     """
+
     input_states = {"positions", "radii"}
     DefaultType: Type = Rod
 
