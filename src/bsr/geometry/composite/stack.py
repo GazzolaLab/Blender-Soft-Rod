@@ -21,7 +21,6 @@ from bsr.geometry.composite.rod import Rod
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, StackProtocol
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
-#TODO: Match documentation style with other composites
 class BaseStack(Sequence, KeyFrameControlMixin):
     """
     This class provides a mesh interface for a BaseStack of objects.
