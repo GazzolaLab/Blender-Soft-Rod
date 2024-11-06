@@ -17,6 +17,6 @@ def test_update_keyframe(mocker):
     stack._objs = [mock_rod] * n_repeat
     stack.update_keyframe(val)
 
-    mock_rod.set_keyframe.assert_called()
-    assert mock_rod.set_keyframe.call_count == n_repeat
-    mock_rod.set_keyframe.assert_called_with(val)
+    mock_rod.update_keyframe.assert_called()
+    assert mock_rod.update_keyframe.call_count == n_repeat
+    mock_rod.update_keyframe.assert_called_with(val)
