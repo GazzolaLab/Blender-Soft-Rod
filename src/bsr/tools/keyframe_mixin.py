@@ -21,5 +21,7 @@ class KeyFrameControlMixin(ABC):
         self.object.animation_data_create()
 
     @abstractmethod
-    def set_keyframe(self: BlenderMeshInterfaceProtocol, keyframe: int) -> None:
+    def update_keyframe(
+        self: BlenderMeshInterfaceProtocol, keyframe: int
+    ) -> None:
         raise NotImplementedError

@@ -54,7 +54,7 @@ def _validate_position(position: NDArray) -> None:
     """
     Checks if inputted position values are valid
 
-    Paramters
+    Parameters
     ---------
     position: NDArray
         Position input (endpoint or centerpoint depending on Object type)
@@ -226,7 +226,7 @@ class Sphere(KeyFrameControlMixin):
         bpy.ops.mesh.primitive_uv_sphere_add()
         return bpy.context.active_object
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
@@ -248,7 +248,7 @@ class Cylinder(KeyFrameControlMixin):
     position_1 : NDArray
         The first endpoint position of the cylinder object. (3D)
     position_2 : NDArray
-        The second enspoint position of the cylinder object. (3D)
+        The second endpoint position of the cylinder object. (3D)
     radius : float
         The radius of the cylinder object.
     """
@@ -416,7 +416,7 @@ class Cylinder(KeyFrameControlMixin):
         cylinder = bpy.context.active_object
         return cylinder
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
@@ -509,7 +509,7 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
     ) -> None:
         raise NotImplementedError
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         raise NotImplementedError
 
 

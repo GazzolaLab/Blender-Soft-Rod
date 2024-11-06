@@ -61,7 +61,7 @@ for time_index, t in enumerate(time):
         # update the rod
         keyframe = int(time_index / simulation_ratio) + 1
         rod.update_states(positions=positions, radii=radii)
-        rod.set_keyframe(keyframe)
+        rod.update_keyframe(keyframe)
 
 bsr.save("single_rigid_rod_spring_action.blend")
 

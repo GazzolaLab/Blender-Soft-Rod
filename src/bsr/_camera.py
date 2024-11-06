@@ -39,7 +39,7 @@ class Camera(KeyFrameControlMixin):
         """
         bpy.context.view_layer.objects.active = self._camera
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
