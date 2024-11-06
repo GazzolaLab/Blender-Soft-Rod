@@ -51,7 +51,7 @@ def _validate_position(position: NDArray) -> None:
     """
     Checks if inputted position values are valid
 
-    Paramters
+    Parameters
     ---------
     position: NDArray
         Position input (endpoint or centerpoint depending on Object type)

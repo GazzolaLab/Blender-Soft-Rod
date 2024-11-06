@@ -69,7 +69,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
         Sets a keyframe at the given frame.
         """
         for obj in self._objs:
-            obj.set_keyframe(keyframe)
+            obj.update_keyframe(keyframe)
 
     @classmethod
     def create(
