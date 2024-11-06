@@ -206,7 +206,7 @@ class Sphere(KeyFrameControlMixin):
         bpy.ops.mesh.primitive_uv_sphere_add()
         return bpy.context.active_object
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
@@ -382,7 +382,7 @@ class Cylinder(KeyFrameControlMixin):
         cylinder = bpy.context.active_object
         return cylinder
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
@@ -475,7 +475,7 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
     ) -> None:
         raise NotImplementedError
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         raise NotImplementedError
 
 

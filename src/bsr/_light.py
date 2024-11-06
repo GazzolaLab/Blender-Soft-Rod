@@ -46,7 +46,7 @@ class Light(KeyFrameControlMixin):
         """
         self._light.location = location
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 

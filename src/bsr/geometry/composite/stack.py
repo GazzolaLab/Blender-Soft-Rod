@@ -64,7 +64,7 @@ class BaseStack(Sequence, KeyFrameControlMixin):
         """
         return self._objs
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
         """

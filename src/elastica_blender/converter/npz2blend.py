@@ -63,7 +63,7 @@ def construct_blender_file(
             rods.update_states(
                 position_history[:, tidx, ...], radius_history[:, tidx, ...]
             )
-            rods.set_keyframe(tidx)
+            rods.update_keyframe(tidx)
     else:
         for tag in tags:
             position_history = data[tag + "_position_history"]
@@ -77,7 +77,7 @@ def construct_blender_file(
                 rods.update_states(
                     position_history[:, tidx, ...], radius_history[:, tidx, ...]
                 )
-                rods.set_keyframe(tidx)
+                rods.update_keyframe(tidx)
 
     bsr.save(output)
 

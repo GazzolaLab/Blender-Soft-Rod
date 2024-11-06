@@ -57,7 +57,7 @@ def main(
         )
 
         # Set and update the camera in current frame
-        bsr.camera.set_keyframe(frame_current)
+        bsr.camera.update_keyframe(frame_current)
 
     # Set the frame rate
     bsr.frame_manager.frame_rate = frame_rate

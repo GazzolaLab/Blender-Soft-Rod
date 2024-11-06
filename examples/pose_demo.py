@@ -99,7 +99,7 @@ def main(
         pose.update_material(color=color)
 
         # Set and update the pose in current frame
-        pose.set_keyframe(frame_current)
+        pose.update_keyframe(frame_current)
 
     # Set the frame rate
     bsr.frame_manager.frame_rate = frame_rate

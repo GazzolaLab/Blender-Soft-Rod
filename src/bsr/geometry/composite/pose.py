@@ -135,15 +135,15 @@ class Pose(KeyFrameControlMixin):
         for cylinder in self.cylinders:
             cylinder.update_material(**kwargs)
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set the keyframe for the pose object
         """
         for shperes in self.spheres:
-            shperes.set_keyframe(keyframe)
+            shperes.update_keyframe(keyframe)
 
         for cylinder in self.cylinders:
-            cylinder.set_keyframe(keyframe)
+            cylinder.update_keyframe(keyframe)
 
 
 if TYPE_CHECKING:
