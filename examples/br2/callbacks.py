@@ -142,9 +142,9 @@ class BR2BpyObj:
         )
 
     def set_keyframe(self, keyframe: int) -> None:
-        self.bending_actuation.set_keyframe(keyframe)
-        self.rotation_CW_actuation.set_keyframe(keyframe)
-        self.rotation_CCW_actuation.set_keyframe(keyframe)
+        self.bending_actuation.update_keyframe(keyframe)
+        self.rotation_CW_actuation.update_keyframe(keyframe)
+        self.rotation_CCW_actuation.update_keyframe(keyframe)
 
 
 class BlenderBR2CallBack(BasicCallBackBaseClass):

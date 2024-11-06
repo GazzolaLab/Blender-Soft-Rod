@@ -133,15 +133,15 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         for cylinder in self.cylinders:
             cylinder.update_material(**kwargs)
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object
         """
         for idx, sphere in enumerate(self.spheres):
-            sphere.set_keyframe(keyframe)
+            sphere.update_keyframe(keyframe)
 
         for idx, cylinder in enumerate(self.cylinders):
-            cylinder.set_keyframe(keyframe)
+            cylinder.update_keyframe(keyframe)
 
 
 # Alias

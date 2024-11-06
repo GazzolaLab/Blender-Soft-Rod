@@ -12,33 +12,40 @@ def main(
     camera_orbiting_radius: float = 1.0,
 ):
 
-    # Create a new scene
+    # Clear all mesh objects in the new scene
     bsr.clear_mesh_objects()
 
     # Set the camera film background to transparent
     bsr.camera.set_film_transparent()
 
+    # Set the render file path
+    bsr.camera.set_file_path(filename + "/frame")
+
+    # Set resolution
+    bsr.camera.set_resolution(1920, 1080)
+
     # Set the camera look at location
     bsr.camera.look_at = np.array([0.0, 0.0, 0.0])
 
-    # Set a frame at the origin
+    # Set a pose at the origin
     _ = Pose(
         positions=np.zeros(3),
         directors=np.identity(3),
         unit_length=0.25,
     )
 
-    # Set the current frame number
-    bsr.frame_manager.frame_current = 0
-
-    # Set the initial keyframe number
-    bsr.frame_manager.set_frame_start()
-
-    # Set the camera orbiting keyframes
+    # Set the camera orbiting angles
     angles = np.linspace(
         0.0, 360.0, int(frame_rate * total_time), endpoint=False
     )
-    for k, angle in enumerate(angles):
+
+    # Set the initial frame
+    frame_start = 0
+    bsr.frame_manager.frame_start = frame_start
+
+    for frame_current, angle in bsr.frame_manager.enumerate(
+        angles, frame_current_init=frame_start
+    ):
 
         # Set the camera location
         bsr.camera.location = np.array(
@@ -49,35 +56,22 @@ def main(
             ]
         )
 
-        # Update the keyframe
-        bsr.camera.set_keyframe(bsr.frame_manager.frame_current)
-
-        if k != len(angles) - 1:
-            # Update the keyframe number
-            bsr.frame_manager.update()
-        else:
-            # Set the final keyframe number
-            bsr.frame_manager.set_frame_end()
+        # Set and update the camera in current frame
+        bsr.camera.update_keyframe(frame_current)
 
     # Set the frame rate
-    bsr.frame_manager.set_frame_rate(fps=frame_rate)
+    bsr.frame_manager.frame_rate = frame_rate
 
     # Set the view distance
     bsr.set_view_distance(distance=5)
 
-    # Deslect all objects
+    # Deselect all objects
     bsr.deselect_all()
 
     # Select the camera object
     bsr.camera.select()
 
-    # Set the render file path
-    bsr.camera.set_file_path("render/" + filename)
-
-    # set resolution
-    bsr.camera.set_resolution(1920, 1080)
-
-    # render the scene
+    # Render the scene
     bsr.camera.render(
         frames=np.arange(
             bsr.frame_manager.frame_start, bsr.frame_manager.frame_end + 1
@@ -90,4 +84,7 @@ def main(
 
 if __name__ == "__main__":
     main()
-    # ffmpeg -threads 8 -r 60 -i render/camera_movement_%03d.png -b:v 90M -c:v prores -pix_fmt yuva444p10le camera_movement.mov
+    print("\n\nTo convert the frames into a video, run the following command:")
+    print(
+        r"ffmpeg -threads 8 -r 60 -i camera_movement/frame_%03d.png -b:v 90M -c:v prores -pix_fmt yuva444p10le camera_movement.mov"
+    )

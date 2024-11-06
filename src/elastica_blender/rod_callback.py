@@ -41,5 +41,5 @@ class BlenderRodCallback(CallBackBaseClass):
                 positions=system.position_collection,
                 radii=system.radius,
             )
-        self.bpy_objs.set_keyframe(self.keyframe)
+        self.bpy_objs.update_keyframe(self.keyframe)
         self.keyframe += 1
