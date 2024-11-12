@@ -1,3 +1,4 @@
+import bpy
 import numpy as np
 
 import bsr
@@ -53,7 +54,6 @@ def main(
     frame_rate: int = 60,
     total_time: float = 5.0,
 ):
-
     # Clear all mesh objects in the new scene
     bsr.clear_mesh_objects()
 
@@ -76,7 +76,6 @@ def main(
     for frame_current, angle in bsr.frame_manager.enumerate(
         angles, frame_current_init=frame_start
     ):
-
         # Define path of of motion for positions of pose object
         positions = [np.cos(np.radians(angle)), np.sin(np.radians(angle)), 0.0]
 

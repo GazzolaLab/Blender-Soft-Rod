@@ -25,15 +25,18 @@ def calculate_cylinder_orientation(
     Parameters
     ----------
     position_1 : NDArray
-        One endpoint position of the cylinder object. (3D)
+        One endpoint position of the cylinder object. Expected shape is (n_dim,)
+        n_dim = 3
     position_2: NDArray
-        Other endpoint position of the cylinder object. (3D)
+        Other endpoint position of the cylinder object. Expected shape is (n_dim,)
+        n_dim = 3
 
     Returns
     -------
     tuple: float, NDArray, NDArray
-        Tuple containing the values for the depth, centerpoint and rotation angle (3D)
-
+        Tuple containing the values for the depth, centerpoint and rotation angle.
+        Expected shape is (n_dim, n_dim)
+        n_dim = 3
     """
 
     depth = np.linalg.norm(position_2 - position_1)
@@ -97,10 +100,10 @@ class Sphere(KeyFrameControlMixin):
     Parameters
     ----------
     position : NDArray
-        The position of the sphere object. (3D)
+        The position of the sphere object. Expected shape is (n_dim,)
+        n_dim = 3
     radius : float
         The radius of the sphere object.
-
     """
 
     input_states = {"position", "radius"}
@@ -109,7 +112,6 @@ class Sphere(KeyFrameControlMixin):
         """
         Sphere class constructor
         """
-
         self._obj = self._create_sphere()
         self._material = bpy.data.materials.new(
             name=f"{self._obj.name}_material"
@@ -117,10 +119,28 @@ class Sphere(KeyFrameControlMixin):
         self._obj.data.materials.append(self._material)
         self.update_states(position, radius)
 
+    # TODO: Find better way to represnet radius
     @classmethod
     def create(cls, states: MeshDataType) -> "Sphere":
         """
         Basic factory method to create a new Sphere object.
+        States must have the following keys: position(n_dim,), radius(float)
+
+
+        Parameters
+        ----------
+        states: MeshDataType
+            A dictionary containing the sphere's center position and radius
+
+        Returns
+        -------
+        Sphere
+            A sphere object with the defined center position and radius
+
+        Raises
+        ------
+        Warning
+        If unused keys are present in the dictionary within states
         """
 
         remaining_keys = set(states.keys()) - cls.input_states
@@ -244,7 +264,6 @@ class Cylinder(KeyFrameControlMixin):
         """
         Cylinder class constructor
         """
-
         self._obj = self._create_cylinder()
         self._material = bpy.data.materials.new(
             name=f"{self._obj.name}_material"
@@ -261,6 +280,21 @@ class Cylinder(KeyFrameControlMixin):
     def create(cls, states: MeshDataType) -> "Cylinder":
         """
         Basic factory method to create a new Cylinder object.
+
+        Parameters
+        ----------
+        states: MeshDataType
+            A dictionary containing the cylinder's endpoint positions and radius
+
+        Returns
+        -------
+        Cylinder
+            A Cylinder object with the defined endpoint positions and radius
+
+        Raises
+        ------
+        Warning
+        If unused keys are present in the dictionary within states
         """
 
         remaining_keys = set(states.keys()) - cls.input_keys

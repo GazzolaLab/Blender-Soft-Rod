@@ -18,21 +18,24 @@ from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 class RodWithSphereAndCylinder(KeyFrameControlMixin):
     """
-    Rod class for managing visualization and rendering in Blender
+    This class provides a mesh interface for Rod objects.
+    Rod objects are created using given positions and radii.
 
     Parameters
     ----------
     positions : NDArray
-        The positions of the sphere objects. Expected shape is (n_dim, n_nodes).
+        The positions of the Rod objects. Expected shape is (n_dim, n_nodes).
         n_dim = 3
     radii : NDArray
-        The radii of the sphere objects. Expected shape is (n_nodes-1,).
-
+        The radii of the Rod objects. Expected shape is (n_nodes-1,).
     """
 
     input_states = {"positions", "radii"}
 
     def __init__(self, positions: NDArray, radii: NDArray) -> None:
+        """
+        Rod class constructor
+        """
         # create sphere and cylinder objects
         self.spheres: list[Sphere] = []
         self.cylinders: list[Cylinder] = []
@@ -68,14 +71,35 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
     @classmethod
     def create(cls, states: dict[str, NDArray]) -> "RodWithSphereAndCylinder":
         """
-        Create a Rod object from the given states
+        Basic factory method to create a new Rod object.
+        States must have the following keys: positions(n_dim, n_nodes), radii(n_nodes-1,)
 
-        States must have the following keys: positions(n_nodes, 3), radii(n_nodes-1,)
+        Parameters
+        ----------
+        states: dict[str, NDArray]
+            A dictionary where keys are state names and values are NDArrays.
+
+        Returns
+        -------
+        RodWithSphereAndCylinder
+            An object of Rod class containing the predefined states
         """
-        rod = cls(**states)
+        positions = states["positions"]
+        radii = states["radii"]
+        rod = cls(positions, radii)
         return rod
 
     def _build(self, positions: NDArray, radii: NDArray) -> None:
+        """
+        Populates the positions and radii of the Spheres and Cylinders into Rod object
+
+        Parameters
+        ----------
+        positions: NDArray
+            An array of shape (n_dim, n_nodes) that stores the positions of Spheres and Cylinders
+        radii: NDArray
+            An array of shape (n_nodes-1,) that stores the radii of the Spheres and Cylinders
+        """
         _radii = np.concatenate([radii, [0]])
         _radii[1:] += radii
         _radii[1:-1] /= 2.0
@@ -95,14 +119,14 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     def update_states(self, positions: NDArray, radii: NDArray) -> None:
         """
-        Update the states of the rod object
+        Update the states of the Rod object
 
         Parameters
         ----------
         positions : NDArray
-            The positions of the sphere objects. Expected shape is (n_nodes, 3).
+            The positions of the Rod objects. Expected shape is (n_dim, n_nodes)
         radii : NDArray
-            The radii of the sphere objects. Expected shape is (n_nodes-1,).
+            The radii of the Rod objects. Expected shape is (n_nodes-1,)
         """
         # check shape of positions and radii
         assert positions.ndim == 2, "positions must be 2D array"
@@ -125,7 +149,12 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     def update_material(self, **kwargs: dict[str, Any]) -> None:
         """
-        Updates the material of the rod object
+        Updates the material of the Rod object
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for the material update
         """
         for shperes in self.spheres:
             shperes.update_material(**kwargs)

@@ -24,13 +24,24 @@ from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
 class BaseStack(Sequence, KeyFrameControlMixin):
     """
-    A stack of objects that can be manipulated together.
-    Internally, we use a list-like structure to store the objects.
+    This class provides a mesh interface for a BaseStack of objects.
+    BaseStacks are created using given positions and radii.
+
+    Parameters
+    ----------
+    positions: NDArray
+        Positions of each object in the stack. Expected dimension is (n_dim, n_nodes)
+        n_dim = 3
+    radii: NDArray
+        Radii of each object in the stack. Expected dimension is (n_nodes-1,)
     """
 
     DefaultType: Type
 
     def __init__(self) -> None:
+        """
+        Stack class constructor
+        """
         self._objs: list[BlenderMeshInterfaceProtocol] = []
         self._mats: list[BlenderMeshInterfaceProtocol] = []
 
@@ -53,14 +64,14 @@ class BaseStack(Sequence, KeyFrameControlMixin):
     @property
     def material(self) -> list[BlenderMeshInterfaceProtocol]:
         """
-        Returns the materials in the stack.
+        Returns the list of materials in the stack.
         """
         return self._mats
 
     @property
     def object(self) -> list[BlenderMeshInterfaceProtocol]:
         """
-        Returns the objects in the stack.
+        Returns the list of objects in the stack.
         """
         return self._objs
 
@@ -77,7 +88,23 @@ class BaseStack(Sequence, KeyFrameControlMixin):
         states: dict[str, NDArray],
     ) -> Self:
         """
-        Creates a stack of objects from the given states.
+        Basic factory method to create a new BaseStack of objects.
+        States must have the following keys: positions(n_dim, n_nodes), radii(n_nodes-1,)
+
+        Parameters
+        ----------
+        states: dict[str, NDArray]
+            A dictionary where keys are state names and values are NDarrays.
+
+        Returns
+        -------
+        Self
+            An instance of the BaseStack with objects containing the states
+
+        Raises
+        ------
+        AssertionError
+            If the states have differing lengths
         """
         self = cls()
         keys = states.keys()
@@ -94,7 +121,13 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
     def update_states(self, *variables: NDArray) -> None:
         """
-        Updates the states of the objects.
+        Updates the states of the BaseStack objects.
+
+        Parameters
+        ----------
+        *variables: NDArray
+            An array including all the state updates of the object in the stack.
+            Expected dimension is (n_nodes - 1,)
         """
         if not all([v.shape[0] == len(self) for v in variables]):
             raise IndexError(
@@ -105,7 +138,12 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
     def update_material(self, **kwargs: dict[str, NDArray]) -> None:
         """
-        Updates the material of the objects.
+        Updates the material of the BaseStack objects
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for the material update
         """
         for material_key, material_values in kwargs.items():
             assert isinstance(
@@ -120,6 +158,19 @@ class BaseStack(Sequence, KeyFrameControlMixin):
 
 
 class RodStack(BaseStack):
+    """
+    This class provides a mesh interface for a RodStack of objects (only contains Rod objects).
+    RodStacks are created using given positions and radii.
+
+    Parameters
+    ----------
+    positions: NDArray
+        Positions of each Rod in the stack. Expected dimension is (n_dim, n_nodes).
+        n_dim = 3
+    radii: NDArray
+        Radii of each Rod in the stack. Expected dimension is (n_nodes-1,).
+    """
+
     input_states = {"positions", "radii"}
     DefaultType: Type = Rod
 
