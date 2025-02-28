@@ -133,7 +133,9 @@ class RodWithCylinder(RodWithSphereAndCylinder):
 
     input_states = {"positions", "radii"}
 
-    def __init__(self, positions: NDArray, radii: NDArray) -> None:
+    def __init__(
+        self, positions: NDArray, radii: NDArray, *args, **kwargs
+    ) -> None:
         # create cylinder objects
         self.cylinders: list[Cylinder] = []
         self._bpy_objs: dict[str, list[bpy.types.Object]] = {
@@ -142,7 +144,9 @@ class RodWithCylinder(RodWithSphereAndCylinder):
 
         self._build(positions, radii)
 
-    def _build(self, positions: NDArray, radii: NDArray) -> None:
+    def _build(
+        self, positions: NDArray, radii: NDArray, *args, **kwargs
+    ) -> None:
         for j in range(radii.shape[-1]):
             cylinder = Cylinder(
                 positions[:, j],
@@ -151,7 +155,9 @@ class RodWithCylinder(RodWithSphereAndCylinder):
             )
             self.cylinders.append(cylinder)
 
-    def update_states(self, positions: NDArray, radii: NDArray) -> None:
+    def update_states(
+        self, positions: NDArray, radii: NDArray, *args, **kwargs
+    ) -> None:
         """
         Update the states of the rod object
 

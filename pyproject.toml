@@ -42,7 +42,7 @@ bpy = [
     { version = "4.1.0", python = "3.11.*" },
 ]
 click = "^8.1.7"
-mathutils = "^3.3.0"
+# mathutils = "^3.3.0"
 
 [tool.poetry.group.dev]
 [tool.poetry.group.dev.dependencies]
