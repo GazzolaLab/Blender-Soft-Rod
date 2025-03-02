@@ -233,12 +233,12 @@ class RodWithCylinder(RodWithSphereAndCylinder):
                 positions[:, idx], positions[:, idx + 1], radii[idx]
             )
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object
         """
         for idx, cylinder in enumerate(self.cylinders):
-            cylinder.set_keyframe(keyframe)
+            cylinder.update_keyframe(keyframe)
 
 
 class RodWithBox(RodWithSphereAndCylinder):
@@ -312,12 +312,12 @@ class RodWithBox(RodWithSphereAndCylinder):
                 directors[..., idx],
             )
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object
         """
         for idx, box in enumerate(self.boxes):
-            box.set_keyframe(keyframe)
+            box.update_keyframe(keyframe)
 
 
 # Alias
