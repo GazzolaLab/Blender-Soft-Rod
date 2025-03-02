@@ -15,6 +15,13 @@ from numpy.typing import NDArray
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, MeshDataType
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
 
+from .utils import (
+    _matrix_to_euler,
+    _validate_position,
+    _validate_radius,
+    _validate_rotation_matrix,
+)
+
 
 def calculate_cylinder_orientation(
     position_1: NDArray, position_2: NDArray
@@ -143,6 +150,7 @@ class Sphere(KeyFrameControlMixin):
         If unused keys are present in the dictionary within states
         """
 
+        # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
         remaining_keys = set(states.keys()) - cls.input_states
         if len(remaining_keys) > 0:
             warnings.warn(
@@ -297,6 +305,7 @@ class Cylinder(KeyFrameControlMixin):
         If unused keys are present in the dictionary within states
         """
 
+        # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
         remaining_keys = set(states.keys()) - cls.input_keys
         if len(remaining_keys) > 0:
             warnings.warn(
@@ -428,6 +437,169 @@ class Cylinder(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
         self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
+
+
+class Box(KeyFrameControlMixin):
+    """
+    This class provides a mesh interface for Blender Box objects.
+    Box objects are created with the given positions, radius, and rotation matrix.
+
+    Parameters
+    ----------
+    position_1 : NDArray
+        The first position of the box object. (3D)
+    position_2 : NDArray
+        The second position of the box object. (3D)
+    radius : float
+        The width of the box object (in the direction of the first row of the rotation matrix).
+    rotation_matrix : NDArray
+        A 3x3 rotation matrix to determine the orientation of the box.
+    """
+
+    input_keys = {"position_1", "position_2", "radius", "rotation_matrix"}
+
+    def __init__(
+        self,
+        position_1: NDArray,
+        position_2: NDArray,
+        radius: float,
+        rotation_matrix: NDArray,
+    ) -> None:
+        """
+        Box class constructor
+        """
+
+        self._obj = self._create_box()
+        # FIXME: This is a temporary solution
+        # Ideally, these modules should not contain any data
+        self._states_position_1 = position_1
+        self._states_position_2 = position_2
+        self._states_radius = radius
+        self._states_rotation_matrix = rotation_matrix
+        self.update_states(position_1, position_2, radius, rotation_matrix)
+
+    @classmethod
+    def create(cls, states: MeshDataType) -> "Box":
+        """
+        Basic factory method to create a new Box object.
+        """
+
+        remaining_keys = set(states.keys()) - cls.input_keys
+        if len(remaining_keys) > 0:
+            warnings.warn(
+                f"{list(remaining_keys)} are not used as a part of the state definition."
+            )
+        return cls(
+            states["position_1"],
+            states["position_2"],
+            states["radius"],
+            states["rotation_matrix"],
+        )
+
+    @property
+    def object(self) -> bpy.types.Object:
+        """
+        Access the Blender object.
+        """
+
+        return self._obj
+
+    def update_states(
+        self,
+        position_1: NDArray | None = None,
+        position_2: NDArray | None = None,
+        radius: float | None = None,
+        rotation_matrix: NDArray | None = None,
+    ) -> None:
+        """
+        Updates the positions, radius, and rotation matrix of the box object.
+
+        Parameters
+        ----------
+        position_1 : NDArray
+            The first new position of the box object.
+        position_2 : NDArray
+            The second new position of the box object.
+        radius : float
+            The new radius (width) of the box object.
+        rotation_matrix : NDArray
+            The new 3x3 rotation matrix to determine the orientation of the box.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the positions, radius, or rotation matrix is incorrect, or if the data is NaN.
+        """
+        if (
+            position_1 is None
+            and position_2 is None
+            and radius is None
+            and rotation_matrix is None
+        ):
+            return
+        if position_1 is not None:
+            position_1 = cast(NDArray[np.floating], position_1)
+            _validate_position(position_1)
+            self._states_position_1 = position_1
+        else:
+            position_1 = self._states_position_1
+        if position_2 is not None:
+            position_2 = cast(NDArray[np.floating], position_2)
+            _validate_position(position_2)
+            self._states_position_2 = position_2
+        else:
+            position_2 = self._states_position_2
+        if radius is not None:
+            _validate_radius(radius)
+            self._states_radius = radius
+        else:
+            radius = self._states_radius
+        if rotation_matrix is not None:
+            _validate_rotation_matrix(rotation_matrix)
+            self._states_rotation_matrix = rotation_matrix
+        else:
+            rotation_matrix = self._states_rotation_matrix
+
+        # Validation check
+        if np.allclose(position_1, position_2):
+            raise ValueError(
+                f"Two positions must be different: {(position_1 - position_2)=}"
+            )
+
+        length_vector = position_2 - position_1
+        length = np.linalg.norm(length_vector)
+        center = (position_1 + position_2) / 2
+
+        # Set object location, rotation and scale
+        self.object.location = center
+        self.object.rotation_euler = _matrix_to_euler(rotation_matrix)
+        self.object.scale[0] = radius * 2  # Width
+        self.object.scale[1] = radius  # Depth
+        self.object.scale[2] = length  # Length
+
+    def _create_box(
+        self,
+    ) -> bpy.types.Object:
+        """
+        Creates a new box object.
+        """
+        bpy.ops.mesh.primitive_cube_add(
+            size=1.0,
+        )  # Fix keep these values as default.
+        box = bpy.context.active_object
+        return box
+
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Sets a keyframe at the given frame.
+
+        Parameters
+        ----------
+        keyframe : int
+        """
+        self.object.keyframe_insert(data_path="location", frame=keyframe)
+        self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
+        self.object.keyframe_insert(data_path="scale", frame=keyframe)
 
 
 # TODO: Will be implemented in the future
