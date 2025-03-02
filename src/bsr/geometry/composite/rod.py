@@ -114,6 +114,72 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
         for idx, cylinder in enumerate(self.cylinders):
             cylinder.set_keyframe(keyframe)
 
+class RodWithCylinder(RodWithSphereAndCylinder):
+    """
+    Rod class for managing visualization and rendering in Blender
+
+    This class only creates cylinder objects
+
+    Parameters
+    ----------
+    positions : NDArray
+        The positions of the sphere objects. Expected shape is (n_dim, n_nodes).
+        n_dim = 3
+    radii : NDArray
+        The radii of the sphere objects. Expected shape is (n_nodes-1,).
+
+    """
+
+    input_states = {"positions", "radii"}
+
+    def __init__(self, positions: NDArray, radii: NDArray) -> None:
+        # create cylinder objects
+        self.cylinders: list[Cylinder] = []
+        self._bpy_objs: dict[str, list[bpy.types.Object]] = {
+            "cylinder": self.cylinders,
+        }
+
+        self._build(positions, radii)
+
+    def _build(self, positions: NDArray, radii: NDArray) -> None:
+        for j in range(radii.shape[-1]):
+            cylinder = Cylinder(
+                positions[:, j],
+                positions[:, j + 1],
+                radii[j],
+            )
+            self.cylinders.append(cylinder)
+
+    def update_states(self, positions: NDArray, radii: NDArray) -> None:
+        """
+        Update the states of the rod object
+
+        Parameters
+        ----------
+        positions : NDArray
+            The positions of the sphere objects. Expected shape is (n_nodes, 3).
+        radii : NDArray
+            The radii of the sphere objects. Expected shape is (n_nodes-1,).
+        """
+        # check shape of positions and radii
+        assert positions.ndim == 2, "positions must be 2D array"
+        assert positions.shape[0] == 3, "positions must have 3 rows"
+        assert radii.ndim == 1, "radii must be 1D array"
+        assert (
+            positions.shape[-1] == radii.shape[-1] + 1
+        ), "radii must have n_nodes-1 elements"
+
+        for idx, cylinder in enumerate(self.cylinders):
+            cylinder.update_states(
+                positions[:, idx], positions[:, idx + 1], radii[idx]
+            )
+
+    def set_keyframe(self, keyframe: int) -> None:
+        """
+        Set keyframe for the rod object
+        """
+        for idx, cylinder in enumerate(self.cylinders):
+            cylinder.set_keyframe(keyframe)
 
 # Alias
 Rod = RodWithSphereAndCylinder
