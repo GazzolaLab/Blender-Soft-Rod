@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import bsr
-from bsr.geometry import Sphere
+from bsr import Sphere
 
 bsr.clear_mesh_objects()
 
@@ -32,7 +32,7 @@ for i in range(1, len(time)):
 
     # Update sphere position
     sphere.update_states(position=np.array([0, 0, y]))
-    sphere.set_keyframe(i)
+    sphere.update_keyframe(i)
 
 # Blender file save
 bsr.save("projectile_motion.blend")

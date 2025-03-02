@@ -4,7 +4,7 @@ import bpy
 import numpy as np
 
 import bsr
-from bsr.geometry import Cylinder, Sphere
+from bsr import Cylinder, Sphere
 
 g = 9.81  # m/s^2 acceleration due to gravity
 
@@ -25,8 +25,8 @@ class PendulumBlender:
         )
 
     def set_keyframe(self, keyframe):
-        self.sphere.set_keyframe(keyframe)
-        self.cylinder.set_keyframe(keyframe)
+        self.sphere.update_keyframe(keyframe)
+        self.cylinder.update_keyframe(keyframe)
 
 
 class Pendulum:  # Pendulum simulator

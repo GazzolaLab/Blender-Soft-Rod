@@ -1,3 +1,7 @@
+# rendered files
+*.png
+*.mov
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -7,6 +11,7 @@ __pycache__/
 *.so
 
 *.blend
+*.blend1
 *.swp
 *.npz
 
