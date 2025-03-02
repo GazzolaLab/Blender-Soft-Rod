@@ -17,7 +17,6 @@ from .blender_commands.macros import (
     deselect_all,
     scene_update,
 )
-from .camera import CameraManager
 from .frame import FrameManager
 from .geometry.composite.pose import Pose
 from .geometry.composite.rod import Rod, RodWithBox, RodWithCylinder
@@ -35,7 +34,6 @@ def get_version() -> str:
 
 
 version: Final[str] = get_version()
-camera_manager = CameraManager()
 frame_manager = FrameManager()
 camera = Camera()
 light = Light()
