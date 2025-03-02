@@ -55,7 +55,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
             )
-        return cls(states["position"], states["radius"])
+        return cls(states["positions"], states["radii"])
 
     @property
     def object(self) -> bpy.types.Object:
@@ -144,7 +144,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         return curve_data
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
@@ -161,7 +161,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
 if TYPE_CHECKING:
     # This is required for explicit type-checking
     data = {
-        "positions": np.array([[0, 0, 0], [1, 1, 1]]),
+        "positions": np.array([[0, 0, 0], [1, 1, 1]]).T,
         "radii": np.array([1.0, 1.0]),
     }
     _: BlenderMeshInterfaceProtocol = BezierSplinePipe.create(data)
