@@ -1,6 +1,7 @@
 __all__ = ["BaseStack", "RodStack", "create_rod_collection"]
 
 from typing import TYPE_CHECKING, Any, Protocol, Type, overload
+
 import sys
 
 # Check python version
