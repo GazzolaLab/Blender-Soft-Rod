@@ -1,3 +1,4 @@
+from typing import cast
 from numbers import Number
 
 import numpy as np
@@ -22,7 +23,7 @@ def _matrix_to_euler(matrix: NDArray) -> NDArray:
         A batch of Euler angles
     """
     R = Rotation.from_matrix(matrix.T)
-    euler = R.as_euler("xyz")
+    euler = cast(NDArray, R.as_euler("xyz"))
     return euler
 
 

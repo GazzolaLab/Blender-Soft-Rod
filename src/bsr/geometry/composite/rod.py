@@ -44,7 +44,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
             "cylinder": self.cylinders,
         }
 
-        # create sphere and cylinder materials
+        # create sphere and cylinder materials self.spheres_material: list[bpy.types.Material] = []
         self.spheres_material: list[bpy.types.Material] = []
         self.cylinders_material: list[bpy.types.Material] = []
         self._bpy_materials: dict[str, list[bpy.types.Material]] = {
@@ -164,7 +164,7 @@ class RodWithSphereAndCylinder(KeyFrameControlMixin):
 
     def update_keyframe(self, keyframe: int) -> None:
         """
-        Set keyframe for the rod object
+        update keyframe for the rod object
         """
         for idx, sphere in enumerate(self.spheres):
             sphere.update_keyframe(keyframe)
@@ -198,6 +198,11 @@ class RodWithCylinder(RodWithSphereAndCylinder):
             "cylinder": self.cylinders,
         }
 
+        self.cylinders_material: list[bpy.types.Material] = []
+        self._bpy_materials: dict[str, list[bpy.types.Material]] = {
+            "cylinder": self.cylinders_material,
+        }
+
         self._build(positions, radii)
 
     def _build(self, positions: NDArray, radii: NDArray) -> None:
@@ -208,6 +213,7 @@ class RodWithCylinder(RodWithSphereAndCylinder):
                 radii[j],
             )
             self.cylinders.append(cylinder)
+            self.cylinders_material.append(cylinder.material)
 
     def update_states(self, positions: NDArray, radii: NDArray) -> None:
         """
@@ -233,15 +239,27 @@ class RodWithCylinder(RodWithSphereAndCylinder):
                 positions[:, idx], positions[:, idx + 1], radii[idx]
             )
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the Rod object
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for the material update
+        """
+        for cylinder in self.cylinders:
+            cylinder.update_material(**kwargs)
+
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object
         """
         for idx, cylinder in enumerate(self.cylinders):
-            cylinder.set_keyframe(keyframe)
+            cylinder.update_keyframe(keyframe)
 
 
-class RodWithBox(RodWithSphereAndCylinder):
+class RodWithBox(KeyFrameControlMixin):
     """
     Rod class for managing visualization and rendering in Blender
 
@@ -267,8 +285,48 @@ class RodWithBox(RodWithSphereAndCylinder):
         self._bpy_objs: dict[str, list[bpy.types.Object]] = {
             "box": self.boxes,
         }
+        self.boxes_material: list[bpy.types.Material] = []
+        self._bpy_materials: dict[str, list[bpy.types.Material]] = {
+            "box": self.boxes_material,
+        }
 
         self._build(positions, radii, directors)
+
+    @property
+    def material(self) -> dict[str, list[bpy.types.Material]]:
+        """
+        Return the dictionary of Blender materials: sphere and cylinder
+        """
+        return self._bpy_materials
+
+    @property
+    def object(self) -> dict[str, list[bpy.types.Object]]:
+        """
+        Return the dictionary of Blender objects: sphere and cylinder
+        """
+        return self._bpy_objs
+
+    @classmethod
+    def create(cls, states: dict[str, NDArray]) -> "RodWithBox":
+        """
+        Basic factory method to create a new Rod object.
+        States must have the following keys: positions(n_dim, n_nodes), radii(n_nodes-1,)
+
+        Parameters
+        ----------
+        states: dict[str, NDArray]
+            A dictionary where keys are state names and values are NDArrays.
+
+        Returns
+        -------
+        RodWithSphereAndCylinder
+            An object of Rod class containing the predefined states
+        """
+        positions = states["positions"]
+        radii = states["radii"]
+        directors = states["directors"]
+        rod = cls(positions, radii, directors)
+        return rod
 
     def _build(
         self, positions: NDArray, radii: NDArray, directors: NDArray
@@ -282,6 +340,7 @@ class RodWithBox(RodWithSphereAndCylinder):
                 directors[..., j],
             )
             self.boxes.append(box)
+            self.boxes_material.append(box.material)
 
     def update_states(
         self, positions: NDArray, radii: NDArray, directors: NDArray
@@ -312,12 +371,24 @@ class RodWithBox(RodWithSphereAndCylinder):
                 directors[..., idx],
             )
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the Rod object
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for the material update
+        """
+        for obj in self.boxes:
+            obj.update_material(**kwargs)
+
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Set keyframe for the rod object
         """
         for idx, box in enumerate(self.boxes):
-            box.set_keyframe(keyframe)
+            box.update_keyframe(keyframe)
 
 
 # Alias
