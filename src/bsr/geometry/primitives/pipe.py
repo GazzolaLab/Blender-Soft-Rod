@@ -3,7 +3,7 @@ __doc__ = """
 """
 __all__ = ["BezierSplinePipe"]
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, Any
 
 import warnings
 from numbers import Number
@@ -43,6 +43,11 @@ class BezierSplinePipe(KeyFrameControlMixin):
         self._obj.name = self.name
         self.update_states(positions, radii)
 
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
+
     @classmethod
     def create(cls, states: SplineDataType) -> "BezierSplinePipe":
         """
@@ -58,6 +63,14 @@ class BezierSplinePipe(KeyFrameControlMixin):
         return cls(states["positions"], states["radii"])
 
     @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
+
+    @property
     def object(self) -> bpy.types.Object:
         """
         Access the Blender object.
@@ -65,8 +78,33 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         return self._obj
 
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the sphere object.
+
+        Parameters
+        ----------
+        color : NDArray
+            The new color of the sphere object in RGBA format.
+        """
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            if isinstance(color, (tuple, list)):
+                color = np.array(color)
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
+            assert color.shape == (
+                4,
+            ), "Keyword argument color should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Keyword argument color should be in the range of [0, 1]."
+            self.material.diffuse_color = tuple(color)
+
     def update_states(
-        self, positions: NDArray | None = None, radii: float | None = None
+        self, positions: NDArray | None = None, radii: NDArray | None = None
     ) -> None:
         """
         Updates the position and radius of the spline object.

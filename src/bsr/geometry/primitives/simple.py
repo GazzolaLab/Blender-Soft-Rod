@@ -57,48 +57,6 @@ def calculate_cylinder_orientation(
     return float(depth), center, angles
 
 
-def _validate_position(position: NDArray) -> None:
-    """
-    Checks if inputted position values are valid
-
-    Parameters
-    ---------
-    position: NDArray
-        Position input (endpoint or centerpoint depending on Object type)
-
-    Raises
-    ------
-    ValueError
-        If the position is the wrong shape or contains NaN values
-    """
-
-    if position.shape != (3,):
-        raise ValueError("The shape of the position is incorrect.")
-    if np.isnan(position).any():
-        raise ValueError("The position contains NaN values.")
-
-
-def _validate_radius(radius: float) -> None:
-    """
-    Checks if inputted radius value is valid
-
-    Parameters:
-    -----------
-    radius: Float
-        Radius input
-
-    Raises
-    ------
-    ValueError
-        If the radius is not positive, or contains NaN values
-    """
-
-    if not isinstance(radius, Number) or radius <= 0:
-        raise ValueError("The radius must be a positive float.")
-    if np.isnan(radius):
-        raise ValueError("The radius contains NaN values.")
-
-
 class Sphere(KeyFrameControlMixin):
     """
     This class provides a mesh interface for Blender Sphere objects.
@@ -478,6 +436,19 @@ class Box(KeyFrameControlMixin):
         self._states_rotation_matrix = rotation_matrix
         self.update_states(position_1, position_2, radius, rotation_matrix)
 
+        self._material = bpy.data.materials.new(
+            name=f"{self._obj.name}_material"
+        )
+        self._obj.data.materials.append(self._material)
+
+    @property
+    def material(self) -> bpy.types.Material:
+        """
+        Access the Blender material.
+        """
+
+        return self._material
+
     @classmethod
     def create(cls, states: MeshDataType) -> "Box":
         """
@@ -589,7 +560,32 @@ class Box(KeyFrameControlMixin):
         box = bpy.context.active_object
         return box
 
-    def set_keyframe(self, keyframe: int) -> None:
+    def update_material(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Updates the material of the sphere object.
+
+        Parameters
+        ----------
+        color : NDArray
+            The new color of the sphere object in RGBA format.
+        """
+
+        if "color" in kwargs:
+            color = kwargs["color"]
+            if isinstance(color, (tuple, list)):
+                color = np.array(color)
+            assert isinstance(
+                color, np.ndarray
+            ), "Keyword argument `color` should be a numpy array."
+            assert color.shape == (
+                4,
+            ), "Keyword argument color should be a 1D array with 4 elements: RGBA."
+            assert np.all(color >= 0) and np.all(
+                color <= 1
+            ), "Keyword argument color should be in the range of [0, 1]."
+            self.material.diffuse_color = tuple(color)
+
+    def update_keyframe(self, keyframe: int) -> None:
         """
         Sets a keyframe at the given frame.
 
