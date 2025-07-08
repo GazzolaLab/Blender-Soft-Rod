@@ -122,7 +122,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
             If the shape of the position or radius is incorrect, or if the data is NaN.
         """
 
-        spline = self.object.splines[0]
+        spline = self.object.data.splines[0]
         if positions is not None:
             _validate_position(positions)
             for i, point in enumerate(spline.bezier_points):
@@ -154,7 +154,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
         # Set the spline points and radii
         for i in range(number_of_points):
             point = spline.bezier_points[i]
-            point.handle_left_type = point.handle_right_type = "AUTO"
+            point.handle_left_type = point.handle_right_type = "VECTOR"
 
         # Create a new object with the curve data
         curve_object = bpy.data.objects.new("spline_curve_object", curve_data)
@@ -180,7 +180,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
         curve_data.bevel_object = bevel_circle
         curve_data.use_fill_caps = True
 
-        return curve_data
+        return curve_object
 
     def update_keyframe(self, keyframe: int) -> None:
         """
@@ -190,10 +190,11 @@ class BezierSplinePipe(KeyFrameControlMixin):
         ----------
         keyframe : int
         """
-        spline = self.object.splines[0]
+        spline = self.object.data.splines[0]
         for i, point in enumerate(spline.bezier_points):
             point.keyframe_insert(data_path="co", frame=keyframe)
             point.keyframe_insert(data_path="radius", frame=keyframe)
+        self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
 
 if TYPE_CHECKING:

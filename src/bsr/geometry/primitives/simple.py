@@ -596,6 +596,7 @@ class Box(KeyFrameControlMixin):
         self.object.keyframe_insert(data_path="location", frame=keyframe)
         self.object.keyframe_insert(data_path="rotation_euler", frame=keyframe)
         self.object.keyframe_insert(data_path="scale", frame=keyframe)
+        self.material.keyframe_insert(data_path="diffuse_color", frame=keyframe)
 
 
 # TODO: Will be implemented in the future
