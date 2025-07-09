@@ -226,12 +226,13 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         t = np.linspace(0, 1, num_elements)
         t_old = np.linspace(0, 1, positions.shape[1])
-        positions[0, :] = np.interp(t, t_old, positions[0, :])
-        positions[1, :] = np.interp(t, t_old, positions[1, :])
-        positions[2, :] = np.interp(t, t_old, positions[2, :])
-        radii = np.interp(t, t_old, radii)
+        new_positions = np.empty((3, num_elements))
+        new_positions[0, :] = np.interp(t, t_old, positions[0, :])
+        new_positions[1, :] = np.interp(t, t_old, positions[1, :])
+        new_positions[2, :] = np.interp(t, t_old, positions[2, :])
+        new_radii = np.interp(t, t_old, radii)
 
-        return positions, radii
+        return new_positions, new_radii
 
     def _create_bezier_spline(
         self, number_of_points: int, handle_type: str = "AUTO"
