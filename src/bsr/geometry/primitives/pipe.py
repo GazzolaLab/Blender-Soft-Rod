@@ -51,7 +51,12 @@ class BezierSplinePipe(KeyFrameControlMixin):
     name = "bspline"
 
     def __init__(
-        self, positions: NDArray, radii: NDArray, handle_type: str = "AUTO"
+        self,
+        positions: NDArray,
+        radii: NDArray,
+        handle_type: str = "AUTO",
+        downsample_num_element: int | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Spline constructor
@@ -65,8 +70,14 @@ class BezierSplinePipe(KeyFrameControlMixin):
         handle_type : str, optional
             The handle type for Bezier points. Options: "AUTO", "VECTOR", "SMOOTH"
             Default is "AUTO" for smoother pipe appearance.
+        downsample_num_element : int | None, optional
+            If provided, downsample the positions and radii to this number of elements.
+            Default is None (no downsampling).
         """
-
+        assert (
+            downsample_num_element is None or downsample_num_element >= 2
+        ), "downsample_num_element must be at least 2 to include both endpoints"
+        self.downsample_num_element = downsample_num_element
         self._obj = self._create_bezier_spline(radii.size, handle_type)
         self._obj.name = self.name
         self.update_states(positions, radii)
@@ -77,24 +88,39 @@ class BezierSplinePipe(KeyFrameControlMixin):
         self._obj.data.materials.append(self._material)
 
     @classmethod
-    def create(cls, states: SplineDataType) -> "BezierSplinePipe":
+    def create(
+        cls,
+        states: SplineDataType,
+        handle_type: str = "AUTO",
+        downsample_num_element: int | None = None,
+    ) -> "BezierSplinePipe":
         """
         Basic factory method to create a new spline object.
 
         Parameters
         ----------
         states : SplineDataType
-            Dictionary containing 'positions', 'radii', and optionally 'handle_type'
+            Dictionary containing 'positions', 'radii'
+        handle_type : str, optional
+            The handle type for Bezier points. Options: "AUTO", "VECTOR", "SMOOTH"
+            Default is "AUTO" for smoother pipe appearance.
+        downsample_num_element : int | None, optional
+            If provided, downsample the positions and radii to this number of elements.
+            Default is None (no downsampling).
         """
 
         # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
-        remaining_keys = set(states.keys()) - cls.input_states - {"handle_type"}
+        remaining_keys = set(states.keys()) - cls.input_states
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
             )
-        handle_type = states.get("handle_type", "AUTO")
-        return cls(states["positions"], states["radii"], handle_type)
+        return cls(
+            states["positions"],
+            states["radii"],
+            handle_type,
+            downsample_num_element,
+        )
 
     @property
     def material(self) -> bpy.types.Material:
@@ -156,6 +182,10 @@ class BezierSplinePipe(KeyFrameControlMixin):
             If the shape of the position or radius is incorrect, or if the data is NaN.
         """
 
+        # Apply downsampling if configured
+        if self.downsample_num_element is not None:
+            positions, radii = self._downsample_data(positions, radii)
+
         spline = self.object.data.splines[0]
         if positions is not None:
             _validate_position(positions)
@@ -166,6 +196,48 @@ class BezierSplinePipe(KeyFrameControlMixin):
             _validate_radii(radii)
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
+
+    def _downsample_data(
+        self, positions: NDArray, radii: NDArray
+    ) -> tuple[NDArray, NDArray]:
+        """
+        Downsamples the positions and radii arrays to the specified number of elements.
+        Always includes both endpoints (first and last points).
+
+        Parameters
+        ----------
+        positions : NDArray
+            The position array to downsample. Shape: (3, n)
+        radii : NDArray
+            The radius array to downsample. Shape: (n,)
+        num_elements : int
+            The target number of elements after downsampling.
+
+        Returns
+        -------
+        tuple[NDArray, NDArray]
+            Downsampled positions and radii arrays.
+        """
+        num_elements = self.downsample_num_element
+        if positions.shape[1] <= num_elements:
+            # No downsampling needed
+            # TODO: should we just raise error, or interpolate the positions and radii?
+            return positions, radii
+
+        positions = np.interp(
+            np.linspace(0, 1, num_elements),
+            np.linspace(0, 1, positions.shape[1]),
+            positions,
+            axis=1,
+        )
+        radii = np.interp(
+            np.linspace(0, 1, num_elements),
+            np.linspace(0, 1, radii.shape[0]),
+            radii,
+            axis=0,
+        )
+
+        return positions, radii
 
     def _create_bezier_spline(
         self, number_of_points: int, handle_type: str = "AUTO"

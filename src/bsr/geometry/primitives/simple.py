@@ -73,7 +73,7 @@ class Sphere(KeyFrameControlMixin):
 
     input_states = {"position", "radius"}
 
-    def __init__(self, position: NDArray, radius: float) -> None:
+    def __init__(self, position: NDArray, radius: float, **kwargs: Any) -> None:
         """
         Sphere class constructor
         """
@@ -226,6 +226,7 @@ class Cylinder(KeyFrameControlMixin):
         position_1: NDArray,
         position_2: NDArray,
         radius: float,
+        **kwargs: Any,
     ) -> None:
         """
         Cylinder class constructor
@@ -422,6 +423,7 @@ class Box(KeyFrameControlMixin):
         position_2: NDArray,
         radius: float,
         rotation_matrix: NDArray,
+        **kwargs: Any,
     ) -> None:
         """
         Box class constructor
@@ -625,6 +627,7 @@ class Frustum(KeyFrameControlMixin):  # pragma: no cover
         position_2: NDArray,
         radius_1: float,
         radius_2: float,
+        **kwargs: Any,
     ) -> None:
         raise NotImplementedError
         # self._obj = self._create_frustum(
