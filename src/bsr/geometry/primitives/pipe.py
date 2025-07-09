@@ -1,5 +1,9 @@
-# TODO: documentation
 __doc__ = """
+BezierSplinePipe: 3D pipe creation using Bezier splines with configurable handle types.
+
+This module provides a robust implementation for creating smooth pipe-like objects
+in Blender, with specific attention to preventing abnormal tip appearance that can
+occur with improper handle type configurations.
 """
 __all__ = ["BezierSplinePipe"]
 
@@ -20,26 +24,50 @@ from .utils import _validate_position, _validate_radii
 
 class BezierSplinePipe(KeyFrameControlMixin):
     """
-    TODO: Documentation
+    Creates a 3D pipe using Bezier spline curves with proper bevel geometry.
+
+    This class creates smooth pipe-like objects by using Bezier splines with
+    configurable handle types to avoid abnormal tip appearance common with
+    VECTOR handles.
 
     Parameters
     ----------
     positions : NDArray
-        The position of the spline object. (3, n)
-    radii : float
-        The radius of the spline object. (3, n)
+        The position of the spline control points. Shape: (3, n)
+    radii : NDArray
+        The radius at each control point. Shape: (n,)
+    handle_type : str, optional
+        Handle type for Bezier points. Options: "AUTO", "VECTOR", "SMOOTH"
+        Default: "AUTO" (recommended for smooth pipes without tip distortion)
 
+    Notes
+    -----
+    - "AUTO" handles provide the smoothest pipe appearance
+    - "VECTOR" handles can cause tip distortion and bevel compression at corners
+    - "SMOOTH" handles provide manual control but require more setup
     """
 
     input_states = {"positions", "radii"}
     name = "bspline"
 
-    def __init__(self, positions: NDArray, radii: NDArray) -> None:
+    def __init__(
+        self, positions: NDArray, radii: NDArray, handle_type: str = "AUTO"
+    ) -> None:
         """
         Spline constructor
+
+        Parameters
+        ----------
+        positions : NDArray
+            The position of the spline object. (3, n)
+        radii : NDArray
+            The radius of the spline object. (n,)
+        handle_type : str, optional
+            The handle type for Bezier points. Options: "AUTO", "VECTOR", "SMOOTH"
+            Default is "AUTO" for smoother pipe appearance.
         """
 
-        self._obj = self._create_bezier_spline(radii.size)
+        self._obj = self._create_bezier_spline(radii.size, handle_type)
         self._obj.name = self.name
         self.update_states(positions, radii)
 
@@ -52,15 +80,21 @@ class BezierSplinePipe(KeyFrameControlMixin):
     def create(cls, states: SplineDataType) -> "BezierSplinePipe":
         """
         Basic factory method to create a new spline object.
+
+        Parameters
+        ----------
+        states : SplineDataType
+            Dictionary containing 'positions', 'radii', and optionally 'handle_type'
         """
 
         # TODO: Refactor this part: never copy-paste code. Make separate function in utils.py
-        remaining_keys = set(states.keys()) - cls.input_states
+        remaining_keys = set(states.keys()) - cls.input_states - {"handle_type"}
         if len(remaining_keys) > 0:
             warnings.warn(
                 f"{list(remaining_keys)} are not used as a part of the state definition."
             )
-        return cls(states["positions"], states["radii"])
+        handle_type = states.get("handle_type", "AUTO")
+        return cls(states["positions"], states["radii"], handle_type)
 
     @property
     def material(self) -> bpy.types.Material:
@@ -133,7 +167,9 @@ class BezierSplinePipe(KeyFrameControlMixin):
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
 
-    def _create_bezier_spline(self, number_of_points: int) -> bpy.types.Object:
+    def _create_bezier_spline(
+        self, number_of_points: int, handle_type: str = "AUTO"
+    ) -> bpy.types.Object:
         """
         Creates a new pipe object.
 
@@ -141,6 +177,9 @@ class BezierSplinePipe(KeyFrameControlMixin):
         ----------
         number_of_points : int
             The number of points in the pipe.
+        handle_type : str, optional
+            The handle type for Bezier points. Options: "AUTO", "VECTOR", "SMOOTH"
+            Default is "AUTO" for smoother pipe appearance.
         """
         # Create a new curve
         curve_data = bpy.data.curves.new(name="spline_curve", type="CURVE")
@@ -154,11 +193,14 @@ class BezierSplinePipe(KeyFrameControlMixin):
         # Set the spline points and radii
         for i in range(number_of_points):
             point = spline.bezier_points[i]
-            point.handle_left_type = point.handle_right_type = "VECTOR"
+            point.handle_left_type = point.handle_right_type = handle_type
 
         # Create a new object with the curve data
         curve_object = bpy.data.objects.new("spline_curve_object", curve_data)
-        curve_object.data.resolution_u = 1
+        curve_object.data.resolution_u = 12  # Increased for smoother curves
+        curve_object.data.render_resolution_u = (
+            12  # Consistent resolution for rendering
+        )
         bpy.context.collection.objects.link(curve_object)
 
         # Create a bevel object for the pipe profile
@@ -171,6 +213,10 @@ class BezierSplinePipe(KeyFrameControlMixin):
         )
         bevel_circle = bpy.context.object
         bevel_circle.name = "bevel_circle"
+        # Set resolution for smoother bevel profile
+        bevel_circle.data.resolution_u = (
+            8  # Higher resolution for smoother circles
+        )
         # Hide the bevel circle object in the viewport and render
         bevel_circle.hide_viewport = True
         bevel_circle.hide_render = True
