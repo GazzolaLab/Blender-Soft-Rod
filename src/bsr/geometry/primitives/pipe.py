@@ -224,18 +224,12 @@ class BezierSplinePipe(KeyFrameControlMixin):
             # TODO: should we just raise error, or interpolate the positions and radii?
             return positions, radii
 
-        positions = np.interp(
-            np.linspace(0, 1, num_elements),
-            np.linspace(0, 1, positions.shape[1]),
-            positions,
-            axis=1,
-        )
-        radii = np.interp(
-            np.linspace(0, 1, num_elements),
-            np.linspace(0, 1, radii.shape[0]),
-            radii,
-            axis=0,
-        )
+        t = np.linspace(0, 1, num_elements)
+        t_old = np.linspace(0, 1, positions.shape[1])
+        positions[0, :] = np.interp(t, t_old, positions[0, :])
+        positions[1, :] = np.interp(t, t_old, positions[1, :])
+        positions[2, :] = np.interp(t, t_old, positions[2, :])
+        radii = np.interp(t, t_old, radii)
 
         return positions, radii
 
@@ -269,10 +263,8 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         # Create a new object with the curve data
         curve_object = bpy.data.objects.new("spline_curve_object", curve_data)
-        curve_object.data.resolution_u = 12  # Increased for smoother curves
-        curve_object.data.render_resolution_u = (
-            12  # Consistent resolution for rendering
-        )
+        curve_object.data.resolution_u = 1
+        curve_object.data.render_resolution_u = 1
         bpy.context.collection.objects.link(curve_object)
 
         # Create a bevel object for the pipe profile
@@ -286,9 +278,7 @@ class BezierSplinePipe(KeyFrameControlMixin):
         bevel_circle = bpy.context.object
         bevel_circle.name = "bevel_circle"
         # Set resolution for smoother bevel profile
-        bevel_circle.data.resolution_u = (
-            8  # Higher resolution for smoother circles
-        )
+        bevel_circle.data.resolution_u = 1
         # Hide the bevel circle object in the viewport and render
         bevel_circle.hide_viewport = True
         bevel_circle.hide_render = True
