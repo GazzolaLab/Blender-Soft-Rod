@@ -2,30 +2,26 @@
 PYTHON := python3
 PYTHONPATH := `pwd`
 
-#* Poetry
-.PHONY: poetry-download
-poetry-download:
-	curl -sSL https://install.python-poetry.org/ | $(PYTHON) -
-
-.PHONY: poetry-remove
-poetry-remove:
-	curl -sSL https://install.python-poetry.org/ | $(PYTHON) - --uninstall
+#* uv
+.PHONY: uv-download
+uv-download:
+	curl -LsSf https://astral.sh/uv/install.sh | sh
 
 #* Installation
 .PHONY: install
 install:
-	poetry install -n --with dev,docs,examples
+	uv sync --all-groups
 
 .PHONY: pre-commit-install
 pre-commit-install:
-	poetry run pre-commit install
+	uv run pre-commit install
 
 #* Formatters
 .PHONY: codestyle
 codestyle:
-	poetry run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
-	poetry run isort --settings-path pyproject.toml ./
-	poetry run black --config pyproject.toml ./
+	uv run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
+	uv run isort --settings-path pyproject.toml ./
+	uv run black --config pyproject.toml ./
 
 .PHONY: formatting
 formatting: codestyle
@@ -33,27 +29,27 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest -c pyproject.toml --cov=src
+	uv run pytest -c pyproject.toml --cov=src
 
 .PHONY: test_ci
 test_ci:
-	poetry run pytest -c pyproject.toml --cov=src --cov-report=xml
+	uv run pytest -c pyproject.toml --cov=src --cov-report=xml
 
 .PHONY: check-codestyle
 check-codestyle:
-	poetry run isort --diff --check-only --settings-path pyproject.toml ./
-	poetry run black --diff --check --config pyproject.toml ./
+	uv run isort --diff --check-only --settings-path pyproject.toml ./
+	uv run black --diff --check --config pyproject.toml ./
 
 .PHONY: mypy
 mypy:
-	poetry run mypy --config-file pyproject.toml src
+	uv run mypy --config-file pyproject.toml src
 
 .PHONY: lint
 lint: test check-codestyle mypy check-safety
 
 .PHONY: update-dev-deps
 update-dev-deps:
-	poetry add -D "isort[colors]@latest" mypy@latest pre-commit@latest pydocstyle@latest pylint@latest pytest@latest pyupgrade@latest coverage@latest pytest-html@latest pytest-cov@latest black@latest
+	uv add --group dev --upgrade "isort[colors]" mypy pre-commit pytest pyupgrade coverage pytest-html pytest-cov black
 
 #* Cleaning
 .PHONY: pycache-remove

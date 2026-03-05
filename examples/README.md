@@ -7,7 +7,7 @@ This directory contains number of examples of how to use this library.
 All necessary requirement can be installed as follows:
 
 ```bash
-poetry instal -n --with examples
+uv sync --group examples
 ```
 
 ## Case Examples

@@ -32,13 +32,13 @@ We provide minimal [example scripts](.examples) to demonstrate the usage of the 
 ## Development version
 
 The development version includes unit-tests, documentation, examples, and other development tools.
-We primarily use [`poetry`](https://python-poetry.org/) to manage the dependencies and the development environment.
+We primarily use [`uv`](https://docs.astral.sh/uv/) to manage the dependencies and the development environment.
 Necessary commands are provided in the `Makefile`.
 
 ```sh
 git clone https://github.com/GazzolaLab/Blender-Soft-Rod.git
 cd Blender-Soft-Rod
-make install  # Assuming you have poetry installed.
+make install  # Assuming you have uv installed.
 make pre-commit-install
 ```
 

@@ -1,15 +1,18 @@
 [build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "bsr"
-version = "0.1.1"
+version = "0.1.2"
 description = "Blender integration tools for soft-rod system."
 readme = "README.md"
 authors = []
-license = "MIT"
+license = { text = "MIT" }
 keywords = ["data-analysis"]
+requires-python = ">=3.11,<3.12"
+# NOTE: The strict requirement is due to the bpy package
+# https://pypi.org/project/bpy/
 
 # Pypi classifiers: https://pypi.org/classifiers/
 classifiers = [
@@ -19,56 +22,45 @@ classifiers = [
   "Operating System :: OS Independent",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
 ]
 
-# ...
-packages = [
-    { include = "bsr", from = "src" },
-    { include = "elastica_blender", from = "src" },
+dependencies = [
+  "bpy",
+  "click>=8.1.7,<9",
+  "mathutils>=3.3.0,<4",
 ]
 
-[tool.poetry.scripts]
+[project.scripts]
 # elastica data converter
 elastica-npz2blend = "elastica_blender.converter.npz2blend:main"
 
-[tool.poetry.dependencies]
-# for python 3.10, use the following versions
-python = "^3.10,<3.12"
-bpy = [
-    { version = "4.0.0", python = "3.10.*" },
-    { version = "4.1.0", python = "3.11.*" },
+[dependency-groups]
+dev = [
+  "black>=24.4.2,<25",
+  "codecov>=2.1.13,<3",
+  "isort[colors]>=5.13.2,<6",
+  "mypy>=1.10.0,<2",
+  "mypy-extensions>=1.0.0,<2",
+  "pre-commit>=3.7.1,<4",
+  "pytest>=8.2.1,<9",
+  "pytest-cov>=5.0.0,<6",
+  "pytest-mock>=3.14.0,<4",
+  "pyupgrade>=3.15.2,<4",
 ]
-click = "^8.1.7"
-mathutils = "^3.3.0"
+docs = [
+  "numpydoc>=1.7.0,<2",
+  "sphinx>=7.3.7,<8",
+  "sphinx-autodoc-typehints>=2.1.0,<3",
+  "sphinx-click>=6.0.0,<7",
+  "sphinx-rtd-theme>=2.0.0,<3",
+]
+examples = [
+  "pyelastica>=0.3.2,<0.4",
+]
 
-[tool.poetry.group.dev]
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.2.1"
-pytest-mock = "^3.14.0"
-pytest-cov = "^5.0.0"
-codecov = "^2.1.13"
-black = "^24.4.2"
-isort = {extras = ["colors"], version = "^5.13.2"}
-pre-commit = "^3.7.1"
-mypy = "^1.10.0"
-mypy-extensions = "^1.0.0"
-pyupgrade = "^3.15.2"
-
-[tool.poetry.group.docs]
-optional = true
-[tool.poetry.group.docs.dependencies]
-sphinx = "^7.3.7"
-sphinx-rtd-theme = "^2.0.0"
-numpydoc = "^1.7.0"
-sphinx-autodoc-typehints = "^2.1.0"
-sphinx-click = "^6.0.0"
-
-[tool.poetry.group.examples]
-[tool.poetry.group.examples.dependencies]
-pyelastica = "^0.3.2"
+[tool.hatch.build.targets.wheel]
+packages = ["src/bsr", "src/elastica_blender"]
 
 [tool.black]
 # https://github.com/psf/black
