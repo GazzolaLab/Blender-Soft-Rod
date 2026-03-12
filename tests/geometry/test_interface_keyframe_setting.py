@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.tools.action_compat import iter_action_fcurves
 
 
 def get_keyframes(obj_list):
@@ -12,7 +13,7 @@ def get_keyframes(obj_list):
     for obj in obj_list:
         animation_data = obj.animation_data
         if animation_data is not None and animation_data.action is not None:
-            for fcurve in animation_data.action.fcurves:
+            for fcurve in iter_action_fcurves(animation_data.action):
                 for keyframe in fcurve.keyframe_points:
                     x, y = keyframe.co
                     if x not in keyframes:
@@ -24,8 +25,11 @@ def count_number_of_keyframes_action(obj):
     action = obj.animation_data.action
     if action is None:
         return 0
-    else:
-        return len(action.fcurves[0].keyframe_points)
+
+    fcurves = list(iter_action_fcurves(action))
+    if len(fcurves) == 0:
+        return 0
+    return len(fcurves[0].keyframe_points)
 
 
 def test_update_keyframe_count_for_primitive_sphere():

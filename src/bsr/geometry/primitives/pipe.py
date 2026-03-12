@@ -66,7 +66,12 @@ class BezierSplinePipe(KeyFrameControlMixin):
             downsample_num_element is None or downsample_num_element >= 2
         ), "downsample_num_element must be at least 2 to include both endpoints"
         self.downsample_num_element = downsample_num_element
-        self._obj = self._create_bezier_spline(min(positions.shape[1], downsample_num_element))
+        number_of_points = (
+            positions.shape[1]
+            if downsample_num_element is None
+            else min(positions.shape[1], downsample_num_element)
+        )
+        self._obj = self._create_bezier_spline(number_of_points)
         self._obj.name = self.name
         self.update_states(positions, radii)
 
@@ -174,16 +179,20 @@ class BezierSplinePipe(KeyFrameControlMixin):
                 point.co = (x, y, z)
         if radii is not None:
             _validate_radii(radii)
-            _radii = np.concatenate([radii, [0]])
+            _radii = np.concatenate([radii.astype(float, copy=False), [0.0]])
             _radii[1:] += radii
             _radii[1:-1] /= 2.0
-            radii = self._downsample_data(_radii, self.downsample_num_element)
+            radii = self._downsample_data(
+                _radii, len(spline.bezier_points)
+            )
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
 
     def _downsample_data(
-        self, vector: NDArray, num_elements: int
-        ) -> NDArray:
+        self, vector: NDArray, num_elements: int | None
+    ) -> NDArray:
+        if num_elements is None:
+            return vector
         if vector.shape[-1] <= num_elements:
             return vector
 
