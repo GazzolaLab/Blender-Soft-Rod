@@ -2,6 +2,9 @@
 requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [project]
 name = "bsr"
 version = "0.1.2"
@@ -26,9 +29,10 @@ classifiers = [
 ]
 
 dependencies = [
-  "bpy",
+  "bpy==4.5.7",
   "click>=8.1.7,<9",
   "mathutils>=3.3.0,<4",
+  "pyelastica @ git+https://github.com/GazzolaLab/PyElastica.git@update-v1",
 ]
 
 [project.scripts]
@@ -55,16 +59,13 @@ docs = [
   "sphinx-click>=6.0.0,<7",
   "sphinx-rtd-theme>=2.0.0,<3",
 ]
-examples = [
-  "pyelastica>=0.3.2,<0.4",
-]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bsr", "src/elastica_blender"]
 
 [tool.black]
 # https://github.com/psf/black
-target-version = ["py38"]
+target-version = ["py310"]
 line-length = 80
 color = true
 
