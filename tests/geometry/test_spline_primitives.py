@@ -46,10 +46,12 @@ def test_update_states_with_data(default_data, possible_bezier_spline_data):
     # check if create primitive has corresponding "default_data" geometry
     if "positions" in possible_bezier_spline_data:
         assert_bezier_positions(
-            primitive.object.splines[0], default_data["positions"]
+            primitive.object.data.splines[0], default_data["positions"]
         )
     if "radii" in possible_bezier_spline_data:
-        assert_bezier_radii(primitive.object.splines[0], default_data["radii"])
+        assert_bezier_radii(
+            primitive.object.data.splines[0], default_data["radii"]
+        )
 
     # Run update_states without error
     primitive.update_states(**possible_bezier_spline_data)
@@ -58,12 +60,13 @@ def test_update_states_with_data(default_data, possible_bezier_spline_data):
     # check if create primitive has updated geometry
     if "positions" in possible_bezier_spline_data:
         assert_bezier_positions(
-            primitive.object.splines[0],
+            primitive.object.data.splines[0],
             possible_bezier_spline_data["positions"],
         )
     if "radii" in possible_bezier_spline_data:
         assert_bezier_radii(
-            primitive.object.splines[0], possible_bezier_spline_data["radii"]
+            primitive.object.data.splines[0],
+            possible_bezier_spline_data["radii"],
         )
 
 
@@ -107,4 +110,5 @@ def test_bezier_spline_creator(
     )
     assert new_bezier_spline is not None
     assert old_bezier_spline is not new_bezier_spline
-    assert isinstance(new_bezier_spline, bpy_types.Curve)
+    assert isinstance(new_bezier_spline, bpy_types.Object)
+    assert isinstance(new_bezier_spline.data, bpy_types.Curve)

@@ -15,7 +15,11 @@ from numbers import Number
 import bpy
 import numpy as np
 from numpy.typing import NDArray
-from scipy.interpolate import interp1d
+
+try:
+    from scipy.interpolate import interp1d
+except ModuleNotFoundError:  # pragma: no cover
+    interp1d = None
 
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, SplineDataType
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
@@ -66,7 +70,10 @@ class BezierSplinePipe(KeyFrameControlMixin):
             downsample_num_element is None or downsample_num_element >= 2
         ), "downsample_num_element must be at least 2 to include both endpoints"
         self.downsample_num_element = downsample_num_element
-        self._obj = self._create_bezier_spline(min(positions.shape[1], downsample_num_element))
+        number_of_points = positions.shape[1]
+        if downsample_num_element is not None:
+            number_of_points = min(number_of_points, downsample_num_element)
+        self._obj = self._create_bezier_spline(number_of_points)
         self._obj.name = self.name
         self.update_states(positions, radii)
 
@@ -174,22 +181,33 @@ class BezierSplinePipe(KeyFrameControlMixin):
                 point.co = (x, y, z)
         if radii is not None:
             _validate_radii(radii)
-            _radii = np.concatenate([radii, [0]])
-            _radii[1:] += radii
-            _radii[1:-1] /= 2.0
-            radii = self._downsample_data(_radii, self.downsample_num_element)
+            radii = self._downsample_data(
+                radii.astype(float, copy=False), self.downsample_num_element
+            )
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
 
     def _downsample_data(
-        self, vector: NDArray, num_elements: int
-        ) -> NDArray:
+        self, vector: NDArray, num_elements: int | None
+    ) -> NDArray:
+        if num_elements is None:
+            return vector
         if vector.shape[-1] <= num_elements:
             return vector
 
         t = np.linspace(0, 1, num_elements)
         t_old = np.linspace(0, 1, vector.shape[-1])
-        return interp1d(t_old, vector, axis=-1)(t)
+        if interp1d is not None:
+            return interp1d(t_old, vector, axis=-1)(t)
+
+        if vector.ndim == 1:
+            return np.interp(t, t_old, vector)
+
+        flattened = vector.reshape(-1, vector.shape[-1])
+        downsampled = np.vstack(
+            [np.interp(t, t_old, row) for row in flattened]
+        )
+        return downsampled.reshape(vector.shape[:-1] + (num_elements,))
 
     def _create_bezier_spline(
         self, number_of_points: int,
