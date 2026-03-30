@@ -1,5 +1,5 @@
 <div align="center">
-<h1> Blender Soft Arm </h1>
+<h1> Soft-arm Platform for Action, Rendering, and Control </h1>
 
 <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
 <a href='https://blender-soft-rod.readthedocs.io/en/latest/?badge=latest'>

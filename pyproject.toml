@@ -37,7 +37,7 @@ elastica-npz2blend = "elastica_blender.converter.npz2blend:main"
 
 [dependency-groups]
 dev = [
-  "black>=24.4.2,<25",
+  "black>=24.4.2,<27",
   "codecov>=2.1.13,<3",
   "isort[colors]>=5.13.2,<6",
   "mypy>=1.10.0,<2",
