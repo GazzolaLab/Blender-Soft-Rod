@@ -127,12 +127,12 @@ class CathyThrowSimulation(DualArmSimulationBase):
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[0]: self._arm_base_position(arm_id),
+                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[:, 0].copy(),
                 is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[arm_id],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[1]: self._arm_base_position(arm_id),
+                target=lambda arm_id=self.arm_ids[1]: self.right_rod.position_collection[:, 0].copy(),
                 is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
             )
 
@@ -195,16 +195,6 @@ class CathyThrowSimulation(DualArmSimulationBase):
 
         self.simulator.finalize()
 
-    def set_sucker_active(self, arm_id: str, active: bool) -> None:
-        if arm_id not in self._sucker_active:
-            return
-        self._sucker_active[arm_id] = active
-
-    def set_base_pull_active(self, arm_id: str, active: bool) -> None:
-        if arm_id not in self._base_pull_active:
-            return
-        self._base_pull_active[arm_id] = active
-
     def handle_commands(
         self,
         arm_id: str,
@@ -216,17 +206,27 @@ class CathyThrowSimulation(DualArmSimulationBase):
             controller_command,
             previous_controller_command=previous_controller_command,
         )
-        self.set_base_pull_active(
+        self._set_base_pull_active(
             arm_id, bool(controller_command.buttons.get("grip_click", False))
         )
-        self.set_sucker_active(
+        self._set_sucker_active(
             arm_id, bool(controller_command.buttons.get("trigger_click", False))
         )
 
     def handle_command_inactive(self, arm_id: str) -> None:
         super(CathyThrowSimulation, self).handle_command_inactive(arm_id)
-        self.set_base_pull_active(arm_id, False)
-        self.set_sucker_active(arm_id, False)
+        self._set_base_pull_active(arm_id, False)
+        self._set_sucker_active(arm_id, False)
+
+    def _set_sucker_active(self, arm_id: str, active: bool) -> None:
+        if arm_id not in self._sucker_active:
+            return
+        self._sucker_active[arm_id] = active
+
+    def _set_base_pull_active(self, arm_id: str, active: bool) -> None:
+        if arm_id not in self._base_pull_active:
+            return
+        self._base_pull_active[arm_id] = active
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
@@ -242,14 +242,3 @@ class CathyThrowSimulation(DualArmSimulationBase):
                 )
             )
         return spheres
-
-    def _arm_base_position(self, arm_id: str) -> np.ndarray:
-        if arm_id == self.arm_ids[0]:
-            return np.asarray(
-                self.left_rod.position_collection[:, 0], dtype=np.float64
-            ).copy()
-        if arm_id == self.arm_ids[1]:
-            return np.asarray(
-                self.right_rod.position_collection[:, 0], dtype=np.float64
-            ).copy()
-        return np.zeros(3, dtype=np.float64)
