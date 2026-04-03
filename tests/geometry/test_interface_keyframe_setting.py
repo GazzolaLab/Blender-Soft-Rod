@@ -25,11 +25,11 @@ def count_number_of_keyframes_action(obj):
     action = obj.animation_data.action
     if action is None:
         return 0
+    if hasattr(action, "fcurves"):
+        return len(action.fcurves[0].keyframe_points)
 
-    fcurves = list(iter_action_fcurves(action))
-    if len(fcurves) == 0:
-        return 0
-    return len(fcurves[0].keyframe_points)
+    channelbags = action.layers[0].strips[0].channelbags
+    return len(channelbags[0].fcurves[0].keyframe_points)
 
 
 def test_update_keyframe_count_for_primitive_sphere():

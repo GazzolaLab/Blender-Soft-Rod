@@ -15,7 +15,11 @@ from numbers import Number
 import bpy
 import numpy as np
 from numpy.typing import NDArray
-from scipy.interpolate import interp1d
+
+try:
+    from scipy.interpolate import interp1d
+except ModuleNotFoundError:  # pragma: no cover
+    interp1d = None
 
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, SplineDataType
 from bsr.tools.keyframe_mixin import KeyFrameControlMixin
@@ -179,11 +183,8 @@ class BezierSplinePipe(KeyFrameControlMixin):
                 point.co = (x, y, z)
         if radii is not None:
             _validate_radii(radii)
-            _radii = np.concatenate([radii.astype(float, copy=False), [0.0]])
-            _radii[1:] += radii
-            _radii[1:-1] /= 2.0
             radii = self._downsample_data(
-                _radii, len(spline.bezier_points)
+                radii.astype(float, copy=False), self.downsample_num_element
             )
             for i, point in enumerate(spline.bezier_points):
                 point.radius = radii[i]
@@ -198,7 +199,17 @@ class BezierSplinePipe(KeyFrameControlMixin):
 
         t = np.linspace(0, 1, num_elements)
         t_old = np.linspace(0, 1, vector.shape[-1])
-        return interp1d(t_old, vector, axis=-1)(t)
+        if interp1d is not None:
+            return interp1d(t_old, vector, axis=-1)(t)
+
+        if vector.ndim == 1:
+            return np.interp(t, t_old, vector)
+
+        flattened = vector.reshape(-1, vector.shape[-1])
+        downsampled = np.vstack(
+            [np.interp(t, t_old, row) for row in flattened]
+        )
+        return downsampled.reshape(vector.shape[:-1] + (num_elements,))
 
     def _create_bezier_spline(
         self, number_of_points: int,

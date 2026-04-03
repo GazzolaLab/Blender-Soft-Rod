@@ -4,7 +4,12 @@ from pathlib import Path
 
 import click
 import numpy as np
-from tqdm import tqdm
+
+try:
+    from tqdm import tqdm
+except ModuleNotFoundError:  # pragma: no cover
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 import bsr
 
@@ -55,8 +60,8 @@ def construct_blender_file(
         position_history = data["position_history"]
         radius_history = data["radius_history"]
         init_state = {
-            "position": position_history[:, 0, ...],
-            "radius": radius_history[:, 0, ...],
+            "positions": position_history[:, 0, ...],
+            "radii": radius_history[:, 0, ...],
         }
         rods = bsr.create_rod_collection(init_state)
         for tidx, _ in tqdm(enumerate(time), total=len(time)):
@@ -69,8 +74,8 @@ def construct_blender_file(
             position_history = data[tag + "_position_history"]
             radius_history = data[tag + "_radius_history"]
             init_state = {
-                "position": position_history[:, 0, ...],
-                "radius": radius_history[:, 0, ...],
+                "positions": position_history[:, 0, ...],
+                "radii": radius_history[:, 0, ...],
             }
             rods = bsr.create_rod_collection(init_state)
             for tidx, _ in tqdm(enumerate(time), total=len(time)):

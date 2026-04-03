@@ -15,7 +15,6 @@ from collections.abc import Sequence
 import bpy
 import numpy as np
 from numpy.typing import NDArray
-from tqdm import tqdm
 
 from bsr.geometry.composite.rod import Rod
 from bsr.geometry.protocol import BlenderMeshInterfaceProtocol, StackProtocol
