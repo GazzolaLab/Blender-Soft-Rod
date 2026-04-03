@@ -58,6 +58,7 @@ class ArmCommand:
         _validate_size(self.joystick, 2, "joystick")
 
     def to_dict(self) -> JSONDict:
+        """Serialize to JSON-compatible dictionary."""
         return {
             "arm_id": self.arm_id,
             "active": self.active,

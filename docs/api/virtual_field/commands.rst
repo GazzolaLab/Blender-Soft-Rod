@@ -7,4 +7,3 @@ Per-arm and multi-arm command payloads used by the runtime (e.g. WebSocket ``ste
 
 .. autoclass:: ArmCommand
    :members:
-   :undoc-members:
