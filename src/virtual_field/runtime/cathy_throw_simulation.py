@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
-from collections import deque
 
 from virtual_field.core.commands import ArmCommand
 from virtual_field.core.state import SphereEntity
@@ -16,26 +15,12 @@ from .custom_elastica.forcing import _PullSphereToPoint, _SphereBoxed
 
 @dataclass(slots=True)
 class CathyThrowSimulation(DualArmSimulationBase):
-    contact_point_history_seconds: float = 1.0
-    max_contact_points_visible: int = 2000
-    max_contact_points_memory: int = 8000
-    _recording_queues: dict[str, deque[tuple[float, list[float]]]] = field(init=False)
     spheres: list[Any] = field(init=False)
     _sucker_active: dict[str, bool] = field(init=False)
     _base_pull_active: dict[str, bool] = field(init=False)
 
     def build_simulation(self) -> None:
-        if self.contact_point_history_seconds <= 0.0:
-            raise ValueError("contact_point_history_seconds must be > 0")
-        if self.max_contact_points_visible <= 0:
-            raise ValueError("max_contact_points_visible must be > 0")
-        if self.max_contact_points_memory <= 0:
-            raise ValueError("max_contact_points_memory must be > 0")
-
         import elastica as ea
-        from virtual_field.runtime.spirob_elastica.constraints import (
-            _SpirobBendConstraint,
-        )
         from virtual_field.runtime.spirob_elastica.spirob import create_spirob
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
@@ -151,8 +136,6 @@ class CathyThrowSimulation(DualArmSimulationBase):
                 is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
             )
 
-        self._recording_queues = {}
-
         p_linear = 200.0
         p_angular = 5.0
 
@@ -228,7 +211,7 @@ class CathyThrowSimulation(DualArmSimulationBase):
         controller_command: ArmCommand,
         previous_controller_command: ArmCommand | None = None,
     ) -> None:
-        super().handle_commands(
+        super(CathyThrowSimulation, self).handle_commands(
             arm_id,
             controller_command,
             previous_controller_command=previous_controller_command,
@@ -241,7 +224,7 @@ class CathyThrowSimulation(DualArmSimulationBase):
         )
 
     def handle_command_inactive(self, arm_id: str) -> None:
-        super().handle_command_inactive(arm_id)
+        super(CathyThrowSimulation, self).handle_command_inactive(arm_id)
         self.set_base_pull_active(arm_id, False)
         self.set_sucker_active(arm_id, False)
 
@@ -270,19 +253,3 @@ class CathyThrowSimulation(DualArmSimulationBase):
                 self.right_rod.position_collection[:, 0], dtype=np.float64
             ).copy()
         return np.zeros(3, dtype=np.float64)
-
-    def contact_points_for_arm(self, arm_id: str) -> list[list[float]]:
-        queue = self._recording_queues.get(arm_id)
-        contact_points: list[list[float]] = []
-        if queue is not None:
-            cutoff_time = self._time - self.contact_point_history_seconds
-            while queue and queue[0][0] < cutoff_time:
-                queue.popleft()
-            if len(queue) > self.max_contact_points_visible:
-                contact_points = [
-                    point
-                    for _, point in list(queue)[-self.max_contact_points_visible :]
-                ]
-            else:
-                contact_points = [point for _, point in queue]
-        return contact_points

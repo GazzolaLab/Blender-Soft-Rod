@@ -26,8 +26,13 @@ class DualArmSimulation(Protocol):
     base_right: list[float]
     dt_internal: float
 
+    # Arm state rendering
     def arm_states(self) -> dict[str, ArmState]: ...
+
+    # Simulation stepping
     def step(self, dt: float) -> None: ...
+
+    # Controller commands
     def handle_commands(
         self,
         arm_id: str,
@@ -35,6 +40,8 @@ class DualArmSimulation(Protocol):
         previous_controller_command: ArmCommand | None = None,
     ) -> None: ...
     def handle_command_inactive(self, arm_id: str) -> None: ...
+
+    # Assets
     def mesh_entities(self) -> list[MeshEntity]: ...
     def sphere_entities(self) -> list[SphereEntity]: ...
 
