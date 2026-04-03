@@ -32,6 +32,7 @@ also includes experimental Virtual Field/WebXR runtime.
 
     api/virtual_field/backend
     api/virtual_field/commands
+    api/virtual_field/state
     api/virtual_field/runtime_common_utilities
 
 .. toctree::

@@ -6,6 +6,7 @@ from typing import Any, Callable
 import numpy as np
 from collections import deque
 
+from virtual_field.core.commands import ArmCommand
 from virtual_field.core.state import SphereEntity
 from virtual_field.runtime.mode_base import DualArmSimulationBase
 from .custom_elastica.dissipation import RayleighDamping
@@ -220,6 +221,29 @@ class CathyThrowSimulation(DualArmSimulationBase):
         if arm_id not in self._base_pull_active:
             return
         self._base_pull_active[arm_id] = active
+
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
+        super().handle_commands(
+            arm_id,
+            controller_command,
+            previous_controller_command=previous_controller_command,
+        )
+        self.set_base_pull_active(
+            arm_id, bool(controller_command.buttons.get("grip_click", False))
+        )
+        self.set_sucker_active(
+            arm_id, bool(controller_command.buttons.get("trigger_click", False))
+        )
+
+    def handle_command_inactive(self, arm_id: str) -> None:
+        super().handle_command_inactive(arm_id)
+        self.set_base_pull_active(arm_id, False)
+        self.set_sucker_active(arm_id, False)
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []

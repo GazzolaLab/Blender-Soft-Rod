@@ -126,7 +126,7 @@ Each `ControllerSample` carries:
 - `controller.joystick` is deadbanded and copied through
 - `controller.buttons` is passed through unchanged
 
-## How the backend calls your mode
+### How the backend calls your mode
 
 `MultiArmPassThroughBackend._apply_command()` is the bridge from controller commands into your simulation.
 
