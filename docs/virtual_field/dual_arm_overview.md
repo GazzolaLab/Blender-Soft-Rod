@@ -19,6 +19,16 @@ class MyModeSimulation(DualArmSimulationBase):
         # (Optional) setup after the simulation is built
         ...
 
+    @override
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
+        # (Optional-override) handle the controller commands
+        # Explained later
+
 ```
 
 Once you created the simulation class, you can register it in `src/virtual_field/runtime/mode_registry.py`:
