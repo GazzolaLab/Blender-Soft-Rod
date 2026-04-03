@@ -160,7 +160,7 @@ There are other features that will be covered in another section:
 
 That means a new mode usually only needs to focus on its physics setup and mode-specific extras.
 
-## Runtime flow (to Frontend)
+## (Frontend) Runtime flow
 
 The full path for a mode looks like this:
 

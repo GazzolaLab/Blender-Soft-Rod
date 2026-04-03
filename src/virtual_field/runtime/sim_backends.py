@@ -373,6 +373,9 @@ class MultiArmPassThroughBackend:
             grip_click_pressed = bool(command.buttons.get("grip_click", False))
             secondary_pressed = bool(command.buttons.get("secondary", False))
             primary_pressed = bool(command.buttons.get("primary", False))
+
+            # TODO: Temporary workaround for the base pull and sucker active.
+            simulation.handle_commands(state.arm_id, command)
             getattr(
                 simulation,
                 "set_base_pull_active",
@@ -395,6 +398,7 @@ class MultiArmPassThroughBackend:
                 self._secondary_pressed[state.arm_id] = True
                 return
             self._secondary_pressed[state.arm_id] = secondary_pressed
+
             simulation.set_target_pose(
                 arm_id=state.arm_id,
                 translation=command.target.translation,
@@ -405,6 +409,7 @@ class MultiArmPassThroughBackend:
         if not command.active:
             return
 
+        # Default behavior: update the arm state to follow the controller target.
         target = command.target.translation
         base = state.base.translation
         state.tip = Transform(

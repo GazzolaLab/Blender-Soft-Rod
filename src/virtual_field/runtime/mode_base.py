@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from virtual_field.core.state import ArmState, MeshEntity, SphereEntity, Transform
+from virtual_field.core.commands import ArmCommand
 from virtual_field.runtime.orientation import (
     compose_rowwise_directors,
     controller_quat_xyzw_to_matrix,
@@ -46,7 +47,7 @@ class DualArmSimulationBase(SimulationBase, ABC):
     @final
     def __post_init__(self) -> None:
         self.build_simulation()
-        self.initialize_dual_arm_targets()
+        self._initialize_dual_arm_targets()
         self.post_mode_setup()
 
     @abstractmethod
@@ -57,19 +58,36 @@ class DualArmSimulationBase(SimulationBase, ABC):
         """Optional hook for advanced subclasses after base target setup."""
         return None
 
-    def initialize_dual_arm_targets(self) -> None:
-        left_tip_position = np.asarray(
-            self.left_rod.position_collection[:, -1], dtype=np.float64
-        ).copy()
-        right_tip_position = np.asarray(
-            self.right_rod.position_collection[:, -1], dtype=np.float64
-        ).copy()
-        left_tip_orientation = np.asarray(
-            self.left_rod.director_collection[..., -1], dtype=np.float64
-        ).copy()
-        right_tip_orientation = np.asarray(
-            self.right_rod.director_collection[..., -1], dtype=np.float64
-        ).copy()
+    def handle_commands(self, arm_id: str, controller_command: ArmCommand) -> None:
+        """
+        Handle controller commands for a given arm.
+        Override this method to customize the controller command mapping.
+        """
+        if arm_id == self.arm_ids[0]:
+            self.handle_commands_left(controller_command)
+        elif arm_id == self.arm_ids[1]:
+            self.handle_commands_right(controller_command)
+        else:
+            # TODO: Handle invalid arm ID.
+            return None
+
+    def handle_commands_left(self, controller_command: ArmCommand) -> None:
+        """
+        Handle controller commands for the left arm.
+        """
+        pass
+
+    def handle_commands_right(self, controller_command: ArmCommand) -> None:
+        """
+        Handle controller commands for the right arm.
+        """
+        pass
+
+    def _initialize_dual_arm_targets(self) -> None:
+        left_tip_position = self.left_rod.position_collection[:, -1].copy()
+        right_tip_position = self.right_rod.position_collection[:, -1].copy()
+        left_tip_orientation = self.left_rod.director_collection[..., -1].copy()
+        right_tip_orientation = self.right_rod.director_collection[..., -1].copy()
 
         self._target_position = {
             self.arm_ids[0]: left_tip_position.copy(),
@@ -88,12 +106,8 @@ class DualArmSimulationBase(SimulationBase, ABC):
             self.arm_ids[1]: right_tip_orientation.copy(),
         }
         self._base_orientation = {
-            self.arm_ids[0]: np.asarray(
-                self.left_rod.director_collection[..., 0], dtype=np.float64
-            ).copy(),
-            self.arm_ids[1]: np.asarray(
-                self.right_rod.director_collection[..., 0], dtype=np.float64
-            ).copy(),
+            self.arm_ids[0]: self.left_rod.director_collection[..., 0].copy(),
+            self.arm_ids[1]: self.right_rod.director_collection[..., 0].copy(),
         }
         self._controller_orientation_offset = {
             self.arm_ids[0]: np.eye(3, dtype=np.float64),
@@ -132,19 +146,12 @@ class DualArmSimulationBase(SimulationBase, ABC):
             invert_rowwise_director(controller_orientation),
         )
 
-    def set_attached(self, arm_id: str, attached: bool) -> None:
-        if arm_id not in self._attached:
-            return
-        self._attached[arm_id] = attached
-
+    # Controller Query Methods
     def _target_for_arm(self, arm_id: str) -> tuple[np.ndarray, np.ndarray]:
         return (
             self._target_position[arm_id],
             self._target_orientation[arm_id],
         )
-
-    def _is_arm_attached(self, arm_id: str) -> bool:
-        return self._attached[arm_id]
 
     def get_target_left(self) -> tuple[np.ndarray, np.ndarray]:
         return self._target_for_arm(self.arm_ids[0])
@@ -152,11 +159,20 @@ class DualArmSimulationBase(SimulationBase, ABC):
     def get_target_right(self) -> tuple[np.ndarray, np.ndarray]:
         return self._target_for_arm(self.arm_ids[1])
 
+    def _is_arm_attached(self, arm_id: str) -> bool:
+        return self._attached[arm_id]
+
     def is_left_attached(self) -> bool:
         return self._is_arm_attached(self.arm_ids[0])
 
     def is_right_attached(self) -> bool:
         return self._is_arm_attached(self.arm_ids[1])
+
+    # Controller-driven actions
+    def set_attached(self, arm_id: str, attached: bool) -> None:
+        if arm_id not in self._attached:
+            return
+        self._attached[arm_id] = attached
 
     def set_base_pull_active(self, arm_id: str, active: bool) -> None:
         return None
@@ -164,6 +180,7 @@ class DualArmSimulationBase(SimulationBase, ABC):
     def set_sucker_active(self, arm_id: str, active: bool) -> None:
         return None
 
+    # Simulation Stepping
     def step(self, dt: float) -> None:
         total = max(0.0, dt)
         if total <= 0.0:
@@ -175,6 +192,7 @@ class DualArmSimulationBase(SimulationBase, ABC):
         if self._time - self._last_log_time >= 0.1:
             self._last_log_time = self._time
 
+    # Asset Publishing
     def mesh_entities(self) -> list[MeshEntity]:
         return []
 
@@ -199,7 +217,7 @@ class DualArmSimulationBase(SimulationBase, ABC):
 
         base_position = positions[:, 0]
         tip_position = positions[:, -1]
-        tip_orientation = np.asarray(rod.director_collection[..., -1], dtype=np.float64)
+        tip_orientation = rod.director_collection[..., -1]
 
         return ArmState(
             arm_id=arm_id,
