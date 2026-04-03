@@ -36,8 +36,6 @@ class DualArmSimulation(Protocol):
         self, arm_id: str, controller_rotation_xyzw: list[float]
     ) -> None: ...
     def set_attached(self, arm_id: str, attached: bool) -> None: ...
-    def set_base_pull_active(self, arm_id: str, active: bool) -> None: ...
-    def set_sucker_active(self, arm_id: str, active: bool) -> None: ...
     def mesh_entities(self) -> list[MeshEntity]: ...
     def sphere_entities(self) -> list[SphereEntity]: ...
 
@@ -220,26 +218,29 @@ class MultiArmPassThroughBackend:
                 if arm_id not in self._arms:
                     continue
                 self._apply_command(self._arms[arm_id], arm_command)
+
             for arm_id in list(self._secondary_pressed.keys()):
-                if arm_id not in seen_arm_ids:
-                    self._secondary_pressed[arm_id] = False
-                    state = self._arms.get(arm_id)
-                    if state is None:
-                        continue
-                    user_id = state.owner_user_id or ""
-                    simulation = self._simulations.get(user_id)
-                    if simulation is not None:
-                        simulation.set_attached(arm_id, True)
-                        getattr(
-                            simulation,
-                            "set_base_pull_active",
-                            lambda *_args: None,
-                        )(arm_id, False)
-                        getattr(
-                            simulation,
-                            "set_sucker_active",
-                            lambda *_args: None,
-                        )(arm_id, False)
+                if arm_id in seen_arm_ids:
+                    continue
+                self._secondary_pressed[arm_id] = False
+                state = self._arms.get(arm_id)
+                if state is None:
+                    continue
+                user_id = state.owner_user_id or ""
+                simulation = self._simulations.get(user_id)
+                if simulation is None:
+                    continue
+                simulation.set_attached(arm_id, True)
+                getattr(
+                    simulation,
+                    "set_base_pull_active",
+                    lambda *_args: None,
+                )(arm_id, False)
+                getattr(
+                    simulation,
+                    "set_sucker_active",
+                    lambda *_args: None,
+                )(arm_id, False)
 
         # Step the simulations and merge their meshes/spheres into the backend.
         for simulation in self._simulations.values():

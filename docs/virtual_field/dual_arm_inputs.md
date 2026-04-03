@@ -21,6 +21,8 @@ This is default implementation in base class `DualArmSimulationBase`.
             return None
 ```
 
+[ArmCommands](/api/virtual_field/commands.rst)
+
 If you want to separately handle the left and right arms, you can override the `handle_commands_left` and `handle_commands_right` methods.
 
 ```python

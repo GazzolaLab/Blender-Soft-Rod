@@ -16,6 +16,35 @@ def _validate_size(values: list[float], size: int, name: str) -> None:
 
 @dataclass(slots=True)
 class ArmCommand:
+    """One controller input for a simulation step.
+
+    Built from ``ControllerSample`` by ``SessionArmControlMapper``; the Virtual
+    Field *Interacting with Controller Data* doc describes the mapping from XR
+    samples to these fields.
+
+    Attributes
+    ----------
+    arm_id
+        Stable arm identifier; must match the corresponding key in
+        ``MultiArmCommand.commands``.
+    active
+        Typically ``True`` when analog grip is at or above the session clutch
+        threshold; used to gate pass-through updates. Simulation-backed modes may
+        still read ``buttons`` every frame.
+    target
+        Controller pose as :class:`Transform` (same role as
+        ``ControllerSample.pose``).
+    velocity
+        Optional twist from the controller (linear and angular); defaults to
+        zeros if omitted on the wire.
+    joystick
+        Two floats after deadbanding (thumbstick axes), length validated to 2.
+    buttons
+        Named booleans passed through from the frontend. The dual-arm backend
+        uses ``grip_click``, ``trigger_click``, ``primary``, and ``secondary``
+        (rising edge on ``secondary`` resets/rests and recalibrates orientation).
+    """
+
     arm_id: str
     active: bool
     target: Transform
