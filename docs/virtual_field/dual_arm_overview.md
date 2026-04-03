@@ -1,3 +1,4 @@
+(vf-dual-arm-overview)=
 # Dual Arm Overview
 
 The WebXR runtime modes in `src/virtual_field/runtime/` share a base class
@@ -74,7 +75,8 @@ Rod data schema for VR rendering:
 
 > [TODO] Add data schema for communicating with VR frontend client.
 
-## Available methods
+(vf-simple-control-example)=
+## Simple Control Example
 
 `DualArmSimulationBase` exposes these convenience methods to obtain controller pose information.
 Target position is 3D position (world coordinates), and target orientation is 3x3 row-wise director matrix (local to world). It is `PyElastica` convention.
@@ -84,11 +86,11 @@ Target position is 3D position (world coordinates), and target orientation is 3x
 - `is_left_attached()`
 - `is_right_attached()`
 
-Here is example of usage with `_TargetPoseProportionalControl`:
+Here is example of usage with `TargetPoseProportionalControl`:
 
 ```python
 self.simulator.add_forcing_to(self.left_rod).using(
-    _TargetPoseProportionalControl,
+    TargetPoseProportionalControl,
     elem_index=-1,
     p_linear_value=200.0,
     p_angular_value=5.0,
@@ -98,7 +100,7 @@ self.simulator.add_forcing_to(self.left_rod).using(
 )
 
 self.simulator.add_forcing_to(self.right_rod).using(
-    _TargetPoseProportionalControl,
+    TargetPoseProportionalControl,
     elem_index=-1,
     p_linear_value=200.0,
     p_angular_value=5.0,

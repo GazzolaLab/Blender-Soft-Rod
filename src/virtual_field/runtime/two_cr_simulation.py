@@ -32,8 +32,8 @@ class TwoCRSimulation(DualArmSimulationBase):
 
     def __post_init__(self) -> None:
         import elastica as ea
-        from virtual_field.runtime.spirob_elastica.control import (
-            _TargetPoseProportionalControl,
+        from virtual_field.runtime.custom_elastica.control import (
+            TargetPoseProportionalControl,
         )
 
         self._ea = ea
@@ -93,7 +93,7 @@ class TwoCRSimulation(DualArmSimulationBase):
         p_angular = 3.0
 
         self.simulator.add_forcing_to(self.left_rod).using(
-            _TargetPoseProportionalControl,
+            TargetPoseProportionalControl,
             elem_index=-1,
             p_linear_value=p_linear,
             p_angular_value=p_angular,
@@ -102,7 +102,7 @@ class TwoCRSimulation(DualArmSimulationBase):
             ramp_up_time=1e-3,
         )
         self.simulator.add_forcing_to(self.right_rod).using(
-            _TargetPoseProportionalControl,
+            TargetPoseProportionalControl,
             elem_index=-1,
             p_linear_value=p_linear,
             p_angular_value=p_angular,
