@@ -58,6 +58,9 @@ myst_fence_as_directive = ["mermaid"]
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_context = {
+    "github_repo_url": "https://github.com/GazzolaLab/Blender-Soft-Rod/tree/meta2quest-integration",
+}
 
 copybutton_prompt_text = r">>> |\.\.\. |\$ "
 copybutton_prompt_is_regexp = True

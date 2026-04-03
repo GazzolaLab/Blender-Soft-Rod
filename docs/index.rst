@@ -18,6 +18,7 @@ also includes experimental Virtual Field/WebXR runtime.
 
     virtual_field/intro
     virtual_field/adding_character
+    virtual_field/common_utility
 
 .. toctree::
     :maxdepth: 1
