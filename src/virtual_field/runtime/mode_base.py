@@ -13,28 +13,34 @@ from virtual_field.runtime.orientation import (
     matrix_to_quat_xyzw,
 )
 
+class SimulationBase(ABC):
+    pass
 
-class DualArmSimulationBase(ABC):
+@dataclass(slots=True)
+class DualArmSimulationBase(SimulationBase, ABC):
     """Common control/state helpers shared by dual-arm runtime modes."""
 
+    # Parameters
     user_id: str
     arm_ids: tuple[str, str]
     base_left: list[float]
     base_right: list[float]
-    dt_internal: float
-    _time: float
-    _last_log_time: float
-    simulator: Any
-    timestepper: Any
-    left_rod: Any
-    right_rod: Any
-    _target_position: dict[str, np.ndarray]
-    _target_orientation: dict[str, np.ndarray]
-    _rest_target_position: dict[str, np.ndarray]
-    _rest_target_orientation: dict[str, np.ndarray]
-    _base_orientation: dict[str, np.ndarray]
-    _controller_orientation_offset: dict[str, np.ndarray]
-    _attached: dict[str, bool]
+
+    # State
+    simulator: Any = field(init=False)
+    timestepper: Any = field(init=False)
+    left_rod: Any = field(init=False)
+    right_rod: Any = field(init=False)
+    dt_internal: float = 1.0e-4
+    _time: float = field(init=False, default=0.0)
+    _last_log_time: float = field(init=False, default=0.0)
+    _target_position: dict[str, np.ndarray] = field(init=False)
+    _target_orientation: dict[str, np.ndarray] = field(init=False)
+    _rest_target_position: dict[str, np.ndarray] = field(init=False)
+    _rest_target_orientation: dict[str, np.ndarray] = field(init=False)
+    _base_orientation: dict[str, np.ndarray] = field(init=False)
+    _controller_orientation_offset: dict[str, np.ndarray] = field(init=False)
+    _attached: dict[str, bool] = field(init=False)
 
     @final
     def __post_init__(self) -> None:

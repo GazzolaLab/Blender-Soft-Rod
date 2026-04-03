@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -10,24 +9,11 @@ from virtual_field.runtime.mode_base import DualArmSimulationBase
 
 @dataclass(slots=True)
 class TwoCRSimulation(DualArmSimulationBase):
-    user_id: str
-    arm_ids: tuple[str, str]
-    base_left: list[float]
-    base_right: list[float]
-    dt_internal: float = 1.0e-4
-    _time: float = field(init=False, default=0.0)
-    _last_log_time: float = field(init=False, default=0.0)
-    simulator: Any = field(init=False)
-    timestepper: Any = field(init=False)
-    left_rod: Any = field(init=False)
-    right_rod: Any = field(init=False)
-    _target_position: dict[str, np.ndarray] = field(init=False)
-    _target_orientation: dict[str, np.ndarray] = field(init=False)
-    _rest_target_position: dict[str, np.ndarray] = field(init=False)
-    _rest_target_orientation: dict[str, np.ndarray] = field(init=False)
-    _base_orientation: dict[str, np.ndarray] = field(init=False)
-    _controller_orientation_offset: dict[str, np.ndarray] = field(init=False)
-    _attached: dict[str, bool] = field(init=False)
+    """Dual soft arms as two Cosserat rods with tip tracking and contact.
+
+    Each arm is a straight rod with a fixed base, tip forces from
+    ``TargetPoseProportionalControl``, rod–rod and self-contact, and damping.
+    """
 
     def build_simulation(self) -> None:
         import elastica as ea
