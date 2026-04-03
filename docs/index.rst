@@ -30,7 +30,7 @@ also includes experimental Virtual Field/WebXR runtime.
     api/bsr/blender_commands
     api/bsr/blender_frame_manager
 
-    virtual_field/api/runtime_common_utilities
+    api/virtual_field/runtime_common_utilities
 
 .. toctree::
     :maxdepth: 2
