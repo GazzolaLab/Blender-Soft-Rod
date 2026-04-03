@@ -17,7 +17,6 @@ class TwoCRSimulation(DualArmSimulationBase):
     dt_internal: float = 1.0e-4
     _time: float = field(init=False, default=0.0)
     _last_log_time: float = field(init=False, default=0.0)
-    _ea: Any = field(init=False)
     simulator: Any = field(init=False)
     timestepper: Any = field(init=False)
     left_rod: Any = field(init=False)
@@ -30,13 +29,11 @@ class TwoCRSimulation(DualArmSimulationBase):
     _controller_orientation_offset: dict[str, np.ndarray] = field(init=False)
     _attached: dict[str, bool] = field(init=False)
 
-    def __post_init__(self) -> None:
+    def build_simulation(self) -> None:
         import elastica as ea
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
         )
-
-        self._ea = ea
 
         class _Simulator(
             ea.BaseSystemCollection,
@@ -86,8 +83,6 @@ class TwoCRSimulation(DualArmSimulationBase):
         )
         self.simulator.append(self.left_rod)
         self.simulator.append(self.right_rod)
-
-        self.initialize_dual_arm_targets(base_length=base_length)
 
         p_linear = 1000.0
         p_angular = 3.0

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, final
 
 import numpy as np
 
@@ -36,32 +36,49 @@ class DualArmSimulationBase(ABC):
     _controller_orientation_offset: dict[str, np.ndarray]
     _attached: dict[str, bool]
 
-    def initialize_dual_arm_targets(
-        self, *, base_length: float, default_tip_offset: float = -0.35
-    ) -> None:
+    @final
+    def __post_init__(self) -> None:
+        self.build_simulation()
+        self.initialize_dual_arm_targets()
+        self.post_mode_setup()
+
+    @abstractmethod
+    def build_simulation(self) -> None:
+        """Build the elastica simulation and initialize simulator and rods."""
+
+    def post_mode_setup(self) -> None:
+        """Optional hook for advanced subclasses after base target setup."""
+        return None
+
+    def initialize_dual_arm_targets(self) -> None:
+        left_tip_position = np.asarray(
+            self.left_rod.position_collection[:, -1], dtype=np.float64
+        ).copy()
+        right_tip_position = np.asarray(
+            self.right_rod.position_collection[:, -1], dtype=np.float64
+        ).copy()
+        left_tip_orientation = np.asarray(
+            self.left_rod.director_collection[..., -1], dtype=np.float64
+        ).copy()
+        right_tip_orientation = np.asarray(
+            self.right_rod.director_collection[..., -1], dtype=np.float64
+        ).copy()
+
         self._target_position = {
-            self.arm_ids[0]: np.array(self.base_left, dtype=np.float64)
-            + np.array([0.0, 0.0, default_tip_offset]),
-            self.arm_ids[1]: np.array(self.base_right, dtype=np.float64)
-            + np.array([0.0, 0.0, default_tip_offset]),
+            self.arm_ids[0]: left_tip_position.copy(),
+            self.arm_ids[1]: right_tip_position.copy(),
         }
         self._target_orientation = {
-            self.arm_ids[0]: np.eye(3, dtype=np.float64),
-            self.arm_ids[1]: np.eye(3, dtype=np.float64),
+            self.arm_ids[0]: left_tip_orientation.copy(),
+            self.arm_ids[1]: right_tip_orientation.copy(),
         }
         self._rest_target_position = {
-            self.arm_ids[0]: np.array(self.base_left, dtype=np.float64)
-            + np.array([0.0, 0.0, -base_length]),
-            self.arm_ids[1]: np.array(self.base_right, dtype=np.float64)
-            + np.array([0.0, 0.0, -base_length]),
+            self.arm_ids[0]: left_tip_position.copy(),
+            self.arm_ids[1]: right_tip_position.copy(),
         }
         self._rest_target_orientation = {
-            self.arm_ids[0]: np.asarray(
-                self.left_rod.director_collection[..., -1], dtype=np.float64
-            ).copy(),
-            self.arm_ids[1]: np.asarray(
-                self.right_rod.director_collection[..., -1], dtype=np.float64
-            ).copy(),
+            self.arm_ids[0]: left_tip_orientation.copy(),
+            self.arm_ids[1]: right_tip_orientation.copy(),
         }
         self._base_orientation = {
             self.arm_ids[0]: np.asarray(

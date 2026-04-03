@@ -11,8 +11,13 @@ from virtual_field.runtime.mode_base import DualArmSimulationBase
 @dataclass(slots=True)
 class MyModeSimulation(DualArmSimulationBase):
 
-    def __post_init__(self) -> None:
-        ...  # Initialize the simulation
+    def build_simulation(self) -> None:
+        # (Required) initialize the simulation
+        ...
+
+    def post_mode_setup(self) -> None:
+        # (Optional) setup after the simulation is built
+        ...
 
 ```
 
@@ -33,16 +38,20 @@ Once it is registered there, both the backend and websocket hello handling will 
 
 ## Features that are already included in this mode
 
-During the `__post_init__` method, you can setup elastica simulation.
-Base class expect few attributes to be instantiated:
+Do not override `__post_init__` in the derived class for normal mode setup.
+`DualArmSimulationBase.__post_init__()` now owns the initialization sequence.
 
-- `simulator`: an instance of `elastica.BaseSystemCollection`
-- `timestepper`: an instance of `elastica.TimeStepper`
-- `left_rod`: an instance of `elastica.CosseratRod`
-- `right_rod`: an instance of `elastica.CosseratRod`
+Instead, implement `build_simulation()` and let the base class call it for you.
+
+Inside `build_simulation()`, the base class expects these attributes to be instantiated:
+
+- `self.simulator`: an instance of `elastica.BaseSystemCollection`
+- `self.timestepper`: an instance of `elastica.TimeStepper`
+- `self.left_rod`: an instance of `elastica.CosseratRod`
+- `self.right_rod`: an instance of `elastica.CosseratRod`
 
 ```python
-    def __post_init__(self) -> None:
+    def build_simulation(self) -> None:
 
         # NOTE: I would recommend importing elastica inside. It is hard to explain why
         # at this point, but it would make the future implementation easier, where multiple
@@ -68,6 +77,25 @@ Base class expect few attributes to be instantiated:
         ...
 
 ```
+
+After `build_simulation()` returns, the base class automatically:
+
+- initializes shared target and rest-pose state
+- initializes left/right attachment state
+- exposes convenience methods such as `get_target_left()` and `is_left_attached()`
+- calls `post_mode_setup()` as an optional advanced hook
+
+### Optional advanced hook
+
+Advanced users may override:
+
+```python
+def post_mode_setup(self) -> None:
+    ...
+```
+
+Use this only when you need extra setup after the base class has already created
+shared target state. Most modes should implement only `build_simulation()`.
 
 ### Data Schema
 
