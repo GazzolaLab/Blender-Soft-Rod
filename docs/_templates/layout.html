@@ -1,0 +1,13 @@
+{% extends "!layout.html" %}
+
+{% block menu %}
+  {{ super() }}
+  <p class="caption" role="heading">
+    <span class="caption-text">Project</span>
+  </p>
+  <ul>
+    <li class="toctree-l1">
+      <a class="reference external" href="{{ github_repo_url }}">Go to GitHub</a>
+    </li>
+  </ul>
+{% endblock %}
