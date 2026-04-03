@@ -37,6 +37,8 @@ extensions = [
 
 # -- Options for autodoc -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#module-sphinx.ext.autodoc
+# List class/module members in source order (default is alphabetical).
+autodoc_member_order = "bysource"
 autodoc_default_flags = [
     "members",
     "undoc-members",

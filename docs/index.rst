@@ -30,6 +30,7 @@ also includes experimental Virtual Field/WebXR runtime.
     api/bsr/blender_commands
     api/bsr/blender_frame_manager
 
+    api/virtual_field/backend
     api/virtual_field/runtime_common_utilities
 
 .. toctree::

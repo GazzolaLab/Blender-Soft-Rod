@@ -8,7 +8,7 @@ dual-arm simulation modes to make a rod tip follow a controller-driven target
 pose.
 
 Source:
-{doc}`api/runtime_common_utilities`
+[Runtime Common Utilities](/api/virtual_field/runtime_common_utilities.rst)
 
 ### Expected target orientation convention
 
