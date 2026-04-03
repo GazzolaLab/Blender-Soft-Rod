@@ -9,6 +9,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.swp
+externals
 
 *.blend
 *.blend1

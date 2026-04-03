@@ -18,16 +18,19 @@ also includes experimental Virtual Field/WebXR runtime.
 
     virtual_field/intro
     virtual_field/adding_character
+    virtual_field/communication_scheme
     virtual_field/common_utility
 
 .. toctree::
     :maxdepth: 1
     :caption: API:
 
-    api/geometry-primitives
-    api/geometry-composite
-    api/blender_commands
-    api/blender_frame_manager
+    api/bsr/geometry-primitives
+    api/bsr/geometry-composite
+    api/bsr/blender_commands
+    api/bsr/blender_frame_manager
+
+    virtual_field/api/runtime_common_utilities
 
 .. toctree::
     :maxdepth: 2
