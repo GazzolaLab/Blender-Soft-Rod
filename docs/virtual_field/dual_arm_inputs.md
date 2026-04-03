@@ -47,6 +47,54 @@ The base class derives the `secondary` rising edge from `previous_controller_com
 
 You can find an example of using `trigger_click` and `grip_click` in `Cathy-Throw` mode.
 
+## Optional: Split Left and Right Handling
+
+Most modes can keep everything inside one `handle_commands()` override.
+If you prefer, you can still dispatch to left- and right-specific helpers inside that method.
+
+```python
+    @override
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
+        super().handle_commands(
+            arm_id,
+            controller_command,
+            previous_controller_command=previous_controller_command,
+        )
+
+        if arm_id == self.arm_ids[0]:
+            self._handle_left_command(
+                controller_command,
+                previous_controller_command=previous_controller_command,
+            )
+        elif arm_id == self.arm_ids[1]:
+            self._handle_right_command(
+                controller_command,
+                previous_controller_command=previous_controller_command,
+            )
+
+    def _handle_left_command(
+        self,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
+        ...
+
+    def _handle_right_command(
+        self,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
+        ...
+```
+
+This is only a local organization pattern.
+The backend still calls the single `handle_commands()` entry point.
+
 ## (Frontend) Controller data flow
 
 Controller input enters the system as `XRInputSample`:
