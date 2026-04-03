@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, final
 
+from dataclasses import dataclass, field
 import numpy as np
 
 from virtual_field.core.state import ArmState, MeshEntity, SphereEntity, Transform
