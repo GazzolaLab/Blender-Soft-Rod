@@ -28,14 +28,13 @@ class DualArmSimulation(Protocol):
 
     def arm_states(self) -> dict[str, ArmState]: ...
     def step(self, dt: float) -> None: ...
-    def set_target_pose(
-        self, arm_id: str, translation: list[float], rotation_xyzw: list[float]
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
     ) -> None: ...
-    def reset_target_to_rest(self, arm_id: str) -> None: ...
-    def recalibrate_orientation_to_base(
-        self, arm_id: str, controller_rotation_xyzw: list[float]
-    ) -> None: ...
-    def set_attached(self, arm_id: str, attached: bool) -> None: ...
+    def handle_command_inactive(self, arm_id: str) -> None: ...
     def mesh_entities(self) -> list[MeshEntity]: ...
     def sphere_entities(self) -> list[SphereEntity]: ...
 
@@ -98,7 +97,7 @@ class MultiArmPassThroughBackend:
     _simulations: dict[str, DualArmSimulation] = field(
         init=False, default_factory=dict
     )
-    _secondary_pressed: dict[str, bool] = field(init=False, default_factory=dict)
+    _previous_commands: dict[str, ArmCommand] = field(init=False, default_factory=dict)
 
     def register_user(
         self,
@@ -181,8 +180,8 @@ class MultiArmPassThroughBackend:
         self._simulations[user_id] = simulation
 
         # Update the backend
-        self._secondary_pressed[allocated_arm_ids[0]] = False
-        self._secondary_pressed[allocated_arm_ids[1]] = False
+        self._previous_commands.pop(allocated_arm_ids[0], None)
+        self._previous_commands.pop(allocated_arm_ids[1], None)
         self._arms.update(simulation.arm_states())
 
         # Update other assets
@@ -200,7 +199,7 @@ class MultiArmPassThroughBackend:
         arm_ids = self._user_arms.pop(user_id, [])
         for arm_id in arm_ids:
             self._arms.pop(arm_id, None)
-            self._secondary_pressed.pop(arm_id, None)
+            self._previous_commands.pop(arm_id, None)
         self._user_mode.pop(user_id, None)
         self._simulations.pop(user_id, None)
         self.remove_owner_meshes(user_id)
@@ -219,10 +218,9 @@ class MultiArmPassThroughBackend:
                     continue
                 self._apply_command(self._arms[arm_id], arm_command)
 
-            for arm_id in list(self._secondary_pressed.keys()):
+            for arm_id in list(self._previous_commands.keys()):
                 if arm_id in seen_arm_ids:
                     continue
-                self._secondary_pressed[arm_id] = False
                 state = self._arms.get(arm_id)
                 if state is None:
                     continue
@@ -230,17 +228,8 @@ class MultiArmPassThroughBackend:
                 simulation = self._simulations.get(user_id)
                 if simulation is None:
                     continue
-                simulation.set_attached(arm_id, True)
-                getattr(
-                    simulation,
-                    "set_base_pull_active",
-                    lambda *_args: None,
-                )(arm_id, False)
-                getattr(
-                    simulation,
-                    "set_sucker_active",
-                    lambda *_args: None,
-                )(arm_id, False)
+                simulation.handle_command_inactive(arm_id)
+                self._previous_commands.pop(arm_id, None)
 
         # Step the simulations and merge their meshes/spheres into the backend.
         for simulation in self._simulations.values():
@@ -370,41 +359,13 @@ class MultiArmPassThroughBackend:
         user_id = state.owner_user_id or ""
         simulation = self._simulations.get(user_id)
         if simulation is not None:
-            trigger_click_pressed = bool(command.buttons.get("trigger_click", False))
-            grip_click_pressed = bool(command.buttons.get("grip_click", False))
-            secondary_pressed = bool(command.buttons.get("secondary", False))
-            primary_pressed = bool(command.buttons.get("primary", False))
-
-            # TODO: Temporary workaround for the base pull and sucker active.
-            simulation.handle_commands(state.arm_id, command)
-            getattr(
-                simulation,
-                "set_base_pull_active",
-                lambda *_args: None,
-            )(state.arm_id, grip_click_pressed)
-            getattr(
-                simulation,
-                "set_sucker_active",
-                lambda *_args: None,
-            )(state.arm_id, trigger_click_pressed)
-            simulation.set_attached(
-                state.arm_id, not (primary_pressed or secondary_pressed)
+            previous_command = self._previous_commands.get(state.arm_id)
+            simulation.handle_commands(
+                state.arm_id,
+                command,
+                previous_controller_command=previous_command,
             )
-            was_pressed = self._secondary_pressed.get(state.arm_id, False)
-            if secondary_pressed and not was_pressed:
-                simulation.reset_target_to_rest(state.arm_id)
-                simulation.recalibrate_orientation_to_base(
-                    state.arm_id, command.target.rotation_xyzw
-                )
-                self._secondary_pressed[state.arm_id] = True
-                return
-            self._secondary_pressed[state.arm_id] = secondary_pressed
-
-            simulation.set_target_pose(
-                arm_id=state.arm_id,
-                translation=command.target.translation,
-                rotation_xyzw=command.target.rotation_xyzw,
-            )
+            self._previous_commands[state.arm_id] = command
             return
 
         if not command.active:

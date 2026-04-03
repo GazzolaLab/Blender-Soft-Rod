@@ -58,30 +58,42 @@ class DualArmSimulationBase(SimulationBase, ABC):
         """Optional hook for advanced subclasses after base target setup."""
         return None
 
-    def handle_commands(self, arm_id: str, controller_command: ArmCommand) -> None:
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
         """
         Handle controller commands for a given arm.
         Override this method to customize the controller command mapping.
         """
-        if arm_id == self.arm_ids[0]:
-            self.handle_commands_left(controller_command)
-        elif arm_id == self.arm_ids[1]:
-            self.handle_commands_right(controller_command)
-        else:
-            # TODO: Handle invalid arm ID.
-            return None
+        primary_pressed = bool(controller_command.buttons.get("primary", False))
+        secondary_pressed = bool(controller_command.buttons.get("secondary", False))
+        previous_secondary_pressed = bool(
+            previous_controller_command
+            and previous_controller_command.buttons.get("secondary", False)
+        )
 
-    def handle_commands_left(self, controller_command: ArmCommand) -> None:
-        """
-        Handle controller commands for the left arm.
-        """
-        pass
+        self.set_attached(arm_id, not (primary_pressed or secondary_pressed))
+        if secondary_pressed and not previous_secondary_pressed:
+            self.reset_target_to_rest(arm_id)
+            self.recalibrate_orientation_to_base(
+                arm_id, controller_command.target.rotation_xyzw
+            )
+            return
 
-    def handle_commands_right(self, controller_command: ArmCommand) -> None:
+        self.set_target_pose(
+            arm_id=arm_id,
+            translation=controller_command.target.translation,
+            rotation_xyzw=controller_command.target.rotation_xyzw,
+        )
+
+    def handle_command_inactive(self, arm_id: str) -> None:
         """
-        Handle controller commands for the right arm.
+        Reset per-frame controller-driven state for an arm when no command arrives.
         """
-        pass
+        self.set_attached(arm_id, True)
 
     def _initialize_dual_arm_targets(self) -> None:
         left_tip_position = self.left_rod.position_collection[:, -1].copy()
@@ -173,12 +185,6 @@ class DualArmSimulationBase(SimulationBase, ABC):
         if arm_id not in self._attached:
             return
         self._attached[arm_id] = attached
-
-    def set_base_pull_active(self, arm_id: str, active: bool) -> None:
-        return None
-
-    def set_sucker_active(self, arm_id: str, active: bool) -> None:
-        return None
 
     # Simulation Stepping
     def step(self, dt: float) -> None:

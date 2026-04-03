@@ -4,40 +4,48 @@ This page covers how XR controller data moves through the runtime and how your m
 
 ## Customize Controller Command Mapping
 
-Simply, you can customize the controller command by overriding the `handle_commands` method.
-This is default implementation in base class `DualArmSimulationBase`.
+You can customize controller behavior by overriding `handle_commands()`.
+The base class already implements the default dual-arm behavior, so most modes should extend it rather than replace it entirely.
 
 ```python
-    def handle_commands(self, arm_id: str, controller_command: ArmCommand) -> None:
+    @override
+    def handle_commands(
+        self,
+        arm_id: str,
+        controller_command: ArmCommand,
+        previous_controller_command: ArmCommand | None = None,
+    ) -> None:
         """
         Handle controller commands for a given arm.
         """
-        if arm_id == self.arm_ids[0]:
-            self.handle_commands_left(controller_command)
-        elif arm_id == self.arm_ids[1]:
-            self.handle_commands_right(controller_command)
-        else:
-            # TODO: Handle invalid arm ID.
-            return None
+        super().handle_commands(
+            arm_id,
+            controller_command,
+            previous_controller_command=previous_controller_command,
+        )
+
+        if bool(controller_command.buttons.get("grip_click", False)):
+            ...
+
+    @override
+    def handle_command_inactive(self, arm_id: str) -> None:
+        """
+        Reset any per-frame controller-driven state when no input arrives.
+        """
+        super().handle_command_inactive(arm_id)
 ```
 
 [ArmCommands](/api/virtual_field/commands.rst)
 
-If you want to separately handle the left and right arms, you can override the `handle_commands_left` and `handle_commands_right` methods.
-
-```python
-    def handle_commands_left(self, controller_command: ArmCommand) -> None:
-        ...
-
-    def handle_commands_right(self, controller_command: ArmCommand) -> None:
-        ...
-```
-
 Default behavior is
 - detach the arm by calling `set_attached()`, when the `primary` or `secondary` button is pressed.
-- reset the target pose to the rest pose by calling `reset_target_to_rest()`, when the `secondary` button is pressed.
+- on the rising edge of `secondary`, reset the target pose to the rest pose by calling `reset_target_to_rest()`
+- on the rising edge of `secondary`, recalibrate the controller orientation by calling `recalibrate_orientation_to_base()`
+- otherwise forward the current controller pose to `set_target_pose()`
 
-You can find example of using trigger and grip buttons in `Cathy-Throw` mode.
+The base class derives the `secondary` rising edge from `previous_controller_command`, so your mode gets both the current input and the prior frame's input when needed.
+
+You can find an example of using `trigger_click` and `grip_click` in `Cathy-Throw` mode.
 
 ## (Frontend) Controller data flow
 
@@ -76,14 +84,9 @@ Each `ControllerSample` carries:
 
 For simulation-backed modes it currently does the following:
 
-- `grip_click` calls `set_base_pull_active(arm_id, pressed)`
-- `trigger_click` calls `set_sucker_active(arm_id, pressed)`
-- `primary` or `secondary` detach the arm by calling `set_attached()`
-- the rising edge of `secondary` triggers:
+- looks up the previous `ArmCommand` for that arm, if there is one
+- calls `handle_commands(arm_id, controller_command, previous_controller_command=...)`
+- stores the current command for the next frame
+- if an arm does not receive a command in the current frame, calls `handle_command_inactive(arm_id)` and clears the stored previous command
 
-  - `reset_target_to_rest(arm_id)`
-  - `recalibrate_orientation_to_base(arm_id, command.target.rotation_xyzw)`
-
-- otherwise the current pose is forwarded to `set_target_pose(arm_id, translation, rotation_xyzw)`
-
-That means the easiest way to react to controller data is to override the small hook methods that already exist on the base class.
+That means the backend no longer needs to know mode-specific button mappings. Mode-specific controller behavior should live in your simulation class by overriding `handle_commands()` and, when needed, `handle_command_inactive()`.
