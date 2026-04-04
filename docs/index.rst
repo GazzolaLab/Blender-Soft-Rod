@@ -18,7 +18,9 @@ also includes experimental Virtual Field/WebXR runtime.
 
     virtual_field/intro
     virtual_field/adding_character
+    virtual_field/octo_arm_overview
     virtual_field/communication_scheme
+    virtual_field/mesh_publisher
     virtual_field/common_utility
 
 .. toctree::
@@ -46,6 +48,7 @@ also includes experimental Virtual Field/WebXR runtime.
     :caption: CLI Commands:
 
     cli/data_converter
+    cli/virtual_field
 
 
 Indices and tables
