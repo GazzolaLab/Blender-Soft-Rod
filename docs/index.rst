@@ -22,6 +22,12 @@ also includes experimental Virtual Field/WebXR runtime.
     virtual_field/common_utility
 
 .. toctree::
+    :maxdepth: 2
+    :caption: VR:
+
+    VR/intro
+
+.. toctree::
     :maxdepth: 1
     :caption: API:
 
