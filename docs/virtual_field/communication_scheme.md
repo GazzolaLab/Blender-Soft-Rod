@@ -2,7 +2,7 @@
 
 The Virtual Field runtime uses a websocket-based JSON protocol between:
 
-- the Python runtime server in `src/virtual_field/runtime/server.py`
+- the Python runtime server in `src/virtual_field/server/app.py`
 - the WebXR browser client in `VR/client/app.js`
 
 This page describes the message envelope and the main message types currently

@@ -5,7 +5,7 @@ CERT="$(dirname "$0")/../certs/dev-cert.pem"
 KEY="$(dirname "$0")/../certs/dev-key.pem"
 
 if [[ -f "$CERT" && -f "$KEY" ]]; then
-  uv run --no-sync python -m virtual_field.runtime.server \
+  uv run --no-sync python -m virtual_field.server.app \
     --host 0.0.0.0 \
     --port 8765 \
     --ssl-cert "$CERT" \

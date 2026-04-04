@@ -1,7 +1,7 @@
 Virtual Field Backend
 =====================
 
-.. currentmodule:: virtual_field.runtime.sim_backends
+.. currentmodule:: virtual_field.server.backends
 
 .. autoclass:: MultiArmPassThroughBackend
    :members:
