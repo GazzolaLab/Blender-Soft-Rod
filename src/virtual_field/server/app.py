@@ -40,6 +40,16 @@ class ClientSession:
 
 
 class VRWebSocketServer:
+    """TLS WebSocket entry point for Virtual Field clients and publishers.
+
+    Owns a :class:`~virtual_field.server.backends.MultiArmPassThroughBackend`,
+    accepts JSON messages (``hello``, ``xr_input``, ``heartbeat``, ``reset``,
+    publisher asset updates), and runs two asyncio loops: simulation stepping at
+    ``sim_hz`` and scene snapshots to subscribers at ``publish_hz``. Roles:
+    ``vr_client`` (XR input → teleop → backend), ``publisher`` (meshes/overlays),
+    and ``spectator`` (receive-only).
+    """
+
     def __init__(
         self,
         *,  # keyword-only arguments (for safety)
