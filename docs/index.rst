@@ -25,6 +25,12 @@ also includes experimental Virtual Field/WebXR runtime.
 
 .. toctree::
     :maxdepth: 2
+    :caption: Custom Elastica:
+
+    custom_elastica/growing_arm
+
+.. toctree::
+    :maxdepth: 2
     :caption: VR:
 
     VR/intro
