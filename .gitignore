@@ -1,11 +1,30 @@
 # rendered files
 *.png
 *.mov
+*.pkl
+*.npz
+*.mp4
+*.json
+*.jsonl
+*.npy
+
+# deprecated files
+_old*  
+
+# VR directory
+VR/node_modules/
+!VR/package.json
+!VR/package-lock.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+research
+model
+logs
+evaluations
 
 # C extensions
 *.so
