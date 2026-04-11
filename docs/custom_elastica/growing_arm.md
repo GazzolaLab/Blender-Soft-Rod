@@ -39,19 +39,13 @@ suffix, at index `total_elements - current_elements`.
 
 ![Schematic](../_static/growing_arm/active_suffix_diagram.png)
 
-Editor and GitHub **Markdown previews** only render ordinary `![](...)` image
-links like the lines above. They do not run Sphinx, so fenced `image` directives
-would show as raw text. After `sphinx-build` or `make html` in `docs/`, open
-`_build/html/custom_elastica/growing_arm.html` in a browser (or use hosted docs)
-to see the full themed layout.
-
 ## What `_GrowingCRBoundaryConditions` does
 
 The class in
 `src/virtual_field/runtime/custom_elastica/boundary_conditions.py` subclasses
 PyElastica’s `NoForces` and runs each step as **forcing** on the rod.
 
-1. **Turret tracking**  
+1. **Turret tracking**
    A callable `controller()` returns a world-frame rotation matrix (and a
    position that is currently unused). The base of the active segment is pulled
    toward a fixed `target_position` with gain `p_linear_value`, and its
@@ -60,20 +54,20 @@ PyElastica’s `NoForces` and runs each step as **forcing** on the rod.
    rotation (SO(3) logarithm / inverse Rodrigues construction), including a
    stable branch near π.
 
-2. **Growth / shrink**  
+2. **Growth / shrink**
    Two booleans, `trigger_increase_elements` and `trigger_decrease_elements`,
    request changing `current_elements`. A short **debounce** (0.3 s) avoids
-   repeated toggles.  
+   repeated toggles.
    - **Increase** (when `current_elements < total_elements`): increment
      `current_elements`, then call `_reset_element_kinematics_and_strains` on the
      new base index so the newly exposed segment is snapped to rest length,
      inherits directors from its neighbor, and clears spurious velocity/angular
-     rates at that joint.  
+     rates at that joint.
    - **Decrease** (when `current_elements > min_elements`): decrement
      `current_elements` only; the shorter active prefix leaves the folded
      storage as-is for the next steps.
 
-3. **Ramp** (artifact from rest of the PyElastica) 
+3. **Ramp** (artifact from rest of the PyElastica)
    `ramp_up_time` scales both linear and angular efforts by
    `min(1, time / ramp_up_time)` so startup does not impulse the rod (in typical
    setups `ramp_up_time` is chosen very small).
