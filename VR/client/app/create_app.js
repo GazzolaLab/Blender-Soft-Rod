@@ -163,15 +163,21 @@ export function createApp({ document, window }) {
           dom.characterModeSelect.value = resolvedMode;
           applyCharacterMode(resolvedMode);
         }
+
+        // Controlled arms
         const controlled = message.payload.controlled_arm_ids ?? [];
         if (state.sessionMode === "vr_client" && controlled.length >= 2) {
           state.controlledArmByHand.left = controlled[0];
           state.controlledArmByHand.right = controlled[1];
         }
+
+        // Current user arm IDs
         state.currentUserRenderArmIds = message.payload.arm_ids ?? [];
         state.currentUserArmIds = (state.currentUserRenderArmIds || []).filter(
           (armId) => typeof armId !== "string" || !armId.toLowerCase().includes("head")
         );
+
+        // Status message
         setStatus(
           `connected: ${configWindow.serverHost} | role=${state.sessionRole} | user=${state.userId ?? "unknown"} | arms=${(
             message.payload.arm_ids ?? []
@@ -274,6 +280,7 @@ export function createApp({ document, window }) {
       applyCharacterMode(mode);
     };
 
+    // Refresh mode UI when character mode select changes
     dom.characterModeSelect.addEventListener("change", refreshModeUI);
     refreshModeUI();
 
