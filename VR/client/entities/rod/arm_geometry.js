@@ -69,7 +69,7 @@ function buildSegmentedPipe(demoArm) {
     const r1 = Math.max(0.001, radii[Math.min(i + 1, radii.length - 1)]);
     const geom = new THREE.CylinderGeometry(r1, r0, length, 14, 1, true);
     const mesh = new THREE.Mesh(geom, material.clone());
-    mesh.position.copy(p0.clone().add(p1).multiplyScalar(0.5));
+    mesh.position.copy(p0.clone().add(p1).multiplyScalar(0.5)); // midpoint
     mesh.quaternion.setFromUnitVectors(yAxis, segment.normalize());
     demoArm.armBodyGroup.add(mesh);
   }
