@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol
+from math import cos, pi, sin
 
 from loguru import logger
 
@@ -14,36 +14,12 @@ from virtual_field.core.state import (
     SphereEntity,
     Transform,
 )
-from virtual_field.runtime.mode_registry import SIMULATION_FACTORIES
-
-
-class DualArmSimulation(Protocol):
-    """
-    Necessary protocol for a dual-arm simulation.
-    """
-    arm_ids: tuple[str, str]
-    base_left: list[float]
-    base_right: list[float]
-    dt_internal: float
-
-    # Arm state rendering
-    def arm_states(self) -> dict[str, ArmState]: ...
-
-    # Simulation stepping
-    def step(self, dt: float) -> None: ...
-
-    # Controller commands
-    def handle_commands(
-        self,
-        arm_id: str,
-        controller_command: ArmCommand,
-        previous_controller_command: ArmCommand | None = None,
-    ) -> None: ...
-    def handle_command_inactive(self, arm_id: str) -> None: ...
-
-    # Assets
-    def mesh_entities(self) -> list[MeshEntity]: ...
-    def sphere_entities(self) -> list[SphereEntity]: ...
+from virtual_field.runtime.mode_base import (
+    DualArmSimulationBase,
+    OctoArmSimulationBase,
+    SimulationBase,
+)
+from virtual_field.runtime.mode_registry import get_mode_spec
 
 
 def _default_arm_state(arm_id: str, owner_user_id: str, base: Transform) -> ArmState:
@@ -76,6 +52,52 @@ def _default_arm_state(arm_id: str, owner_user_id: str, base: Transform) -> ArmS
     )
 
 
+def _allocate_linear_bases(
+    user_id: str,
+    *,
+    arm_count: int,
+    arm_spacing: float,
+    base_x: float,
+    base_y: float,
+    base_z: float,
+) -> dict[str, Transform]:
+    origin = base_x - 0.5 * arm_spacing * (arm_count - 1)
+    return {
+        f"{user_id}_arm_{index}": Transform(
+            translation=[origin + index * arm_spacing, base_y, base_z],
+            rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
+        )
+        for index in range(arm_count)
+    }
+
+
+def _allocate_octo_bases(
+    user_id: str,
+    *,
+    base_x: float,
+    base_y: float,
+    base_z: float,
+) -> dict[str, Transform]:
+    """Eight tentacles on a ring plus a ninth ``arm_8`` at the body center (head)."""
+    ring_radius = 0.32
+    bases: dict[str, Transform] = {
+        f"{user_id}_arm_{index}": Transform(
+            translation=[
+                base_x + ring_radius * cos(-0.5 * pi + 2.0 * pi * index / 8.0),
+                base_y,
+                base_z + ring_radius * sin(-0.5 * pi + 2.0 * pi * index / 8.0),
+            ],
+            rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
+        )
+        for index in range(8)
+    }
+    bases[f"{user_id}_arm_8"] = Transform(
+        translation=[base_x, base_y, base_z],
+        rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
+    )
+    return bases
+
+
 @dataclass(slots=True)
 class MultiArmPassThroughBackend:
     """Server-side scene backend for multiple users and arms.
@@ -101,7 +123,7 @@ class MultiArmPassThroughBackend:
         init=False, default_factory=dict
     )
     _spheres: dict[str, SphereEntity] = field(init=False, default_factory=dict)
-    _simulations: dict[str, DualArmSimulation] = field(
+    _simulations: dict[str, SimulationBase] = field(
         init=False, default_factory=dict
     )
     _previous_commands: dict[str, ArmCommand] = field(init=False, default_factory=dict)
@@ -110,6 +132,7 @@ class MultiArmPassThroughBackend:
         self,
         user_id: str,
         character_mode: str = "demo-spline",
+        requested_arm_count: int | None = None,
         arm_spacing: float = 0.3,
         base_x: float = 0.0,
         base_y: float = 1.0,
@@ -136,59 +159,65 @@ class MultiArmPassThroughBackend:
             logger.warning(f"User {user_id} already registered with arm ids {self._user_arms[user_id]}")
             return self._user_arms[user_id]
 
-        # TODO: remove this once we have a proper way to determine the arm count
-        arm_count = 2  # default to dual-arm for now
-
-        allocated_arm_ids: list[str] = []
-        # Default spacing and base position.
-        factory = SIMULATION_FACTORIES.get(character_mode)
-        if factory is None:  # (Default) demo case. No simulation is provided.
-            # TODO: Will be refactored. Not sure if it is necessary
-            x_start = base_x - arm_spacing / 2.0
-            for idx in range(arm_count):
-                arm_id = f"{user_id}_arm_{idx}"
-                base = Transform(
-                    translation=[x_start, base_y, base_z],
-                    rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
-                )
-                self._arms[arm_id] = _default_arm_state(arm_id, user_id, base)
-                allocated_arm_ids.append(arm_id)
-                x_start += arm_spacing
-
-            self._user_arms[user_id] = allocated_arm_ids
-            self._user_mode[user_id] = character_mode
-
-            return allocated_arm_ids
-
-        # Simulation based modes
-        x_start = base_x - arm_spacing / 2.0
-        for idx in range(arm_count):
-            arm_id = f"{user_id}_arm_{idx}"
-            base = Transform(
-                translation=[x_start, base_y, base_z],
-                rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
+        mode_spec = get_mode_spec(character_mode)
+        arm_count = (
+            requested_arm_count
+            if mode_spec.factory is None and requested_arm_count and requested_arm_count > 0
+            else mode_spec.arm_count
+        )
+        if mode_spec.base_layout == "octo":
+            base_transforms = _allocate_octo_bases(
+                user_id,
+                base_x=base_x,
+                base_y=base_y,
+                base_z=base_z,
             )
+        else:
+            base_transforms = _allocate_linear_bases(
+                user_id,
+                arm_count=arm_count,
+                arm_spacing=arm_spacing,
+                base_x=base_x,
+                base_y=base_y,
+                base_z=base_z,
+            )
+        allocated_arm_ids = list(base_transforms.keys())
+
+        for arm_id, base in base_transforms.items():
             self._arms[arm_id] = _default_arm_state(arm_id, user_id, base)
-            allocated_arm_ids.append(arm_id)
-            x_start += arm_spacing
+
         self._user_arms[user_id] = allocated_arm_ids
         self._user_mode[user_id] = character_mode
 
-        # Create the simulation
-        left_arm = self._arms[allocated_arm_ids[0]]
-        right_arm = self._arms[allocated_arm_ids[1]]
-        factory = SIMULATION_FACTORIES.get(character_mode)
-        simulation = factory(
-            user_id=user_id,
-            arm_ids=tuple(allocated_arm_ids),
-            base_left=left_arm.base.translation,
-            base_right=right_arm.base.translation,
-        )
+        factory = mode_spec.factory
+        if factory is None:
+            return allocated_arm_ids
+
+        if issubclass(factory, DualArmSimulationBase):
+            simulation = factory(
+                user_id=user_id,
+                arm_ids=tuple(allocated_arm_ids),
+                base_left=base_transforms[allocated_arm_ids[0]].translation,
+                base_right=base_transforms[allocated_arm_ids[1]].translation,
+            )
+        elif issubclass(factory, OctoArmSimulationBase):
+            octo_kwargs: dict[str, object] = {
+                "user_id": user_id,
+                "arm_ids": tuple(allocated_arm_ids),
+                "base_position": (base_x, base_y, base_z),
+            }
+            if character_mode == "octo-waypoint":
+                octo_kwargs["enable_controller_trigger_waypoints"] = True
+            simulation = factory(**octo_kwargs)
+        else:
+            simulation = factory(
+                user_id=user_id,
+                arm_ids=tuple(allocated_arm_ids),
+            )
         self._simulations[user_id] = simulation
 
-        # Update the backend
-        self._previous_commands.pop(allocated_arm_ids[0], None)
-        self._previous_commands.pop(allocated_arm_ids[1], None)
+        for arm_id in allocated_arm_ids:
+            self._previous_commands.pop(arm_id, None)
         self._arms.update(simulation.arm_states())
 
         # Update other assets
@@ -219,11 +248,20 @@ class MultiArmPassThroughBackend:
         """
         self._timestamp += max(0.0, dt)
         if command is not None:
+            seen_user_ids: set[str] = set()
             seen_arm_ids = set(command.commands.keys())
             for arm_id, arm_command in command.commands.items():
                 if arm_id not in self._arms:
                     continue
+                state = self._arms[arm_id]
+                if state.owner_user_id:
+                    seen_user_ids.add(state.owner_user_id)
                 self._apply_command(self._arms[arm_id], arm_command)
+
+            for user_id in seen_user_ids:
+                simulation = self._simulations.get(user_id)
+                if simulation is not None:
+                    simulation.handle_frame_command(command)
 
             for arm_id in list(self._previous_commands.keys()):
                 if arm_id in seen_arm_ids:
