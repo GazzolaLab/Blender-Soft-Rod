@@ -8,7 +8,7 @@ import numpy as np
 import elastica as ea
 
 from virtual_field.core.commands import ArmCommand, MultiArmCommand
-from virtual_field.core.state import SphereEntity, Transform
+from virtual_field.core.state import SphereEntity, Transform, MeshEntity
 from virtual_field.runtime.custom_elastica.dissipation import RayleighDamping
 from virtual_field.runtime.foraging_elastica import (
     SphereHeadTether,
@@ -24,14 +24,14 @@ from virtual_field.runtime.foraging_elastica import (
 from virtual_field.runtime.mode_base import OctoArmSimulationBase
 from virtual_field.runtime.orientation import controller_quat_xyzw_to_matrix
 from virtual_field.runtime.spirob_elastica.spirob import create_spirob
+from virtual_field.runtime.mesh_assets import build_pyvista_polydata_gltf_data_uri
+from importlib.resources import files
 
+# Configurations
+ASSET_PATH = files("virtual_field").joinpath("externals", "crawling")
+EXTERNAL_POLICY_PATH = ASSET_PATH / "best_policy.npy"
+EXTERNAL_MESH_PATH = ASSET_PATH / "terrain" / "scene.gltf"
 
-EXTERNAL_POLICY_PATH = (
-    Path(__file__).resolve().parents[3] / "externals" / "crawling" / "best_policy.npy"
-)
-EXTERNAL_MESH_PATH = (  # TODO
-    Path(__file__).resolve().parents[3] / "externals" / "crawling" / "MESH_NAME.stl"
-)
 WAYPOINT_PLANE_Y = -0.05
 WAYPOINT_RADIUS = 0.04
 WAYPOINT_COLOR_RGB = [0.98, 0.74, 0.24]
@@ -154,8 +154,16 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
     target_extension: np.ndarray = field(init=False)
     target_stiffness: np.ndarray = field(init=False)
     target_bend: np.ndarray = field(init=False)
+    _terrain_asset_uri: str | None = field(init=False, default=None)
 
     def build_simulation(self) -> None:
+        import pyvista as pv
+        from .custom_elastica.mesh import (
+            MeshSurface,
+            Grid,
+            RodMeshSurfaceContactGridMethodWithAnisotropicFriction,
+        )
+
         self.simulator = _Simulator()
         self.timestepper = ea.PositionVerlet()
 
@@ -211,6 +219,40 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         )
 
         plane_y = -0.02
+        terrain_mesh = pv.read(EXTERNAL_MESH_PATH)
+        terrain_mesh.translate(
+            -np.array(terrain_mesh.center), inplace=True
+        )  # center the mesh at origin
+        terrain_mesh.scale(0.5 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
+        terrain_mesh.rotate_x(
+            90, inplace=True
+        )  # rotate so surface upper side points in +y
+        terrain_mesh.translate(
+            np.array([0, plane_y - terrain_mesh.bounds[3], 0])
+        )  # surface top point at plane_y
+        ground_surface = MeshSurface(terrain_mesh)
+        self._terrain_asset_uri = build_pyvista_polydata_gltf_data_uri(
+            terrain_mesh,
+            color_rgba=(0.42, 0.48, 0.55, 1.00),
+        )
+        dummy_rod = create_spirob(
+            15,
+            np.array([0.0, 0.0, 0.0], dtype=np.float64),
+            np.array([1.0, 0.0, 0.0], dtype=np.float64),
+            np.array([0.0, -1.0, 0.0], dtype=np.float64),
+            0.45,
+            0.02,
+            5500.0,
+            5.0e5,
+        )
+        grid = Grid(
+            rod=dummy_rod,
+            surface=ground_surface,
+            grid_dimension=2,
+            exit_boundary_condition=False,
+            grid_axes=[0, 2],
+        )
+
         rods: dict[str, ea.CosseratRod] = {}
         rods[self.arm_ids[TENTACLE_COUNT]] = self.head
         for arm_index in range(TENTACLE_COUNT):
@@ -273,6 +315,16 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
                 translational_damping_constant=2.0,
                 rotational_damping_constant=3.0e-3,
                 time_step=self.dt_internal,
+            )
+            self.simulator.detect_contact_between(rod, ground_surface).using(
+                RodMeshSurfaceContactGridMethodWithAnisotropicFriction,
+                k=5e2,
+                nu=1e-1,
+                gamma=0.1,
+                grid=grid,
+                slip_velocity_tol=1e-4,
+                static_mu_array=np.array([0, 0, 0]),
+                kinetic_mu_array=np.array([0.1, 0.1, 0.1]),
             )
 
         self.rods = rods
@@ -602,3 +654,14 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
             )
 
         return spheres
+
+    def mesh_entities(self) -> list[MeshEntity]:
+        if self._terrain_asset_uri is None:
+            return []
+        return [
+            MeshEntity(
+                mesh_id=f"{self.user_id}_waypoint_terrain",
+                owner_id=self.user_id,
+                asset_uri=self._terrain_asset_uri,
+            )
+        ]
