@@ -40,6 +40,7 @@ dependencies = [
 [project.scripts]
 # elastica data converter
 elastica-npz2blend = "elastica_blender.converter.npz2blend:main"
+virtual-field-publish-mesh = "virtual_field.server.publisher_client:main"
 
 [dependency-groups]
 dev = [
