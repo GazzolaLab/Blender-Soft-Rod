@@ -9,6 +9,10 @@ from .state import Transform, Twist
 JSONDict = dict[str, Any]
 
 
+class ControllerDisconnectedError(Exception):
+    pass
+
+
 def _validate_size(values: list[float], size: int, name: str) -> None:
     if len(values) != size:
         raise ValueError(f"{name} must have size {size}, got {len(values)}")
@@ -54,7 +58,7 @@ class ArmCommand:
 
     def __post_init__(self) -> None:
         if not self.arm_id:
-            raise ValueError("arm_id cannot be empty")
+            raise ControllerDisconnectedError("arm_id cannot be empty")
         _validate_size(self.joystick, 2, "joystick")
 
     def to_dict(self) -> JSONDict:
@@ -89,6 +93,8 @@ class MultiArmCommand:
 
     timestamp: float
     commands: dict[str, ArmCommand]
+    head_pose: Transform | None = None
+    actions: dict[str, bool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for key, command in self.commands.items():
@@ -100,9 +106,10 @@ class MultiArmCommand:
         return {
             "timestamp": self.timestamp,
             "commands": {
-                arm_id: command.to_dict()
-                for arm_id, command in self.commands.items()
+                arm_id: command.to_dict() for arm_id, command in self.commands.items()
             },
+            "head_pose": None if self.head_pose is None else self.head_pose.to_dict(),
+            "actions": self.actions,
         }
 
 
@@ -193,10 +200,11 @@ class XRInputSample:
     timestamp: float
     head_pose: Transform
     controllers: dict[str, ControllerSample]
+    actions: dict[str, bool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.controllers:
-            raise ValueError("controllers cannot be empty")
+            raise ControllerDisconnectedError("controllers cannot be empty")
 
     @classmethod
     def from_dict(cls, data: JSONDict) -> "XRInputSample":
@@ -208,6 +216,7 @@ class XRInputSample:
                 hand: ControllerSample.from_dict(controller)
                 for hand, controller in data["controllers"].items()
             },
+            actions=dict(data.get("actions", {})),
         )
 
     def to_dict(self) -> JSONDict:
@@ -219,4 +228,5 @@ class XRInputSample:
                 hand: controller.to_dict()
                 for hand, controller in self.controllers.items()
             },
+            "actions": self.actions,
         }
