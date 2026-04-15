@@ -15,7 +15,11 @@ from loguru import logger
 from websockets import WebSocketServerProtocol
 from websockets.server import serve
 
-from virtual_field.core.commands import MultiArmCommand, XRInputSample
+from virtual_field.core.commands import (
+    MultiArmCommand,
+    XRInputSample,
+    ControllerDisconnectedError,
+)
 from virtual_field.core.mapping import SessionArmControlMapper
 from virtual_field.core.state import MeshEntity, OverlayPointsEntity
 from virtual_field.runtime.mode_registry import (
@@ -35,6 +39,7 @@ class ClientSession:
     teleop: TeleopService | None
     role: str = "vr_client"
     character_mode: str = DEFAULT_CHARACTER_MODE
+    requested_arm_count: int | None = None
     last_command: MultiArmCommand | None = None
     last_command_ts: float = 0.0
 
@@ -121,14 +126,555 @@ class VRWebSocketServer:
             self._server.close()
             await self._server.wait_closed()
 
-        for client in self._clients:
+        for client in tuple(self._clients):
             await client.close()
         logger.debug("Server stopped. closed_clients={}", len(self._clients))
 
+    async def _handle_client(self, websocket: WebSocketServerProtocol) -> None:
+        self._clients.add(websocket)
+        logger.debug("Client connected. active_clients={}", len(self._clients))
+        try:
+            async for message in websocket:
+                responses = await self._handle_raw_message(websocket, message)
+                for response in responses:
+                    await websocket.send(json.dumps(response))
+        finally:
+            self._clients.discard(websocket)
+            session = self._sessions.pop(websocket, None)
+            if session is not None:
+                logger.debug(
+                    "Cleaning up session user_id={} role={}",
+                    session.user_id,
+                    session.role,
+                )
+                if session.role == "vr_client":
+                    self.backend.remove_user(session.user_id)
+                self.backend.remove_owner_meshes(session.user_id)
+                self.backend.remove_owner_overlay_points(session.user_id)
+            self._client_user_map.pop(websocket, None)
+            logger.debug("Client disconnected. active_clients={}", len(self._clients))
 
-async def run_server(
-    host: str, port: int, ssl_context: ssl.SSLContext
-) -> None:
+    async def _handle_raw_message(
+        self, websocket: WebSocketServerProtocol, message: str
+    ) -> list[dict[str, Any]]:
+        try:
+            payload = json.loads(message)
+            validate_message(payload)
+            message_type = payload["type"]
+            body = payload["payload"]
+            logger.debug("Received message type={}", message_type)
+
+            if message_type == "hello":
+                return self._handle_hello(websocket, body)
+
+            session = self._sessions.get(websocket)
+            if session is None:
+                return [make_message("error", {"reason": "hello required first"})]
+
+            if session.role == "publisher":
+                logger.debug(
+                    "Routing publisher message type={} owner_id={}",
+                    message_type,
+                    session.user_id,
+                )
+                return self._handle_publisher_message(session, message_type, body)
+
+            if session.role == "spectator":
+                if message_type == "heartbeat":
+                    session.last_command_ts = time.monotonic()
+                    return []
+                return [
+                    make_message(
+                        "error",
+                        {"reason": f"{message_type} unsupported for spectator role"},
+                    )
+                ]
+
+            if message_type == "heartbeat":
+                session.last_command_ts = time.monotonic()
+                return []
+
+            if message_type == "reset":
+                logger.debug("Reset requested for user_id={}", session.user_id)
+                self.backend.remove_user(session.user_id)
+                session.arm_ids = self.backend.register_user(
+                    session.user_id,
+                    character_mode=session.character_mode,
+                    requested_arm_count=session.requested_arm_count,
+                )
+                session.teleop = TeleopService(
+                    SessionArmControlMapper(
+                        controlled_arm_ids=(
+                            session.arm_ids[0],
+                            session.arm_ids[1]
+                            if len(session.arm_ids) > 1
+                            else session.arm_ids[0],
+                        )
+                    )
+                )
+                return [
+                    make_message(
+                        "hello_ack",
+                        {
+                            "reset": True,
+                            "user_id": session.user_id,
+                            "arm_ids": session.arm_ids,
+                            "controlled_arm_ids": session.arm_ids[:2],
+                        },
+                    )
+                ]
+
+            if message_type == "xr_input":
+                if session.teleop is None:
+                    return [
+                        make_message(
+                            "error",
+                            {"reason": "xr_input requires vr_client role"},
+                        )
+                    ]
+                sample = XRInputSample.from_dict(body)
+                session.last_command = session.teleop.map_input(sample)
+                session.last_command_ts = time.monotonic()
+                return []
+
+            return [
+                make_message("error", {"reason": f"unsupported type: {message_type}"})
+            ]
+
+        except ControllerDisconnectedError:
+            return [make_message("error", {"reason": ""})]
+
+        except Exception as exc:  # pragma: no cover - safety fallback
+            logger.exception("Failed to handle incoming message: {}", exc)
+            return [make_message("error", {"reason": str(exc)})]
+
+    def _handle_hello(
+        self, websocket: WebSocketServerProtocol, body: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        role = str(body.get("role", "vr_client"))
+        logger.debug("Processing hello role={}", role)
+        if role == "publisher":
+            requested_owner_id = str(body.get("owner_id", "")).strip()
+            owner_id = (
+                requested_owner_id
+                if requested_owner_id
+                else f"publisher_{next(self._publisher_counter)}"
+            )
+            self._client_user_map[websocket] = owner_id
+            self._sessions[websocket] = ClientSession(
+                websocket=websocket,
+                user_id=owner_id,
+                arm_ids=[],
+                teleop=None,
+                role="publisher",
+                last_command_ts=time.monotonic(),
+            )
+            logger.debug("Publisher registered owner_id={}", owner_id)
+            return [
+                make_message(
+                    "hello_ack",
+                    {
+                        "protocol": 1,
+                        "server_time": time.time(),
+                        "role": "publisher",
+                        "owner_id": owner_id,
+                    },
+                )
+            ]
+
+        if role == "spectator":
+            spectator_id = f"spectator_{next(self._user_counter)}"
+            self._client_user_map[websocket] = spectator_id
+            self._sessions[websocket] = ClientSession(
+                websocket=websocket,
+                user_id=spectator_id,
+                arm_ids=[],
+                teleop=None,
+                role="spectator",
+                last_command_ts=time.monotonic(),
+            )
+            logger.debug("Spectator registered user_id={}", spectator_id)
+            return [
+                make_message(
+                    "hello_ack",
+                    {
+                        "protocol": 1,
+                        "server_time": time.time(),
+                        "role": "spectator",
+                        "user_id": spectator_id,
+                        "arm_ids": [],
+                        "controlled_arm_ids": [],
+                    },
+                ),
+                make_message(
+                    "asset_manifest",
+                    {
+                        "user_id": spectator_id,
+                        "arms": {},
+                        "scenery": {},
+                    },
+                ),
+            ]
+
+        requested_user_id = str(body.get("user_id", "")).strip()
+        requested_mode = str(body.get("character_mode", DEFAULT_CHARACTER_MODE))
+        character_mode = (
+            requested_mode
+            if requested_mode in SUPPORTED_CHARACTER_MODES
+            else DEFAULT_CHARACTER_MODE
+        )
+        requested_arm_count_raw = body.get("requested_arm_count")
+        try:
+            requested_arm_count = (
+                max(1, int(requested_arm_count_raw))
+                if requested_arm_count_raw is not None
+                else None
+            )
+        except (TypeError, ValueError):
+            requested_arm_count = None
+
+        if requested_user_id:
+            user_id = requested_user_id
+        else:
+            user_id = f"user_{next(self._user_counter)}"
+
+        self._client_user_map[websocket] = user_id
+        arm_ids = self.backend.register_user(
+            user_id,
+            character_mode=character_mode,
+            requested_arm_count=requested_arm_count,
+        )
+        logger.debug(
+            "VR client registered user_id={} arm_count={} mode={}",
+            user_id,
+            len(arm_ids),
+            character_mode,
+        )
+
+        # For now controllers only drive first two arms.
+        if len(arm_ids) == 1:
+            controlled_arm_ids = (arm_ids[0], arm_ids[0])
+        else:
+            controlled_arm_ids = (arm_ids[0], arm_ids[1])
+
+        teleop = TeleopService(
+            SessionArmControlMapper(controlled_arm_ids=controlled_arm_ids)
+        )
+        self._sessions[websocket] = ClientSession(
+            websocket=websocket,
+            user_id=user_id,
+            arm_ids=arm_ids,
+            teleop=teleop,
+            character_mode=character_mode,
+            requested_arm_count=requested_arm_count,
+            last_command_ts=time.monotonic(),
+        )
+
+        responses = [
+            make_message(
+                "hello_ack",
+                {
+                    "protocol": 1,
+                    "server_time": time.time(),
+                    "role": "vr_client",
+                    "character_mode": character_mode,
+                    "user_id": user_id,
+                    "arm_ids": arm_ids,
+                    "controlled_arm_ids": list(controlled_arm_ids),
+                },
+            )
+        ]
+
+        manifest_arms: dict[str, dict[str, str]] = {}
+        if character_mode == "cathy-foraging":
+            for arm_id in arm_ids:
+                manifest_arms[arm_id] = {"color": "#8c73fa"}
+        else:
+            palette = [
+                "#ff6b6b",
+                "#74c0fc",
+                "#8ce99a",
+                "#ffd43b",
+                "#f783ac",
+                "#63e6be",
+            ]
+            for idx, arm_id in enumerate(arm_ids):
+                manifest_arms[arm_id] = {"color": palette[idx % len(palette)]}
+
+        responses.append(
+            make_message(
+                "asset_manifest",
+                {
+                    "user_id": user_id,
+                    "arms": manifest_arms,
+                    "scenery": {},
+                },
+            )
+        )
+        return responses
+
+    def _handle_publisher_message(
+        self, session: ClientSession, message_type: str, body: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        if message_type == "heartbeat":
+            session.last_command_ts = time.monotonic()
+            return []
+
+        if message_type == "add_mesh":
+            mesh_id = str(body.get("mesh_id", "")).strip()
+            mesh_data_b64 = str(body.get("mesh_data_b64", "")).strip()
+            if not mesh_id or not mesh_data_b64:
+                return [
+                    make_message(
+                        "error",
+                        {"reason": "add_mesh requires mesh_id and mesh_data_b64"},
+                    )
+                ]
+
+            mime_type = str(body.get("mime_type", "model/gltf-binary"))
+            base64.b64decode(mesh_data_b64, validate=True)
+            asset_uri = f"data:{mime_type};base64,{mesh_data_b64}"
+
+            mesh = MeshEntity(
+                mesh_id=mesh_id,
+                owner_id=session.user_id,
+                asset_uri=asset_uri,
+                translation=list(body.get("translation", [0.0, 0.0, 0.0])),
+                rotation_xyzw=list(body.get("rotation_xyzw", [0.0, 0.0, 0.0, 1.0])),
+                scale=list(body.get("scale", [1.0, 1.0, 1.0])),
+                visible=bool(body.get("visible", True)),
+            )
+            self.backend.add_or_update_mesh(mesh)
+            logger.debug(
+                "Mesh added/updated owner_id={} mesh_id={}", session.user_id, mesh_id
+            )
+            return [
+                make_message(
+                    "mesh_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "mesh_id": mesh_id,
+                        "status": "added",
+                    },
+                )
+            ]
+
+        if message_type == "remove_mesh":
+            mesh_id = str(body.get("mesh_id", "")).strip()
+            self.backend.remove_mesh(mesh_id, owner_id=session.user_id)
+            logger.debug(
+                "Mesh removed owner_id={} mesh_id={}", session.user_id, mesh_id
+            )
+            return [
+                make_message(
+                    "mesh_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "mesh_id": mesh_id,
+                        "status": "removed",
+                    },
+                )
+            ]
+
+        if message_type == "update_mesh_transform":
+            mesh_id = str(body.get("mesh_id", "")).strip()
+            if not mesh_id:
+                return [
+                    make_message(
+                        "error",
+                        {"reason": "update_mesh_transform requires mesh_id"},
+                    )
+                ]
+            updated = self.backend.update_mesh_transform(
+                mesh_id=mesh_id,
+                owner_id=session.user_id,
+                translation=(
+                    list(body["translation"]) if "translation" in body else None
+                ),
+                rotation_xyzw=(
+                    list(body["rotation_xyzw"]) if "rotation_xyzw" in body else None
+                ),
+                scale=list(body["scale"]) if "scale" in body else None,
+                visible=(bool(body["visible"]) if "visible" in body else None),
+            )
+            if not updated:
+                return [
+                    make_message(
+                        "error",
+                        {"reason": "mesh not found or ownership mismatch for update"},
+                    )
+                ]
+            return [
+                make_message(
+                    "mesh_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "mesh_id": mesh_id,
+                        "status": "updated",
+                    },
+                )
+            ]
+
+        if message_type == "clear_meshes":
+            self.backend.remove_owner_meshes(session.user_id)
+            logger.debug("Meshes cleared owner_id={}", session.user_id)
+            return [
+                make_message(
+                    "mesh_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "status": "cleared",
+                    },
+                )
+            ]
+
+        if message_type == "update_overlay_points":
+            overlay_id = str(body.get("overlay_id", "")).strip()
+            if not overlay_id:
+                return [
+                    make_message(
+                        "error",
+                        {"reason": "update_overlay_points requires overlay_id"},
+                    )
+                ]
+            raw_points = body.get("points", [])
+            if not isinstance(raw_points, list):
+                return [
+                    make_message(
+                        "error",
+                        {"reason": "points must be a list of [x, y, z]"},
+                    )
+                ]
+            points = [list(point) for point in raw_points]
+            overlay = OverlayPointsEntity(
+                overlay_id=overlay_id,
+                owner_id=session.user_id,
+                points=points,
+                point_size=float(body.get("point_size", 0.008)),
+                visible=bool(body.get("visible", True)),
+            )
+            self.backend.add_or_update_overlay_points(overlay)
+            logger.debug(
+                "Overlay points updated owner_id={} overlay_id={} point_count={}",
+                session.user_id,
+                overlay_id,
+                len(points),
+            )
+            return [
+                make_message(
+                    "overlay_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "overlay_id": overlay_id,
+                        "status": "updated",
+                    },
+                )
+            ]
+
+        if message_type == "remove_overlay_points":
+            overlay_id = str(body.get("overlay_id", "")).strip()
+            self.backend.remove_overlay_points(overlay_id, owner_id=session.user_id)
+            logger.debug(
+                "Overlay points removed owner_id={} overlay_id={}",
+                session.user_id,
+                overlay_id,
+            )
+            return [
+                make_message(
+                    "overlay_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "overlay_id": overlay_id,
+                        "status": "removed",
+                    },
+                )
+            ]
+
+        if message_type == "clear_overlay_points":
+            self.backend.remove_owner_overlay_points(session.user_id)
+            logger.debug("Overlay points cleared owner_id={}", session.user_id)
+            return [
+                make_message(
+                    "overlay_ack",
+                    {
+                        "owner_id": session.user_id,
+                        "status": "cleared",
+                    },
+                )
+            ]
+
+        return [
+            make_message(
+                "error",
+                {"reason": f"unsupported publisher message type: {message_type}"},
+            )
+        ]
+
+    async def _simulation_loop(self) -> None:
+        dt = 1.0 / self.sim_hz
+        logger.debug("Simulation loop started dt={}", dt)
+        while True:
+            command: MultiArmCommand | None = None
+            vr_client_count = 0
+            for session in self._sessions.values():
+                if session.role != "vr_client":
+                    continue
+                vr_client_count += 1
+                if session.last_command is None:
+                    continue
+                if time.monotonic() - session.last_command_ts > self._heartbeat_timeout:
+                    session.last_command = None
+                    continue
+                if command is None:
+                    command = session.last_command
+            if vr_client_count:
+                # One step per tick for the shared backend. ``command`` may be None
+                # until the first ``xr_input``; physics (preset octo waypoints, etc.)
+                # still runs — trigger is not required for stepping.
+                self.backend.step(dt, command)
+            elif not self._sessions:
+                self.backend.step(dt, None)
+            await asyncio.sleep(dt)
+
+    async def _publish_loop(self) -> None:
+        dt = 1.0 / self.publish_hz
+        logger.debug("Publish loop started dt={}", dt)
+        while True:
+            if self._clients:
+                state = self.backend.step(0.0, None)
+                message = make_message("scene_state", state.to_dict())
+                await self._broadcast(message)
+            await asyncio.sleep(dt)
+
+    def _log_background_task_failure(
+        self, task_name: str, task: asyncio.Task[None]
+    ) -> None:
+        if task.cancelled():
+            logger.debug("{} cancelled", task_name)
+            return
+        try:
+            exc = task.exception()
+        except Exception:
+            logger.exception("Failed to inspect {}", task_name)
+            return
+        if exc is not None:
+            logger.opt(exception=exc).error("{} crashed", task_name)
+
+    async def _broadcast(self, message: dict[str, Any]) -> None:
+        encoded = json.dumps(message)
+        stale: list[WebSocketServerProtocol] = []
+        for client in tuple(self._clients):
+            try:
+                await client.send(encoded)
+            except Exception:
+                stale.append(client)
+        for client in stale:
+            self._clients.discard(client)
+        if stale:
+            logger.debug("Dropped stale clients count={}", len(stale))
+
+
+async def run_server(host: str, port: int, ssl_context: ssl.SSLContext) -> None:
     server = VRWebSocketServer(host=host, port=port, ssl_context=ssl_context)
     await server.start()
 
@@ -144,8 +690,12 @@ async def run_server(
     try:
         while True:
             await asyncio.sleep(3600)
+    except Exception as exc:
+        logger.error("Exception in run_server: {}", exc)
     finally:
+        logger.info("Stopping server")
         await server.stop()
+
 
 def configure_logging(verbose: bool) -> None:
     logger.remove()
@@ -180,6 +730,7 @@ def main(
             ssl_context=ssl_context,
         )
     )
+
 
 if __name__ == "__main__":  # pragma: no cover
     main()
