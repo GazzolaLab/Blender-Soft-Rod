@@ -1,32 +1,38 @@
 # Examples
 
-This directory contains number of examples of how to use this library.
+This directory contains small examples that exercise the Blender and
+`elastica_blender` APIs.
 
-## Installing Requirements
+## Installing requirements
 
-All necessary requirement can be installed as follows:
+The repository does not define a separate `examples` dependency group.
+Install the development environment from the project root instead:
 
 ```bash
-uv sync --group examples
+uv sync --all-groups
 ```
 
-## Case Examples
+You can then run an example with `uv run python`, for example:
+
+```bash
+uv run python examples/projectile_motion.py
+```
+
+## Example scripts
 
 Some examples provide additional files or links to published paper for a complete description.
 Examples can serve as a starting template for customized usages.
 
-* [ProjectileMotion](./projectile_motion.py)
-    * __Purpose__: Illustration case with particle motion under gravity/spring/damping
-    * __Features__: Sphere
-* [Pendulum2D](./pendelum.py)
-    * __Purpose__: Illustration case for collection of primitive geometry
-    * __Features__: PrimitiveCollection, Sphere, Cylinder
-* [RigidRodSpringMotion](./single_rigid_rod_spring_action.py)
-    * __Purpose__: Illustration case for Rod module
-    * __Features__: Rod
+- [ProjectileMotion](./projectile_motion.py): particle motion under
+  gravity/spring/damping using a sphere primitive.
+- [Pendulum2D](./pendulum.py): simple primitive-geometry scene using spheres and
+  cylinders.
+- [PoseDemo](./pose_demo.py): pose composition and placement example.
+- [CameraMovement](./camera_movement.py): camera motion and scene framing demo.
+- [RigidRodSpringMotion](./single_rigid_rod_spring_action.py): rod animation
+  example.
 
-## Case with External Simulator
+## Example with external simulator
 
-* [TimoshenkoBeamCase](./elastica-timoshenko.py)
-    * __Purpose__: Example of `elastica_blender` module on simple Timoshenko beam.
-    * __Features__: elastica_blender.BlenderRodCallback
+- [TimoshenkoBeamCase](./elastica_timoshenko.py): example of
+  `elastica_blender.BlenderRodCallback` on a simple Timoshenko beam.

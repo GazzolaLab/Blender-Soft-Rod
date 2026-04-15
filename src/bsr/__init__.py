@@ -1,29 +1,7 @@
-from typing import Final, Optional
+from typing import Final, cast
 
-import sys
+from importlib import import_module
 from importlib import metadata as importlib_metadata
-
-import bpy
-
-from ._camera import Camera
-from ._light import Light
-
-# Exposed functions and classes (API)
-# Note: These should not be imported within the package to avoid circular imports
-from .blender_commands.file import reload, save
-from .blender_commands.macros import (
-    clear_materials,
-    clear_mesh_objects,
-    deselect_all,
-    scene_update,
-)
-from .frame import FrameManager
-from .geometry.composite.pose import Pose
-from .geometry.composite.rod import Rod, RodWithBox, RodWithCylinder
-from .geometry.composite.stack import RodStack, create_rod_collection
-from .geometry.primitives.pipe import BezierSplinePipe
-from .geometry.primitives.simple import Cylinder, Sphere
-from .viewport import find_area, set_view_distance
 
 
 def get_version() -> str:
@@ -34,6 +12,48 @@ def get_version() -> str:
 
 
 version: Final[str] = get_version()
-frame_manager = FrameManager()
-camera = Camera()
-light = Light()
+
+_LAZY_EXPORTS: dict[str, tuple[str, str, bool]] = {
+    "Camera": ("bsr._camera", "Camera", False),
+    "Light": ("bsr._light", "Light", False),
+    "reload": ("bsr.blender_commands.file", "reload", False),
+    "save": ("bsr.blender_commands.file", "save", False),
+    "clear_materials": ("bsr.blender_commands.macros", "clear_materials", False),
+    "clear_mesh_objects": ("bsr.blender_commands.macros", "clear_mesh_objects", False),
+    "deselect_all": ("bsr.blender_commands.macros", "deselect_all", False),
+    "scene_update": ("bsr.blender_commands.macros", "scene_update", False),
+    "FrameManager": ("bsr.frame", "FrameManager", False),
+    "Pose": ("bsr.geometry.composite.pose", "Pose", False),
+    "Rod": ("bsr.geometry.composite.rod", "Rod", False),
+    "RodWithBox": ("bsr.geometry.composite.rod", "RodWithBox", False),
+    "RodWithCylinder": ("bsr.geometry.composite.rod", "RodWithCylinder", False),
+    "RodStack": ("bsr.geometry.composite.stack", "RodStack", False),
+    "create_rod_collection": (
+        "bsr.geometry.composite.stack",
+        "create_rod_collection",
+        False,
+    ),
+    "BezierSplinePipe": ("bsr.geometry.primitives.pipe", "BezierSplinePipe", False),
+    "Cylinder": ("bsr.geometry.primitives.simple", "Cylinder", False),
+    "Sphere": ("bsr.geometry.primitives.simple", "Sphere", False),
+    "find_area": ("bsr.viewport", "find_area", False),
+    "set_view_distance": ("bsr.viewport", "set_view_distance", False),
+    "frame_manager": ("bsr.frame", "FrameManager", True),
+    "camera": ("bsr._camera", "Camera", True),
+    "light": ("bsr._light", "Light", True),
+}
+
+__all__ = ["version", *_LAZY_EXPORTS.keys()]
+
+
+def __getattr__(name: str) -> object:
+    if name not in _LAZY_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module_name, attr_name, instantiate = _LAZY_EXPORTS[name]
+    module = import_module(module_name)
+    value = getattr(module, attr_name)
+    if instantiate:
+        value = value()
+    globals()[name] = value
+    return cast(object, value)

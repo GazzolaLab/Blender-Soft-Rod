@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from bsr.geometry.primitives.simple import Cylinder, Sphere
+from bsr.tools.action_compat import iter_action_fcurves
 
 
 def get_keyframes(obj_list):
@@ -12,7 +13,7 @@ def get_keyframes(obj_list):
     for obj in obj_list:
         animation_data = obj.animation_data
         if animation_data is not None and animation_data.action is not None:
-            for fcurve in animation_data.action.fcurves:
+            for fcurve in iter_action_fcurves(animation_data.action):
                 for keyframe in fcurve.keyframe_points:
                     x, y = keyframe.co
                     if x not in keyframes:

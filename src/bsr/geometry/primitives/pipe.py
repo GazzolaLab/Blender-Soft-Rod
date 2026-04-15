@@ -70,9 +70,11 @@ class BezierSplinePipe(KeyFrameControlMixin):
             downsample_num_element is None or downsample_num_element >= 2
         ), "downsample_num_element must be at least 2 to include both endpoints"
         self.downsample_num_element = downsample_num_element
-        number_of_points = positions.shape[1]
-        if downsample_num_element is not None:
-            number_of_points = min(number_of_points, downsample_num_element)
+        number_of_points = (
+            positions.shape[1]
+            if downsample_num_element is None
+            else min(positions.shape[1], downsample_num_element)
+        )
         self._obj = self._create_bezier_spline(number_of_points)
         self._obj.name = self.name
         self.update_states(positions, radii)

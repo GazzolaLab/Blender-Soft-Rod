@@ -1,0 +1,16 @@
+{% extends "!layout.html" %}
+
+{% block menu %}
+{{ super() }}
+<p class="caption" role="heading">
+  <span class="caption-text">Project</span>
+</p>
+<ul>
+  <li class="toctree-l1">
+    <a class="reference external" href="{{ github_repo_url }}">Go to GitHub</a>
+    <a class="reference external" href="https://github.com/GazzolaLab/PyElastica">Go to PyElastica (github)</a>
+    <a class="reference external" href="https://docs.cosseratrods.org/en/latest/?badge=latest">Go to PyElastica
+      (docs)</a>
+  </li>
+</ul>
+{% endblock %}

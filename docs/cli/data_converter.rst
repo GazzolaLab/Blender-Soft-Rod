@@ -1,12 +1,13 @@
 CLI Commands
 ============
 
-For key routines, we also provides CLI-executable commands, such that one can manipulate the data the shell.
+The project ships command-line tools for Blender export and the Virtual Field
+runtime.
 
-Elastica Data Converter
+Elastica data converter
 -----------------------
 
-We provide a set of CLI tools to convert data exported from `PyElastica`_ simulation.
+Convert simulation data exported from `PyElastica`_ into a `.blend` file.
 
 .. _PyElastica: https://github.com/GazzolaLab/PyElastica
 

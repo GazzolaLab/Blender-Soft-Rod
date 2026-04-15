@@ -1,6 +1,12 @@
+from importlib import import_module
+from typing import cast
+
 __all__ = ["BlenderRodCallback"]
 
-try:
-    from .rod_callback import BlenderRodCallback
-except ModuleNotFoundError:  # pragma: no cover
-    pass
+
+def __getattr__(name: str) -> object:
+    if name not in __all__:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = import_module("elastica_blender.rod_callback")
+    value = getattr(module, name)
+    return cast(object, value)
