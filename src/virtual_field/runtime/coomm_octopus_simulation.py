@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+import elastica as ea
 import numpy as np
 from collections import deque
 
@@ -13,6 +14,8 @@ from virtual_field.core.state import SphereEntity
 @dataclass(slots=True)
 class COOMMOctopusSimulation(DualArmSimulationBase):
     """COOMM Octopus mode"""
+
+    _sphere: list[ea.Sphere] = field(init=False)
 
     def build_simulation(self) -> None:
         import elastica as ea
@@ -67,6 +70,13 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         )
         self.simulator.append(self.left_rod)
         self.simulator.append(self.right_rod)
+
+        self._sphere = ea.Sphere(
+            np.array([0.0, 1.0, -0.3]),
+            0.05,
+            100.0,
+        )
+        self.simulator.append(self._sphere)
 
         self.simulator.constrain(self.left_rod).using(
             ea.FixedConstraint,
@@ -123,15 +133,16 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
-        for idx, sphere in enumerate(self.spheres):
-            position = np.asarray(sphere.position_collection[..., 0], dtype=np.float64)
-            spheres.append(
-                SphereEntity(
-                    sphere_id=f"{self.user_id}_coomm_octopus_sphere_{idx}",
-                    owner_id=self.user_id,
-                    translation=position.tolist(),
-                    radius=float(sphere.radius),
-                    color_rgb=[0.95, 0.62, 0.32],
-                )
+        position = np.asarray(
+            self._sphere.position_collection[..., 0], dtype=np.float64
+        )
+        spheres.append(
+            SphereEntity(
+                sphere_id=f"{self.user_id}_coomm_octopus_sphere",
+                owner_id=self.user_id,
+                translation=position.tolist(),
+                radius=float(self._sphere.radius),
+                color_rgb=[0.95, 0.62, 0.32],
             )
+        )
         return spheres
