@@ -8,7 +8,7 @@ from virtual_field.runtime.cathy_throw_simulation import CathyThrowSimulation
 from virtual_field.runtime.coomm_octopus_simulation import COOMMOctopusSimulation
 from virtual_field.runtime.mode_base import SimulationBase
 from virtual_field.runtime.noel_c4_simulation import NoelC4Simulation
-# from virtual_field.runtime.octo_waypoint_simulation import OctoWaypointSimulation
+from virtual_field.runtime.octo_waypoint_simulation import OctoWaypointSimulation
 # from virtual_field.runtime.spirobs_simulation import SpirobsSimulation
 from virtual_field.runtime.two_cr_simulation import TwoCRSimulation
 from virtual_field.runtime.two_gcr_simulation import TwoGCRSimulation
@@ -51,9 +51,9 @@ MODE_SPECS: dict[str, CharacterModeSpec] = {
     # "cathy-foraging": CharacterModeSpec(
     #     arm_count=8, base_layout="octo", factory=CathyForagingSimulation
     # ),
-    # "octo-waypoint": CharacterModeSpec(
-    #     arm_count=9, base_layout="octo", factory=OctoWaypointSimulation
-    # ),
+    "octo-waypoint": CharacterModeSpec(
+        arm_count=9, base_layout="octo", factory=OctoWaypointSimulation
+    ),
 }
 SUPPORTED_CHARACTER_MODES = frozenset(MODE_SPECS.keys())
 
