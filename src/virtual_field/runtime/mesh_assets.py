@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -128,6 +129,7 @@ def _vertex_normals_from_triangles(
 def build_pyvista_polydata_gltf_data_uri(
     mesh: Any,
     color_rgba: tuple[float, float, float, float] = (0.42, 0.48, 0.55, 1.0),
+    base_color_texture_path: str | Path | None = None,
 ) -> str:
     """Encode a PyVista surface mesh as an embedded GLTF JSON data URI.
 
@@ -141,7 +143,10 @@ def build_pyvista_polydata_gltf_data_uri(
     if not isinstance(mesh, pv.PolyData):
         mesh = mesh.extract_surface()
     tri = mesh.triangulate()
-    tri = tri.compute_normals(point_normals=True, cell_normals=False, inplace=False)
+    try:
+        tri = tri.compute_normals(point_normals=True, cell_normals=False, inplace=False)
+    except RuntimeError:
+        pass
     points = np.asarray(tri.points, dtype=np.float32)
     if points.size == 0:
         raise ValueError("mesh has no points")
@@ -165,8 +170,21 @@ def build_pyvista_polydata_gltf_data_uri(
 
     position_bytes = points.astype("<f4", copy=False).tobytes()
     normal_bytes = normals.astype("<f4", copy=False).tobytes()
+    texcoord_bytes: bytes | None = None
+    if base_color_texture_path is not None:
+        texcoords = getattr(tri, "active_texture_coordinates", None)
+        if texcoords is not None:
+            texcoords_array = np.asarray(texcoords, dtype=np.float32)
+            if texcoords_array.shape == (points.shape[0], 2):
+                texcoords_array = texcoords_array.copy()
+                # GLTF UV origin is upper-left for most textures in Three.js workflows.
+                texcoords_array[:, 1] = 1.0 - texcoords_array[:, 1]
+                texcoord_bytes = texcoords_array.astype("<f4", copy=False).tobytes()
     index_bytes = indices.tobytes()
-    buffer_blob = position_bytes + normal_bytes + index_bytes
+    buffer_blob = position_bytes + normal_bytes
+    if texcoord_bytes is not None:
+        buffer_blob += texcoord_bytes
+    buffer_blob += index_bytes
     buffer_uri = (
         "data:application/octet-stream;base64,"
         + base64.b64encode(buffer_blob).decode("ascii")
@@ -174,7 +192,8 @@ def build_pyvista_polydata_gltf_data_uri(
 
     position_offset = 0
     normal_offset = len(position_bytes)
-    index_offset = normal_offset + len(normal_bytes)
+    texcoord_offset = normal_offset + len(normal_bytes)
+    index_offset = texcoord_offset + (len(texcoord_bytes) if texcoord_bytes is not None else 0)
     primitive_count = int(indices.size)
 
     alpha = float(color_rgba[3])
@@ -190,6 +209,72 @@ def build_pyvista_polydata_gltf_data_uri(
         # GLTF alpha in baseColorFactor only applies when alphaMode is BLEND/MASK.
         material["alphaMode"] = "BLEND"
 
+    image_entry = None
+    texture_entry = None
+    texture_path = Path(base_color_texture_path) if base_color_texture_path is not None else None
+    if texture_path is not None and texture_path.exists() and texcoord_bytes is not None:
+        texture_mime = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+        }.get(texture_path.suffix.lower())
+        if texture_mime is not None:
+            texture_encoded = base64.b64encode(texture_path.read_bytes()).decode("ascii")
+            image_entry = {"uri": f"data:{texture_mime};base64,{texture_encoded}"}
+            texture_entry = {"source": 0}
+            material["pbrMetallicRoughness"]["baseColorTexture"] = {"index": 0}
+
+    buffer_views = [
+        {"buffer": 0, "byteOffset": position_offset, "byteLength": len(position_bytes), "target": 34962},
+        {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes), "target": 34962},
+    ]
+    accessors = [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "count": int(points.shape[0]),
+            "type": "VEC3",
+            "min": points.min(axis=0).astype(float).tolist(),
+            "max": points.max(axis=0).astype(float).tolist(),
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": int(normals.shape[0]),
+            "type": "VEC3",
+        },
+    ]
+    attributes = {"POSITION": 0, "NORMAL": 1}
+    if texcoord_bytes is not None:
+        buffer_views.append(
+            {"buffer": 0, "byteOffset": texcoord_offset, "byteLength": len(texcoord_bytes), "target": 34962}
+        )
+        accessors.append(
+            {
+                "bufferView": 2,
+                "componentType": 5126,
+                "count": int(points.shape[0]),
+                "type": "VEC2",
+            }
+        )
+        attributes["TEXCOORD_0"] = 2
+        index_accessor_buffer_view = 3
+    else:
+        index_accessor_buffer_view = 2
+    buffer_views.append(
+        {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes), "target": 34963}
+    )
+    accessors.append(
+        {
+            "bufferView": index_accessor_buffer_view,
+            "componentType": 5125,
+            "count": primitive_count,
+            "type": "SCALAR",
+            "min": [int(indices.min())],
+            "max": [int(indices.max())],
+        }
+    )
+
     gltf = {
         "asset": {"version": "2.0"},
         "scene": 0,
@@ -197,47 +282,23 @@ def build_pyvista_polydata_gltf_data_uri(
         "nodes": [{"mesh": 0}],
         "materials": [material],
         "buffers": [{"byteLength": len(buffer_blob), "uri": buffer_uri}],
-        "bufferViews": [
-            {"buffer": 0, "byteOffset": position_offset, "byteLength": len(position_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes), "target": 34963},
-        ],
-        "accessors": [
-            {
-                "bufferView": 0,
-                "componentType": 5126,
-                "count": int(points.shape[0]),
-                "type": "VEC3",
-                "min": points.min(axis=0).astype(float).tolist(),
-                "max": points.max(axis=0).astype(float).tolist(),
-            },
-            {
-                "bufferView": 1,
-                "componentType": 5126,
-                "count": int(normals.shape[0]),
-                "type": "VEC3",
-            },
-            {
-                "bufferView": 2,
-                "componentType": 5125,
-                "count": primitive_count,
-                "type": "SCALAR",
-                "min": [int(indices.min())],
-                "max": [int(indices.max())],
-            },
-        ],
+        "bufferViews": buffer_views,
+        "accessors": accessors,
         "meshes": [
             {
                 "primitives": [
                     {
-                        "attributes": {"POSITION": 0, "NORMAL": 1},
-                        "indices": 2,
+                        "attributes": attributes,
+                        "indices": len(accessors) - 1,
                         "material": 0,
                     }
                 ]
             }
         ],
     }
+    if image_entry is not None and texture_entry is not None:
+        gltf["images"] = [image_entry]
+        gltf["textures"] = [texture_entry]
     encoded = base64.b64encode(
         json.dumps(gltf, separators=(",", ":")).encode("utf-8")
     ).decode("ascii")

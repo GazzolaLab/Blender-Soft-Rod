@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from loguru import logger
 import numpy as np
@@ -31,6 +30,9 @@ from importlib.resources import files
 ASSET_PATH = files("virtual_field").joinpath("externals", "crawling")
 EXTERNAL_POLICY_PATH = ASSET_PATH / "best_policy.npy"
 EXTERNAL_MESH_PATH = ASSET_PATH / "terrain" / "scene.gltf"
+EXTERNAL_MESH_BASE_COLOR_TEXTURE_PATH = (
+    ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor.jpeg"
+)
 
 WAYPOINT_PLANE_Y = -0.05
 WAYPOINT_RADIUS = 0.04
@@ -220,20 +222,23 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
 
         plane_y = -0.02
         terrain_mesh = pv.read(EXTERNAL_MESH_PATH)
+        terrain_mesh = terrain_mesh["Node_0"].extract_surface(algorithm=None)
         terrain_mesh.translate(
             -np.array(terrain_mesh.center), inplace=True
         )  # center the mesh at origin
-        terrain_mesh.scale(0.5 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
-        terrain_mesh.rotate_x(
-            90, inplace=True
-        )  # rotate so surface upper side points in +y
+        terrain_mesh.scale(1.0 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
+        # terrain_mesh.rotate_x(
+        #     90, inplace=True
+        # )  # rotate so surface upper side points in +y
         terrain_mesh.translate(
             np.array([0, plane_y - terrain_mesh.bounds[3], 0])
         )  # surface top point at plane_y
         ground_surface = MeshSurface(terrain_mesh)
+        self.simulator.append(ground_surface)
         self._terrain_asset_uri = build_pyvista_polydata_gltf_data_uri(
             terrain_mesh,
             color_rgba=(0.42, 0.48, 0.55, 1.00),
+            base_color_texture_path=EXTERNAL_MESH_BASE_COLOR_TEXTURE_PATH,
         )
         dummy_rod = create_spirob(
             15,

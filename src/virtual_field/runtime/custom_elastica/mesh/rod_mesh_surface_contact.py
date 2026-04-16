@@ -311,6 +311,11 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             self.kinetic_mu_sideways,
         ) = kinetic_mu_array
 
+    @property
+    def _allowed_system_two(self) -> list[Type]:
+        # Modify this list to include the allowed system types for contact
+        return [MeshSurface]
+
     def apply_contact(
         self,
         system_one,

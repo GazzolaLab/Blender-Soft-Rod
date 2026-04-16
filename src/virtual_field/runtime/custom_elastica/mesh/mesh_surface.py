@@ -22,9 +22,6 @@ class MeshSurface(Plane):
         mesh: pv.PolyData,
     ):
         self.mesh = mesh
-        self._mesh_surface_init()
-
-    def _mesh_surface_init(self):
         self.scale = self.scale_calculation(self.mesh.bounds)
         self.faces = self.face_calculation(
             self.mesh.faces, self.mesh.points, self.mesh.n_faces_strict
