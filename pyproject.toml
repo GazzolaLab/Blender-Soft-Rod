@@ -34,6 +34,7 @@ dependencies = [
   "loguru>=0.7.3",
   "mathutils>=3.3.0,<4",
   "pyelastica @ git+https://github.com/GazzolaLab/PyElastica.git@update-v1",
+  "pyvista>=0.47.3",
   "websockets>=12,<13",
 ]
 
@@ -68,6 +69,11 @@ docs = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bsr", "src/elastica_blender", "src/virtual_field"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+]
 
 [tool.black]
 # https://github.com/psf/black
