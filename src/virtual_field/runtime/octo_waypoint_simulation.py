@@ -31,7 +31,8 @@ ASSET_PATH = files("virtual_field").joinpath("externals", "crawling")
 EXTERNAL_POLICY_PATH = ASSET_PATH / "best_policy.npy"
 EXTERNAL_MESH_PATH = ASSET_PATH / "terrain" / "scene.gltf"
 EXTERNAL_MESH_BASE_COLOR_TEXTURE_PATH = (
-    ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor.jpeg"
+    # ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor.jpeg"
+    ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor_underwaterV2.jpeg"
 )
 
 WAYPOINT_PLANE_Y = -0.05
@@ -226,37 +227,37 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         terrain_mesh.translate(
             -np.array(terrain_mesh.center), inplace=True
         )  # center the mesh at origin
-        terrain_mesh.scale(1.0 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
+        terrain_mesh.scale(1.2 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
         # terrain_mesh.rotate_x(
         #     90, inplace=True
         # )  # rotate so surface upper side points in +y
         terrain_mesh.translate(
             np.array([0, plane_y - terrain_mesh.bounds[3], 0])
         )  # surface top point at plane_y
-        ground_surface = MeshSurface(terrain_mesh)
-        self.simulator.append(ground_surface)
+        # ground_surface = MeshSurface(terrain_mesh)
+        # self.simulator.append(ground_surface)
         self._terrain_asset_uri = build_pyvista_polydata_gltf_data_uri(
             terrain_mesh,
             color_rgba=(0.42, 0.48, 0.55, 1.00),
             base_color_texture_path=EXTERNAL_MESH_BASE_COLOR_TEXTURE_PATH,
         )
-        dummy_rod = create_spirob(
-            15,
-            np.array([0.0, 0.0, 0.0], dtype=np.float64),
-            np.array([1.0, 0.0, 0.0], dtype=np.float64),
-            np.array([0.0, -1.0, 0.0], dtype=np.float64),
-            0.45,
-            0.02,
-            5500.0,
-            5.0e5,
-        )
-        grid = Grid(
-            rod=dummy_rod,
-            surface=ground_surface,
-            grid_dimension=2,
-            exit_boundary_condition=False,
-            grid_axes=[0, 2],
-        )
+        # dummy_rod = create_spirob(
+        #     15,
+        #     np.array([0.0, 0.0, 0.0], dtype=np.float64),
+        #     np.array([1.0, 0.0, 0.0], dtype=np.float64),
+        #     np.array([0.0, -1.0, 0.0], dtype=np.float64),
+        #     0.45,
+        #     0.02,
+        #     5500.0,
+        #     5.0e5,
+        # )
+        # grid = Grid(
+        #     rod=dummy_rod,
+        #     surface=ground_surface,
+        #     grid_dimension=2,
+        #     exit_boundary_condition=False,
+        #     grid_axes=[0, 2],
+        # )
 
         rods: dict[str, ea.CosseratRod] = {}
         rods[self.arm_ids[TENTACLE_COUNT]] = self.head
@@ -321,16 +322,17 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
                 rotational_damping_constant=3.0e-3,
                 time_step=self.dt_internal,
             )
-            self.simulator.detect_contact_between(rod, ground_surface).using(
-                RodMeshSurfaceContactGridMethodWithAnisotropicFriction,
-                k=5e2,
-                nu=1e-1,
-                gamma=0.1,
-                grid=grid,
-                slip_velocity_tol=1e-4,
-                static_mu_array=np.array([0, 0, 0]),
-                kinetic_mu_array=np.array([0.1, 0.1, 0.1]),
-            )
+
+            # self.simulator.detect_contact_between(rod, ground_surface).using(
+            #     RodMeshSurfaceContactGridMethodWithAnisotropicFriction,
+            #     k=5e2,
+            #     nu=1e-1,
+            #     gamma=0.1,
+            #     grid=grid,
+            #     slip_velocity_tol=1e-4,
+            #     static_mu_array=np.array([0, 0, 0]),
+            #     kinetic_mu_array=np.array([0.1, 0.1, 0.1]),
+            # )
 
         self.rods = rods
         self.simulator.finalize()
@@ -668,5 +670,6 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
                 mesh_id=f"{self.user_id}_waypoint_terrain",
                 owner_id=self.user_id,
                 asset_uri=self._terrain_asset_uri,
+                static_asset=True,
             )
         ]

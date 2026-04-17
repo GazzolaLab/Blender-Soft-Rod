@@ -138,7 +138,7 @@ class TwoGCRSimulation(DualArmSimulationBase):
             -np.array(pipe_mesh.center), inplace=True
         )  # center the mesh at origin
         pipe_mesh.translate(
-            np.array([0.04, 1.02, -0.45]), inplace=True
+            np.array([-0.01, 1.02, -0.45]), inplace=True
         )  # center the mesh at origin
         self._pipe_maze_asset_uri = build_pyvista_polydata_gltf_data_uri(
             pipe_mesh,
@@ -245,5 +245,6 @@ class TwoGCRSimulation(DualArmSimulationBase):
                 mesh_id=f"{self.user_id}_two_gcr_pipe_maze",
                 owner_id=self.user_id,
                 asset_uri=self._pipe_maze_asset_uri,
+                static_asset=True,
             )
         ]

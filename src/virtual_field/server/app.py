@@ -451,6 +451,7 @@ class VRWebSocketServer:
                 rotation_xyzw=list(body.get("rotation_xyzw", [0.0, 0.0, 0.0, 1.0])),
                 scale=list(body.get("scale", [1.0, 1.0, 1.0])),
                 visible=bool(body.get("visible", True)),
+                static_asset=bool(body.get("static_asset", False)),
             )
             self.backend.add_or_update_mesh(mesh)
             logger.debug(
@@ -671,6 +672,26 @@ class VRWebSocketServer:
         encoded = json.dumps(message)
         stale: list[WebSocketServerProtocol] = []
         for client in tuple(self._clients):
+            try:
+                await client.send(encoded)
+            except Exception:
+                stale.append(client)
+        for client in stale:
+            self._clients.discard(client)
+        if stale:
+            logger.debug("Dropped stale clients count={}", len(stale))
+
+    async def _broadcast_scene_state(self, state: SceneState) -> None:
+        """Send ``scene_state`` with per-client omission of static mesh ``asset_uri``."""
+        stale: list[WebSocketServerProtocol] = []
+        for client in tuple(self._clients):
+            session = self._sessions.get(client)
+            if session is None:
+                payload = state.to_dict()
+            else:
+                payload = state.to_dict_for_client(session.sent_static_mesh_asset_ids)
+            message = make_message("scene_state", payload)
+            encoded = json.dumps(message)
             try:
                 await client.send(encoded)
             except Exception:

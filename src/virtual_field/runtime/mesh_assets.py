@@ -31,10 +31,9 @@ def build_cylinder_gltf_data_uri(
     normal_bytes = normals.astype("<f4", copy=False).tobytes()
     index_bytes = indices.astype("<u4", copy=False).tobytes()
     buffer_blob = position_bytes + normal_bytes + index_bytes
-    buffer_uri = (
-        "data:application/octet-stream;base64,"
-        + base64.b64encode(buffer_blob).decode("ascii")
-    )
+    buffer_uri = "data:application/octet-stream;base64," + base64.b64encode(
+        buffer_blob
+    ).decode("ascii")
 
     position_offset = 0
     normal_offset = len(position_bytes)
@@ -58,9 +57,24 @@ def build_cylinder_gltf_data_uri(
         ],
         "buffers": [{"byteLength": len(buffer_blob), "uri": buffer_uri}],
         "bufferViews": [
-            {"buffer": 0, "byteOffset": position_offset, "byteLength": len(position_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes), "target": 34963},
+            {
+                "buffer": 0,
+                "byteOffset": position_offset,
+                "byteLength": len(position_bytes),
+                "target": 34962,
+            },
+            {
+                "buffer": 0,
+                "byteOffset": normal_offset,
+                "byteLength": len(normal_bytes),
+                "target": 34962,
+            },
+            {
+                "buffer": 0,
+                "byteOffset": index_offset,
+                "byteLength": len(index_bytes),
+                "target": 34963,
+            },
         ],
         "accessors": [
             {
@@ -185,15 +199,16 @@ def build_pyvista_polydata_gltf_data_uri(
     if texcoord_bytes is not None:
         buffer_blob += texcoord_bytes
     buffer_blob += index_bytes
-    buffer_uri = (
-        "data:application/octet-stream;base64,"
-        + base64.b64encode(buffer_blob).decode("ascii")
-    )
+    buffer_uri = "data:application/octet-stream;base64," + base64.b64encode(
+        buffer_blob
+    ).decode("ascii")
 
     position_offset = 0
     normal_offset = len(position_bytes)
     texcoord_offset = normal_offset + len(normal_bytes)
-    index_offset = texcoord_offset + (len(texcoord_bytes) if texcoord_bytes is not None else 0)
+    index_offset = texcoord_offset + (
+        len(texcoord_bytes) if texcoord_bytes is not None else 0
+    )
     primitive_count = int(indices.size)
 
     alpha = float(color_rgba[3])
@@ -211,22 +226,40 @@ def build_pyvista_polydata_gltf_data_uri(
 
     image_entry = None
     texture_entry = None
-    texture_path = Path(base_color_texture_path) if base_color_texture_path is not None else None
-    if texture_path is not None and texture_path.exists() and texcoord_bytes is not None:
+    texture_path = (
+        Path(base_color_texture_path) if base_color_texture_path is not None else None
+    )
+    if (
+        texture_path is not None
+        and texture_path.exists()
+        and texcoord_bytes is not None
+    ):
         texture_mime = {
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
             ".png": "image/png",
         }.get(texture_path.suffix.lower())
         if texture_mime is not None:
-            texture_encoded = base64.b64encode(texture_path.read_bytes()).decode("ascii")
+            texture_encoded = base64.b64encode(texture_path.read_bytes()).decode(
+                "ascii"
+            )
             image_entry = {"uri": f"data:{texture_mime};base64,{texture_encoded}"}
             texture_entry = {"source": 0}
             material["pbrMetallicRoughness"]["baseColorTexture"] = {"index": 0}
 
     buffer_views = [
-        {"buffer": 0, "byteOffset": position_offset, "byteLength": len(position_bytes), "target": 34962},
-        {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes), "target": 34962},
+        {
+            "buffer": 0,
+            "byteOffset": position_offset,
+            "byteLength": len(position_bytes),
+            "target": 34962,
+        },
+        {
+            "buffer": 0,
+            "byteOffset": normal_offset,
+            "byteLength": len(normal_bytes),
+            "target": 34962,
+        },
     ]
     accessors = [
         {
@@ -247,7 +280,12 @@ def build_pyvista_polydata_gltf_data_uri(
     attributes = {"POSITION": 0, "NORMAL": 1}
     if texcoord_bytes is not None:
         buffer_views.append(
-            {"buffer": 0, "byteOffset": texcoord_offset, "byteLength": len(texcoord_bytes), "target": 34962}
+            {
+                "buffer": 0,
+                "byteOffset": texcoord_offset,
+                "byteLength": len(texcoord_bytes),
+                "target": 34962,
+            }
         )
         accessors.append(
             {
@@ -262,7 +300,12 @@ def build_pyvista_polydata_gltf_data_uri(
     else:
         index_accessor_buffer_view = 2
     buffer_views.append(
-        {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes), "target": 34963}
+        {
+            "buffer": 0,
+            "byteOffset": index_offset,
+            "byteLength": len(index_bytes),
+            "target": 34963,
+        }
     )
     accessors.append(
         {
@@ -321,10 +364,9 @@ def build_sphere_gltf_data_uri(
     normal_bytes = normals.astype("<f4", copy=False).tobytes()
     index_bytes = indices.astype("<u4", copy=False).tobytes()
     buffer_blob = position_bytes + normal_bytes + index_bytes
-    buffer_uri = (
-        "data:application/octet-stream;base64,"
-        + base64.b64encode(buffer_blob).decode("ascii")
-    )
+    buffer_uri = "data:application/octet-stream;base64," + base64.b64encode(
+        buffer_blob
+    ).decode("ascii")
 
     position_offset = 0
     normal_offset = len(position_bytes)
@@ -348,9 +390,24 @@ def build_sphere_gltf_data_uri(
         ],
         "buffers": [{"byteLength": len(buffer_blob), "uri": buffer_uri}],
         "bufferViews": [
-            {"buffer": 0, "byteOffset": position_offset, "byteLength": len(position_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes), "target": 34962},
-            {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes), "target": 34963},
+            {
+                "buffer": 0,
+                "byteOffset": position_offset,
+                "byteLength": len(position_bytes),
+                "target": 34962,
+            },
+            {
+                "buffer": 0,
+                "byteOffset": normal_offset,
+                "byteLength": len(normal_bytes),
+                "target": 34962,
+            },
+            {
+                "buffer": 0,
+                "byteOffset": index_offset,
+                "byteLength": len(index_bytes),
+                "target": 34963,
+            },
         ],
         "accessors": [
             {

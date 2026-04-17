@@ -195,6 +195,9 @@ class MeshEntity:
         Non-uniform scale vector.
     visible
         Whether the client should render the mesh.
+    static_asset
+        If true, the server may omit ``asset_uri`` on subsequent ``scene_state``
+        payloads once each client has received the full mesh once (large scenery).
     """
 
     mesh_id: str
@@ -206,41 +209,57 @@ class MeshEntity:
     )
     scale: list[float] = field(default_factory=lambda: [1.0, 1.0, 1.0])
     visible: bool = True
+    static_asset: bool = False
 
     def __post_init__(self) -> None:
         if not self.mesh_id:
             raise ValueError("mesh_id cannot be empty")
         if not self.owner_id:
             raise ValueError("owner_id cannot be empty")
-        if not self.asset_uri:
-            raise ValueError("asset_uri cannot be empty")
+        if not self.asset_uri and not self.static_asset:
+            raise ValueError("asset_uri cannot be empty unless static_asset is true")
         _validate_vector_shape(self.translation, 3, "translation")
         _validate_vector_shape(self.rotation_xyzw, 4, "rotation_xyzw")
         _validate_vector_shape(self.scale, 3, "scale")
 
-    def to_dict(self) -> JSONDict:
-        """Serialize to a JSON-compatible dictionary."""
-        return {
+    def to_client_dict(self, *, include_asset_uri: bool = True) -> JSONDict:
+        """Serialize for WebSocket payloads.
+
+        Parameters
+        ----------
+        include_asset_uri
+            When false, ``asset_uri`` is omitted so static scenery is not resent.
+        """
+        payload: JSONDict = {
             "mesh_id": self.mesh_id,
             "owner_id": self.owner_id,
-            "asset_uri": self.asset_uri,
             "translation": self.translation,
             "rotation_xyzw": self.rotation_xyzw,
             "scale": self.scale,
             "visible": self.visible,
+            "static_asset": self.static_asset,
         }
+        if include_asset_uri:
+            payload["asset_uri"] = self.asset_uri
+        return payload
+
+    def to_dict(self) -> JSONDict:
+        """Serialize to a JSON-compatible dictionary."""
+        return self.to_client_dict(include_asset_uri=True)
 
     @classmethod
     def from_dict(cls, data: JSONDict) -> "MeshEntity":
         """Deserialize from JSON-compatible data."""
+        static_asset = bool(data.get("static_asset", False))
         return cls(
             mesh_id=str(data["mesh_id"]),
             owner_id=str(data["owner_id"]),
-            asset_uri=str(data["asset_uri"]),
+            asset_uri=str(data.get("asset_uri", "")),
             translation=list(data.get("translation", [0.0, 0.0, 0.0])),
             rotation_xyzw=list(data.get("rotation_xyzw", [0.0, 0.0, 0.0, 1.0])),
             scale=list(data.get("scale", [1.0, 1.0, 1.0])),
             visible=bool(data.get("visible", True)),
+            static_asset=static_asset,
         )
 
 
@@ -418,6 +437,40 @@ class SceneState:
             "meshes": {
                 mesh_id: mesh.to_dict() for mesh_id, mesh in self.meshes.items()
             },
+            "overlay_points": {
+                overlay_id: overlay.to_dict()
+                for overlay_id, overlay in self.overlay_points.items()
+            },
+            "spheres": {
+                sphere_id: sphere.to_dict()
+                for sphere_id, sphere in self.spheres.items()
+            },
+        }
+
+    def to_dict_for_client(self, sent_static_mesh_asset_ids: set[str]) -> JSONDict:
+        """Serialize like :meth:`to_dict`, but omit repeated ``asset_uri`` for static meshes.
+
+        Updates ``sent_static_mesh_asset_ids`` in place: after a full send of a static
+        mesh, its ``mesh_id`` is added; ids are dropped when the mesh disappears.
+        """
+        sent_static_mesh_asset_ids.intersection_update(self.meshes.keys())
+        meshes_out: dict[str, JSONDict] = {}
+        for mesh_id, mesh in self.meshes.items():
+            if mesh.static_asset and mesh_id in sent_static_mesh_asset_ids:
+                meshes_out[mesh_id] = mesh.to_client_dict(include_asset_uri=False)
+            else:
+                meshes_out[mesh_id] = mesh.to_client_dict(include_asset_uri=True)
+                if mesh.static_asset:
+                    sent_static_mesh_asset_ids.add(mesh_id)
+        return {
+            "timestamp": self.timestamp,
+            "arms": {arm_id: arm.to_dict() for arm_id, arm in self.arms.items()},
+            "scenery": {
+                name: transform.to_dict()
+                for name, transform in self.scenery.items()
+            },
+            "user_arms": self.user_arms,
+            "meshes": meshes_out,
             "overlay_points": {
                 overlay_id: overlay.to_dict()
                 for overlay_id, overlay in self.overlay_points.items()

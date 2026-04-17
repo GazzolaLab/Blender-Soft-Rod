@@ -252,6 +252,7 @@ class NoelC4Simulation(DualArmSimulationBase):
                         float(self._obstacles.lengths[idx]),
                         float(self._obstacles.radii[idx]),
                     ),
+                    static_asset=True,
                 )
             )
         return meshes
