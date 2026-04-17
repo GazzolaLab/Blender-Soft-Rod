@@ -9,7 +9,7 @@ from virtual_field.core.commands import ArmCommand
 from virtual_field.core.state import SphereEntity
 from virtual_field.runtime.mode_base import DualArmSimulationBase
 from .custom_elastica.dissipation import RayleighDamping
-from .custom_elastica.contacts import SuckerActuation
+from .custom_elastica.contacts import SuckerActuationToSphere
 from .custom_elastica.forcing import _PullSphereToPoint, _SphereBoxed
 
 
@@ -25,7 +25,6 @@ class CathyThrowSimulation(DualArmSimulationBase):
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
         )
-
 
         class _Simulator(
             ea.BaseSystemCollection,
@@ -114,25 +113,29 @@ class CathyThrowSimulation(DualArmSimulationBase):
                 time_step=self.dt_internal,
             )
             self.simulator.detect_contact_between(self.left_rod, sphere).using(
-                SuckerActuation,
+                SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
                 trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[arm_id],
             )
             self.simulator.detect_contact_between(self.right_rod, sphere).using(
-                SuckerActuation,
+                SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
                 trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[arm_id],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[:, 0].copy(),
+                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[
+                    :, 0
+                ].copy(),
                 is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[arm_id],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[1]: self.right_rod.position_collection[:, 0].copy(),
+                target=lambda arm_id=self.arm_ids[
+                    1
+                ]: self.right_rod.position_collection[:, 0].copy(),
                 is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
             )
 

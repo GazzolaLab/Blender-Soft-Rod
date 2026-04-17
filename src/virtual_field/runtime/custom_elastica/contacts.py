@@ -15,7 +15,7 @@ from elastica import NoContact, Sphere
 from elastica.typing import RodType
 
 
-class SuckerActuation(NoContact):
+class SuckerActuationToSphere(NoContact):
     """Octopus-sucker attraction between a rod and a sphere.
 
     Each rod element owns a sucker located at
@@ -79,7 +79,10 @@ class SuckerActuation(NoContact):
         sphere_radius = system_two.radius
 
         rod_positions = system_one.position_collection
-        rod_element_velocities = 0.5 * (system_one.velocity_collection[..., 1:] + system_one.velocity_collection[..., :-1])
+        rod_element_velocities = 0.5 * (
+            system_one.velocity_collection[..., 1:]
+            + system_one.velocity_collection[..., :-1]
+        )
         rod_directors = system_one.director_collection
         rod_radii = system_one.radius
 
