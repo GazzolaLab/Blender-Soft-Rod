@@ -13,9 +13,19 @@ export function quaternionFromRowwiseDirector(matrixRows) {
   return new THREE.Quaternion().setFromRotationMatrix(m);
 }
 
+export function setQuaternionFromRowwiseDirector(targetQuaternion, matrixRows) {
+  const m = new THREE.Matrix4();
+  m.set(
+    matrixRows[0][0], matrixRows[1][0], matrixRows[2][0], 0.0,
+    matrixRows[0][1], matrixRows[1][1], matrixRows[2][1], 0.0,
+    matrixRows[0][2], matrixRows[1][2], matrixRows[2][2], 0.0,
+    0.0, 0.0, 0.0, 1.0
+  );
+  targetQuaternion.setFromRotationMatrix(m);
+  return targetQuaternion;
+}
+
 export function columnwiseDirectorFromQuaternion(quaternion) {
-  // Convert quaternion to column-wise director for elastica representation.
-  // Maybe consider using three.js's conversion, but we just want 3x3 orientation.
   const x = quaternion.x;
   const y = quaternion.y;
   const z = quaternion.z;
@@ -37,7 +47,6 @@ export function columnwiseDirectorFromQuaternion(quaternion) {
 }
 
 export function rowwiseDirectorFromQuaternion(quaternion) {
-  // Typically quaternion from controller is in world space,
-  // We need to convert to row-wise director for elastica representation.
   return transpose3x3(columnwiseDirectorFromQuaternion(quaternion));
 }
+
