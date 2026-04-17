@@ -6,7 +6,7 @@ import json
 import ssl
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import count
 from typing import Any
 
@@ -21,7 +21,7 @@ from virtual_field.core.commands import (
     ControllerDisconnectedError,
 )
 from virtual_field.core.mapping import SessionArmControlMapper
-from virtual_field.core.state import MeshEntity, OverlayPointsEntity
+from virtual_field.core.state import MeshEntity, OverlayPointsEntity, SceneState
 from virtual_field.runtime.mode_registry import (
     DEFAULT_CHARACTER_MODE,
     SUPPORTED_CHARACTER_MODES,
@@ -42,10 +42,11 @@ class ClientSession:
     requested_arm_count: int | None = None
     last_command: MultiArmCommand | None = None
     last_command_ts: float = 0.0
+    sent_static_mesh_asset_ids: set[str] = field(default_factory=set)
 
 
 class VRWebSocketServer:
-    """TLS WebSocket entry point for Virtual Field clients and publishers.
+    """WebSocket entry point for Virtual Field clients and publishers.
 
     Owns a :class:`~virtual_field.server.backends.MultiArmPassThroughBackend`,
     accepts JSON messages (``hello``, ``xr_input``, ``heartbeat``, ``reset``,
@@ -58,7 +59,7 @@ class VRWebSocketServer:
     def __init__(
         self,
         *,  # keyword-only arguments (for safety)
-        ssl_context: ssl.SSLContext,
+        ssl_context: ssl.SSLContext | None,
         host: str = "127.0.0.1",
         port: int = 8765,
         sim_hz: float = 200.0,
@@ -104,9 +105,16 @@ class VRWebSocketServer:
             ssl=self.ssl_context,
             max_size=None,
         )
+        # Correct port number if changed by server
         self.port = self._server.sockets[0].getsockname()[1]
         self._publish_task = asyncio.create_task(self._publish_loop())
         self._simulate_task = asyncio.create_task(self._simulation_loop())
+        self._publish_task.add_done_callback(
+            lambda task: self._log_background_task_failure("publish loop", task)
+        )
+        self._simulate_task.add_done_callback(
+            lambda task: self._log_background_task_failure("simulation loop", task)
+        )
         logger.debug("Server started. bound_port={}", self.port)
 
     async def stop(self) -> None:
@@ -642,8 +650,7 @@ class VRWebSocketServer:
         while True:
             if self._clients:
                 state = self.backend.step(0.0, None)
-                message = make_message("scene_state", state.to_dict())
-                await self._broadcast(message)
+                await self._broadcast_scene_state(state)
             await asyncio.sleep(dt)
 
     def _log_background_task_failure(
@@ -674,11 +681,11 @@ class VRWebSocketServer:
             logger.debug("Dropped stale clients count={}", len(stale))
 
 
-async def run_server(host: str, port: int, ssl_context: ssl.SSLContext) -> None:
+async def run_server(host: str, port: int, ssl_context: ssl.SSLContext | None) -> None:
     server = VRWebSocketServer(host=host, port=port, ssl_context=ssl_context)
     await server.start()
 
-    scheme = "wss"  # always use WSS. Required for Meta Quest API.
+    scheme = "wss" if ssl_context is not None else "ws"
     logger.info(
         "VR server listening on {}://{}:{}",
         scheme,
@@ -711,16 +718,20 @@ def configure_logging(verbose: bool) -> None:
 def main(
     host: str,
     port: int,
-    ssl_cert: str,
-    ssl_key: str,
+    ssl_cert: str | None,
+    ssl_key: str | None,
     verbose: bool,
 ) -> None:
     configure_logging(verbose=verbose)
 
-    # Validate that both SSL cert and key are set together.
-    ssl_context: ssl.SSLContext
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(ssl_cert, ssl_key)
+    # Validate and configure optional TLS.
+    if (ssl_cert is None) != (ssl_key is None):
+        raise click.UsageError("--ssl-cert and --ssl-key must be provided together")
+
+    ssl_context: ssl.SSLContext | None = None
+    if ssl_cert is not None and ssl_key is not None:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(ssl_cert, ssl_key)
 
     # Run the server.
     asyncio.run(

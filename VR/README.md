@@ -5,7 +5,7 @@ Deployment model:
 - Linux desktop starts and hosts the VR services.
 - Clients join over URLs:
   - Headgear client opens HTTPS URL in Quest Browser.
-  - Object-publisher client connects to WSS URL from Python CLI.
+  - Object-publisher and other tools connect to the runtime WebSocket URL (`wss://` when the server uses TLS, `ws://` when it does not).
 
 ## Join the VR environment
 
@@ -32,12 +32,31 @@ npx serve client -l 8443 --ssl-cert certs/dev-cert.pem --ssl-key certs/dev-key.p
 # or
 bunx serve client -l 8443 --ssl-cert certs/dev-cert.pem --ssl-key certs/dev-key.pem
 ```
+
+#### Generate a dev certificate
+
+1. Generate a dev certificate (use your server LAN IP or hostname):
+
+```bash
+./VR/scripts/generate_dev_cert.sh YOUR_SERVER_IP
+```
+
 ### Start runtime server
 
 > This requires a python environment with all packages installed.
 
 ```bash
 ./VR/scripts/start_server.sh
+```
+
+You can also run the module directly, with or without TLS:
+
+```bash
+# Without TLS
+uv run --no-sync python -m virtual_field.server.app --host 0.0.0.0 --port 8765
+# With TLS
+uv run --no-sync python -m virtual_field.server.app --host 0.0.0.0 --port 8765 \
+  --ssl-cert VR/certs/dev-cert.pem --ssl-key VR/certs/dev-key.pem
 ```
 
 ### Open on Quest Browser (replace `YOUR_SERVER_IP` to your IP or domain name):
@@ -49,11 +68,18 @@ bunx serve client -l 8443 --ssl-cert certs/dev-cert.pem --ssl-key certs/dev-key.
 https://YOUR_SERVER_IP:8443/
 ```
 
-The client now auto-derives websocket endpoint from page host:
-- `https://HOST:8443` -> `wss://HOST:8765`
-- `http://HOST:...` -> `ws://HOST:8765`
+The client auto-derives the WebSocket URL from the page URL (`VR/client/app/config.js`):
 
-> You can still override with `?ws=...` or custom port via `?ws_port=...`.
+- `https://HOST:8443` → default `wss://HOST:8765`
+- `http://HOST:...` → default `ws://HOST:8765`
+
+**HTTPS client pages require `wss://`** for the WebSocket (browsers treat `ws://` from an HTTPS page as mixed content and block it). For Quest Browser and the documented `https://…:8443` flow, generate certs and run the runtime with TLS so defaults match (`wss://HOST:8765`).
+
+For **local HTTP** client URLs (for example `http://localhost:8080`), the default is `ws://…:8765`, which matches a non-TLS runtime. You can still force `ws` with `?ws_insecure=1` or set an explicit `?ws=ws://HOST:8765` when the page context allows it.
+
+> Override the endpoint with `?ws=...` or only the port with `?ws_port=...`.
+
+The WebSocket logic lives in `VR/client/network/socket_client.js`. `socket_client_wss.js` re-exports the same implementation so you do not need to swap files for TLS vs non-TLS.
 
 ## Character modes:
 
@@ -76,7 +102,7 @@ Another machine on the same LAN (for example a Macbook) can publish mesh/scenery
 flowchart LR
     subgraph L["Linux Desktop (Server Host)"]
       C["HTTPS static client :8443"]
-      W["Virtual Field runtime :8765 (WSS)"]
+      W["Virtual Field runtime :8765 (WSS or WS)"]
       E["Simulation backend (PyElastica in physics-driven modes)"]
     end
 
