@@ -219,6 +219,20 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             100.0,
         )
         self.simulator.append(self._sphere)
+        self.simulator.detect_contact_between(self.left_rod, self._sphere).using(
+            ea.RodSphereContact,
+            k=1e4,
+            nu=0.0,
+            velocity_damping_coefficient=1e-6,
+            friction_coefficient=1e-6,
+        )
+        self.simulator.detect_contact_between(self.right_rod, self._sphere).using(
+            ea.RodSphereContact,
+            k=1e4,
+            nu=0.0,
+            velocity_damping_coefficient=1e-6,
+            friction_coefficient=1e-6,
+        )
 
         self.simulator.constrain(self.left_rod).using(
             ea.FixedConstraint,
