@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import elastica as ea
 import numpy as np
 
+from loguru import logger
 from numba import njit
 
 from coomm.actuations.muscles import (
@@ -21,7 +22,8 @@ from virtual_field.core.state import SphereEntity
 
 # MUSCLE CONFIGURATIONS
 # Relative geometry configuration (normalized by base radius)
-LM_RATIO_MUSCLE_POSITION = 0.0075
+#LM_RATIO_MUSCLE_POSITION = 0.0075
+LM_RATIO_MUSCLE_POSITION = 0.0175
 OM_RATIO_MUSCLE_POSITION = 0.01125
 AN_RATIO_RADIUS = 0.002
 TM_RATIO_RADIUS = 0.0045
@@ -30,9 +32,9 @@ OM_RATIO_RADIUS = 0.00075
 
 # Muscle topology and stress parameters
 OM_ROTATION_NUMBER = 6
-TM_MAX_MUSCLE_STRESS = 15_000.0
-LM_MAX_MUSCLE_STRESS = 10_000.0
-OM_MAX_MUSCLE_STRESS = 100_000.0
+TM_MAX_MUSCLE_STRESS = 15_000.0 * 1
+LM_MAX_MUSCLE_STRESS = 10_000.0 * 10
+OM_MAX_MUSCLE_STRESS = 100_000.0 * 10
 LM_GROUP_COUNT = 4
 
 # Muscle group ordering for activation assignment
@@ -49,6 +51,8 @@ SUCKER_EPS = 1.0e-12
 SUCKER_A_MAX = 1.0
 SUCKER_GAMMA = 20.0
 SUCKER_PHI = 0.005
+
+damping_constant = 0.5
 
 
 # TODO: Move these out to the separate file. Keep them here for now, as this mode needs to be tuned isolated.
@@ -85,7 +89,7 @@ def _sucker_full_controller_kernel(
     target_pos: np.ndarray,
     eps: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    d_xi = d1
+    d_xi = d2
     x_center = 0.5 * (x_c[:, :-1] + x_c[:, 1:])
     x_xi = x_center + d_xi * r_xi[None, :]
 
@@ -139,7 +143,7 @@ def _sucker_full_controller_kernel(
 class ApplyOctopusMuscles(ApplyActuations):
     """ApplyMuscles."""
 
-    def __init__(self, muscle_groups, step_skip: int):
+    def __init__(self, actuations, step_skip: int):
         """__init__.
 
         Parameters
@@ -148,8 +152,8 @@ class ApplyOctopusMuscles(ApplyActuations):
         step_skip : int
         callback_params_list : list
         """
-        super().__init__(muscle_groups, step_skip)
-        for m, muscle in enumerate(muscle_groups):
+        super().__init__(actuations, step_skip)
+        for m, muscle in enumerate(actuations):
             muscle.index = m
 
 
@@ -187,7 +191,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         normal = np.array([1.0, 0.0, 0.0])
         base_length = 0.55
         base_radius = 0.01
-        density = 1000.0
+        density = 5000.0
         youngs_modulus = 1.0e4
 
         self.left_rod = create_spirob(
@@ -200,7 +204,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             density,
             youngs_modulus,
         )
-        self.right_rod = ea.CosseratRod.straight_rod(
+        self.right_rod = create_spirob(
             n_elem,
             np.array(self.base_right, dtype=np.float64),
             direction,
@@ -244,12 +248,12 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             ]
         self.simulator.add_forcing_to(self.left_rod).using(
             ApplyOctopusMuscles,
-            muscle_groups=self._muscle_groups[self.arm_ids[0]],
+            actuations=self._muscle_groups[self.arm_ids[0]],
             step_skip=1,
         )
         self.simulator.add_forcing_to(self.right_rod).using(
             ApplyOctopusMuscles,
-            muscle_groups=self._muscle_groups[self.arm_ids[1]],
+            actuations=self._muscle_groups[self.arm_ids[1]],
             step_skip=1,
         )
 
@@ -264,20 +268,19 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         #     ea.RodSelfContact, k=1e4, nu=3
         # )
 
-        # self.simulator.add_forcing_to(self.left_rod).using(
-        #     ea.GravityForces,
-        #     acc_gravity=np.array([0.0, -9.81, 0.0]),
-        # )
+        #self.simulator.add_forcing_to(self.left_rod).using(
+        #    ea.GravityForces,
+        #    acc_gravity=np.array([0.0, -9.81, 0.0]),
+        #)
         # self.simulator.add_forcing_to(self.right_rod).using(
         #     ea.GravityForces,
         #     acc_gravity=np.array([0.0, -1.00, 0.0]),
         # )
 
-        damping_constant = 1.0
         self.simulator.dampen(self.left_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.001,
+            rotational_damping_constant=damping_constant * 0.002,
             time_step=self.dt_internal,
         )
         # self.simulator.dampen(self.left_rod).using(
@@ -286,7 +289,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         self.simulator.dampen(self.right_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.001,
+            rotational_damping_constant=damping_constant * 0.002,
             time_step=self.dt_internal,
         )
         # self.simulator.dampen(self.right_rod).using(
@@ -418,9 +421,19 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             return
         substeps = max(1, int(np.ceil(total / self.dt_internal)))
         step_dt = total / substeps
-        target_pos = np.asarray(
-            self._sphere.position_collection[:, 0], dtype=np.float64
-        )
+        for _ in range(substeps):
+        
+            t = self._time
+            self._sphere.position_collection[0, 0] = 0.0 #- 0.15 * np.cos(0.5*t)
+            self._sphere.position_collection[1, 0] = 1.0 #- 0.15 * np.sin(0.5*t)
+            self._sphere.position_collection[2, 0] = -0.3         
+            # Now read updated position
+            target_pos = np.asarray(
+                self._sphere.position_collection[:, 0], dtype=np.float64
+            )
+#        target_pos = np.asarray(
+#            self._sphere.position_collection[:, 0], dtype=np.float64
+#        )
         for _ in range(substeps):
             for arm_id in self.arm_ids:
                 rod = self.rods[arm_id]
@@ -428,11 +441,14 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
                 # TODO: Maybe this step can be included within the simulator module.
                 activations = self._controller_activations(rod, target_pos, arm_id)
 
+
                 for muscle_group, activation in zip(
                     self._muscle_groups[arm_id], activations
                 ):
                     muscle_group.apply_activation(activation)
             self._time = self.timestepper.step(self.simulator, self._time, step_dt)
+
+            # logger.info(f"hi: {self._time}")
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
