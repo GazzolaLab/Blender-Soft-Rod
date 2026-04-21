@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 import elastica as ea
 import numpy as np
+import math
 
 from loguru import logger
 from numba import njit
@@ -13,7 +14,7 @@ from coomm.actuations.muscles import (
     MuscleGroup,
     ObliqueMuscle,
     TransverseMuscle,
-    force_length_weight_poly,
+    # force_length_weight_poly,
 )
 from coomm.actuations.actuation import ApplyActuations
 
@@ -326,6 +327,16 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         tm_rest_muscle_area = rod_area * (tm_ratio_radius**2 - an_ratio_radius**2)
         lm_rest_muscle_area = rod_area * (lm_ratio_radius**2)
         om_rest_muscle_area = rod_area * (om_ratio_radius**2)
+
+        @njit(cache=True)
+        def force_length_weight_poly(
+            muscle_length: np.ndarray,
+        ) -> np.ndarray:
+            blocksize = muscle_length.shape[0]
+            force_weight = np.empty(blocksize, dtype=np.float64)
+            for i in range(blocksize):
+                force_weight[i] = max(0.0, -5 * (muscle_length[i] - 1) ** 2 + 1)
+            return force_weight
 
         muscle_dict = dict(force_length_weight=force_length_weight_poly)
         muscle_groups: list[MuscleGroup] = [
