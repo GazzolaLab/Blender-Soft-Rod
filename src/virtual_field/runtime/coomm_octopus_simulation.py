@@ -26,15 +26,15 @@ from virtual_field.core.state import SphereEntity
 LM_RATIO_MUSCLE_POSITION = 0.0175
 OM_RATIO_MUSCLE_POSITION = 0.01125
 AN_RATIO_RADIUS = 0.002
-TM_RATIO_RADIUS = 0.0045
-LM_RATIO_RADIUS = 0.003
+TM_RATIO_RADIUS = 0.045
+LM_RATIO_RADIUS = 0.001
 OM_RATIO_RADIUS = 0.00075
 
 # Muscle topology and stress parameters
 OM_ROTATION_NUMBER = 6
-TM_MAX_MUSCLE_STRESS = 15_000.0 * 1
-LM_MAX_MUSCLE_STRESS = 10_000.0 * 10
-OM_MAX_MUSCLE_STRESS = 100_000.0 * 10
+TM_MAX_MUSCLE_STRESS = 15_000.0 * 0
+LM_MAX_MUSCLE_STRESS = 10_000.0 * 120 
+OM_MAX_MUSCLE_STRESS = 100_000.0 * 4
 LM_GROUP_COUNT = 4
 
 # Muscle group ordering for activation assignment
@@ -44,15 +44,16 @@ RIGHT_OM_GROUP_INDEX = 5
 LEFT_OM_GROUP_INDEX = 6
 
 # Activation shaping
-ACTIVATION_RAMP_TIME = 0.001
+ACTIVATION_RAMP_TIME = 10
 
 # Reaching controller parameters
 SUCKER_EPS = 1.0e-12
 SUCKER_A_MAX = 1.0
-SUCKER_GAMMA = 20.0
+#SUCKER_GAMMA = 0.0002
+SUCKER_GAMMA = 20
 SUCKER_PHI = 0.005
 
-damping_constant = 0.5
+damping_constant = 0.1
 
 
 # TODO: Move these out to the separate file. Keep them here for now, as this mode needs to be tuned isolated.
@@ -104,7 +105,11 @@ def _sucker_full_controller_kernel(
     s = np.linspace(0.0, arm_length, n_center)
     s_bar = s[np.argmin(rho_norm)]
 
-    mu = SUCKER_A_MAX * (
+    
+    mu2 = (
+        -1.0 + 2.0 / (1.0 + np.exp(-2*SUCKER_GAMMA * s))
+    )
+    mu = SUCKER_A_MAX * mu2 * (
         1.0 - 1.0 / (1.0 + np.exp(-SUCKER_GAMMA * (s - (s_bar + SUCKER_PHI))))
     )
 
@@ -161,7 +166,8 @@ class ApplyOctopusMuscles(ApplyActuations):
 class COOMMOctopusSimulation(DualArmSimulationBase):
     """COOMM Octopus mode"""
 
-    _sphere: ea.Sphere = field(init=False)
+    _target_sphere: ea.Sphere = field(init=False)
+    _obstacle_sphere: ea.Sphere = field(init=False)
     _muscle_groups: dict[str, list[MuscleGroup]] = field(
         init=False, default_factory=dict
     )
@@ -191,8 +197,8 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         normal = np.array([1.0, 0.0, 0.0])
         base_length = 0.55
         base_radius = 0.01
-        density = 5000.0
-        youngs_modulus = 1.0e4
+        density = 2000.0
+        youngs_modulus = 1.0e4 * 0.8
 
         self.left_rod = create_spirob(
             n_elem,
@@ -217,22 +223,45 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         self.simulator.append(self.left_rod)
         self.simulator.append(self.right_rod)
 
-        self._sphere = ea.Sphere(
-            np.array([0.08, 1.0, -0.5]),
-            0.015,
+        self._target_sphere = ea.Sphere(
+            np.array([0.1, 1.2, -0.3]),
+            0.035,
             100.0,
         )
-        self.simulator.append(self._sphere)
-        self.simulator.detect_contact_between(self.left_rod, self._sphere).using(
+        self.simulator.append(self._target_sphere)
+
+        self._obstacle_sphere = ea.Sphere(
+            np.array([-0.0, 1.1, -0.4]),
+            0.04,
+            100.0,
+        )
+        self.simulator.append(self._obstacle_sphere)
+
+        self.simulator.detect_contact_between(self.left_rod, self._obstacle_sphere).using(
             ea.RodSphereContact,
-            k=1e4,
+            k=2e2,
             nu=0.0,
             velocity_damping_coefficient=1e-6,
             friction_coefficient=1e-6,
         )
-        self.simulator.detect_contact_between(self.right_rod, self._sphere).using(
+        self.simulator.detect_contact_between(self.right_rod, self._obstacle_sphere).using(
             ea.RodSphereContact,
-            k=1e4,
+            k=2e2,
+            nu=0.0,
+            velocity_damping_coefficient=1e-6,
+            friction_coefficient=1e-6,
+        )
+
+        self.simulator.detect_contact_between(self.left_rod, self._target_sphere).using(
+            ea.RodSphereContact,
+            k=2e2,
+            nu=0.0,
+            velocity_damping_coefficient=1e-6,
+            friction_coefficient=1e-6,
+        )
+        self.simulator.detect_contact_between(self.right_rod, self._target_sphere).using(
+            ea.RodSphereContact,
+            k=2e2,
             nu=0.0,
             velocity_damping_coefficient=1e-6,
             friction_coefficient=1e-6,
@@ -294,21 +323,21 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         self.simulator.dampen(self.left_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.002,
+            rotational_damping_constant=damping_constant * 0.010 /5,
             time_step=self.dt_internal,
         )
-        # self.simulator.dampen(self.left_rod).using(
-        #     ea.LaplaceDissipationFilter, filter_order=5
-        # )
+        self.simulator.dampen(self.left_rod).using(
+            ea.LaplaceDissipationFilter, filter_order=7
+        )
         self.simulator.dampen(self.right_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.002,
+            rotational_damping_constant=damping_constant * 0.010 / 5,
             time_step=self.dt_internal,
         )
-        # self.simulator.dampen(self.right_rod).using(
-        #     ea.LaplaceDissipationFilter, filter_order=5
-        # )
+        self.simulator.dampen(self.right_rod).using(
+            ea.LaplaceDissipationFilter, filter_order=7
+        )
 
         self.simulator.finalize()
 
@@ -438,12 +467,19 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         for _ in range(substeps):
         
             t = self._time
-            self._sphere.position_collection[0, 0] = 0.0 #- 0.15 * np.cos(0.5*t)
-            self._sphere.position_collection[1, 0] = 1.0 #- 0.15 * np.sin(0.5*t)
-            self._sphere.position_collection[2, 0] = -0.3         
+            self._target_sphere.position_collection[0, 0] = 0.1 #- 0.15 * np.cos(0.5*t)
+            self._target_sphere.position_collection[1, 0] = 1.2 #- 0.15 * np.sin(0.5*t)
+            self._target_sphere.position_collection[2, 0] = -0.3         
             # Now read updated position
             target_pos = np.asarray(
-                self._sphere.position_collection[:, 0], dtype=np.float64
+                self._target_sphere.position_collection[:, 0], dtype=np.float64
+            )
+            self._obstacle_sphere.position_collection[0, 0] = 0.0 #- 0.15 * np.cos(0.5*t)
+            self._obstacle_sphere.position_collection[1, 0] = 1.1 #- 0.15 * np.sin(0.5*t)
+            self._obstacle_sphere.position_collection[2, 0] = -0.4         
+            # Now read updated position
+            position_obs = np.asarray(
+                self._obstacle_sphere.position_collection[:, 0], dtype=np.float64
             )
 #        target_pos = np.asarray(
 #            self._sphere.position_collection[:, 0], dtype=np.float64
@@ -466,14 +502,27 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
-        position = self._sphere.position_collection[..., 0]
+        #Target sphere
+        position_target = self._target_sphere.position_collection[..., 0]
         spheres.append(
             SphereEntity(
                 sphere_id=f"{self.user_id}_coomm_octopus_sphere",
                 owner_id=self.user_id,
-                translation=position.tolist(),
-                radius=float(self._sphere.radius),
+                translation=position_target.tolist(),
+                radius=float(self._target_sphere.radius),
                 color_rgb=[0.95, 0.62, 0.32],
+            )
+        )
+
+        #Obstacle sphere
+        position_obs = self._obstacle_sphere.position_collection[..., 0]
+        spheres.append(
+            SphereEntity(
+                sphere_id=f"{self.user_id}_obstacle",
+                owner_id=self.user_id,
+                translation=position_obs.tolist(),
+                radius=float(self._obstacle_sphere.radius),
+                color_rgb=[0.9, 0.2, 0.2], #red
             )
         )
         return spheres
