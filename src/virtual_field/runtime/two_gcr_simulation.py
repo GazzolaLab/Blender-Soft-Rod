@@ -3,21 +3,29 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
+from typing import Any
 
 from virtual_field.core.commands import ArmCommand
 from virtual_field.core.state import MeshEntity
+from virtual_field.core.state import SphereEntity
 from virtual_field.runtime.mesh_assets import build_pyvista_polydata_gltf_data_uri
 from virtual_field.runtime.mode_base import DualArmSimulationBase
+from .custom_elastica.dissipation import RayleighDamping
+from .custom_elastica.contacts import SuckerActuationToSphere
+from .custom_elastica.forcing import _PullSphereToPoint
 
 from importlib.resources import files
 
-MAZE_PATH = files("virtual_field").joinpath("externals", "mesh", "pipe_maze_simple_v2.stl")
+MAZE_PATH = files("virtual_field").joinpath("externals", "mesh", "pipe_maze_simple_with_marker.stl")
+# MAZE_PATH = files("virtual_field").joinpath("externals", "mesh", "pipe_maze_complex_with_marker.stl")
 
 
 @dataclass(slots=True)
 class TwoGCRSimulation(DualArmSimulationBase):
     """Dual soft arms backed by ``GrowingCR`` rods."""
-
+    spheres: list[Any] = field(init=False)
+    _sucker_active: dict[str, bool] = field(init=False)
+    _base_pull_active: dict[str, bool] = field(init=False)
     _primary_pressed: dict[str, bool] = field(init=False)
     _secondary_pressed: dict[str, bool] = field(init=False)
     _pipe_maze_asset_uri: str | None = field(init=False, default=None)
@@ -75,6 +83,7 @@ class TwoGCRSimulation(DualArmSimulationBase):
             MeshSurface,
             Grid,
             RodMeshSurfaceContactGridMethod,
+            SphereMeshSurfaceContact
         )
 
         class _Simulator(
@@ -131,15 +140,47 @@ class TwoGCRSimulation(DualArmSimulationBase):
         self.simulator.append(self.right_rod)
 
         # setup mesh
-        pipe_mesh = pv.read(MAZE_PATH)
-        pipe_mesh.scale(1.03e-2 * np.array([1.0, 1.0, 1.0]), inplace=True)
-        pipe_mesh.rotate_x(-90, inplace=True)
-        pipe_mesh.translate(
-            -np.array(pipe_mesh.center), inplace=True
+        maze_mesh = pv.read(MAZE_PATH)
+
+        maze_mesh.scale(1.03e-2 * np.array([1.0, 1.0, 1.0]), inplace=True)
+        maze_mesh.rotate_x(-90, inplace=True)
+        
+        maze_mesh.translate(
+            -np.array(maze_mesh.center), inplace=True
         )  # center the mesh at origin
-        pipe_mesh.translate(
-            np.array([-0.01, 1.02, -0.45]), inplace=True
-        )  # center the mesh at origin
+
+        #move so that max mesh value is a z=0
+        maze_mesh.translate(np.array([0,0,maze_mesh.bounds[4]]),inplace=True)
+        
+        #find vertex indices for the enterance holes
+        hole_vertex_idx = maze_mesh.points[:,2]>-0.01*(maze_mesh.bounds[5]-maze_mesh.bounds[4]) #mesh vertices between z=0 and z=-0.01*total_z_extent
+        hole_vertices_center_x = 0.5*(max(maze_mesh.points[hole_vertex_idx,0]) + min(maze_mesh.points[hole_vertex_idx,0]))
+        hole_vertices_center_y = 0.5*(max(maze_mesh.points[hole_vertex_idx,1]) + min(maze_mesh.points[hole_vertex_idx,1]))
+        
+        #move mesh so that origin is between hole centers
+        maze_mesh.translate(np.array([-hole_vertices_center_x,-hole_vertices_center_y,0]),inplace=True)
+
+        #finally move origin to center of two bases so arms are inside hole centers
+        maze_mesh.translate(
+            0.5*(right_rod_base + left_rod_base), inplace=True
+        ) 
+
+        # Label connected components
+        conn = maze_mesh.connectivity()
+
+        # Extract number of regions
+        region_ids = conn['RegionId']
+        n_regions = region_ids.max() + 1
+
+        components = []
+        component_volumes = []
+        for i in range(n_regions):
+            comp = conn.threshold([i, i], scalars="RegionId").extract_surface(algorithm='dataset_surface')
+            component_volumes.append(comp.volume)
+            components.append(comp)
+        
+        target_reduction = 0.9 #reduce number of faces by this ratio
+        pipe_mesh = components.pop(np.argmax(component_volumes)).decimate(target_reduction) #largest volume will be the pipe
         self._pipe_maze_asset_uri = build_pyvista_polydata_gltf_data_uri(
             pipe_mesh,
             color_rgba=(0.42, 0.48, 0.55, 0.65),
@@ -167,17 +208,74 @@ class TwoGCRSimulation(DualArmSimulationBase):
             grid=grid,
         )
 
-        # REMOVE LATER. REPLACED BY _GrowingCRBoundaryConditions
-        # self.simulator.constrain(self.left_rod).using(
-        #     ea.FixedConstraint,
-        #     constrained_position_idx=(0,),
-        #     constrained_director_idx=(0,),
-        # )
-        # self.simulator.constrain(self.right_rod).using(
-        #     ea.FixedConstraint,
-        #     constrained_position_idx=(0,),
-        #     constrained_director_idx=(0,),
-        # )
+        self._sucker_active = {
+            self.arm_ids[0]: False,
+            self.arm_ids[1]: False,
+        }
+        self._base_pull_active = {
+            self.arm_ids[0]: False,
+            self.arm_ids[1]: False,
+        }
+
+        self.spheres = []
+        sphere_radius = 0.02
+        sphere_density = 300.0
+        for comp in components:
+            sphere = ea.Sphere(np.array(comp.center), sphere_radius, sphere_density)
+            self.spheres.append(
+                sphere
+            )
+            self.simulator.append(sphere)
+            self.simulator.detect_contact_between(self.left_rod, sphere).using(
+                ea.RodSphereContact, k=1e4, nu=0.0
+            )
+            self.simulator.detect_contact_between(self.right_rod, sphere).using(
+                ea.RodSphereContact, k=1e4, nu=0.0
+            )
+            damping_constant = 1e0
+            self.simulator.dampen(sphere).using(
+                RayleighDamping,
+                damping_constant=damping_constant,
+                rotational_damping_constant=damping_constant * 1.0,
+                time_step=self.dt_internal,
+            )
+            self.simulator.add_forcing_to(sphere).using(
+                ea.GravityForces,
+                acc_gravity=np.array([0.0, -9.80665, 0.0]),
+
+            )
+            self.simulator.detect_contact_between(sphere,pipe_surface).using(
+                SphereMeshSurfaceContact,
+                k=1e4,
+                nu=2e0,
+                search_radius=5*sphere_radius,
+            )
+            self.simulator.detect_contact_between(self.left_rod, sphere).using(
+                SuckerActuationToSphere,
+                k=0.5e1,
+                nu=0.0,
+                trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[arm_id],
+            )
+            self.simulator.detect_contact_between(self.right_rod, sphere).using(
+                SuckerActuationToSphere,
+                k=0.5e1,
+                nu=0.0,
+                trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[arm_id],
+            )
+            self.simulator.add_forcing_to(sphere).using(
+                _PullSphereToPoint,
+                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[
+                    :, 0
+                ].copy(),
+                is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[arm_id],
+            )
+            self.simulator.add_forcing_to(sphere).using(
+                _PullSphereToPoint,
+                target=lambda arm_id=self.arm_ids[
+                    1
+                ]: self.right_rod.position_collection[:, 0].copy(),
+                is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
+            )
 
         p_linear = 1000.0
         p_angular = 1.0
@@ -248,3 +346,18 @@ class TwoGCRSimulation(DualArmSimulationBase):
                 static_asset=True,
             )
         ]
+    
+    def sphere_entities(self) -> list[SphereEntity]:
+        spheres: list[SphereEntity] = []
+        for idx, sphere in enumerate(self.spheres):
+            position = np.asarray(sphere.position_collection[..., 0], dtype=np.float64)
+            spheres.append(
+                SphereEntity(
+                    sphere_id=f"{self.user_id}_pipe_sphere_{idx}",
+                    owner_id=self.user_id,
+                    translation=position.tolist(),
+                    radius=float(sphere.radius),
+                    color_rgb=[0.95, 0.62, 0.32],
+                )
+            )
+        return spheres
