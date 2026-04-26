@@ -19,8 +19,6 @@ pre-commit-install:
 #* Formatters
 .PHONY: codestyle
 codestyle:
-	uv run --no-sync pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
-	uv run --no-sync isort --settings-path pyproject.toml ./
 	uv run --no-sync black --config pyproject.toml ./
 
 .PHONY: formatting
@@ -41,7 +39,6 @@ test_ci:
 
 .PHONY: check-codestyle
 check-codestyle:
-	uv run --no-sync isort --diff --check-only --settings-path pyproject.toml ./
 	uv run --no-sync black --diff --check --config pyproject.toml ./
 
 .PHONY: mypy
@@ -53,7 +50,7 @@ lint: test check-codestyle mypy check-safety
 
 .PHONY: update-dev-deps
 update-dev-deps:
-	uv add --group dev --upgrade "isort[colors]" mypy pre-commit pytest pyupgrade coverage pytest-html pytest-cov black
+	uv add --group dev --upgrade mypy pre-commit pytest coverage pytest-html pytest-cov black
 
 #* Cleaning
 .PHONY: pycache-remove

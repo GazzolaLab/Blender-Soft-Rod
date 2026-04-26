@@ -11,22 +11,8 @@ repos:
         exclude: LICENSE
   - repo: local
     hooks:
-      - id: pyupgrade
-        name: pyupgrade
-        entry: poetry run pyupgrade --py38-plus
-        types: [python]
-        language: system
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        entry: isort --settings-path pyproject.toml
-        types: [python]
-        language: system
-  - repo: local
-    hooks:
       - id: black
         name: black
-        entry: black --config pyproject.toml
+        entry: uv run --no-sync black --config pyproject.toml
         types: [python]
         language: system
