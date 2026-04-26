@@ -21,7 +21,9 @@ def _normalize_sucker_intervals(
 ) -> tuple[list[int], list[int | None]]:
     """Expand scalar or parallel list pairs into (starts, ends)."""
     if isinstance(start_index, (int, np.integer)):
-        return [int(start_index)], [None if end_index is None else int(end_index)]
+        return [int(start_index)], [
+            None if end_index is None else int(end_index)
+        ]
     starts = [int(s) for s in start_index]
     if end_index is None:
         ends: list[int | None] = [None] * len(starts)
@@ -63,17 +65,25 @@ class SuckerActuation(NoForces):
         self.k_c = float(k_c)
         self.nu_c = float(nu_c)
         self.trigger = trigger
-        self._starts, self._ends = _normalize_sucker_intervals(start_index, end_index)
+        self._starts, self._ends = _normalize_sucker_intervals(
+            start_index, end_index
+        )
         self.contact_trigger_index = contact_trigger_index
 
-        plane_origin_array = np.asarray(plane_origin, dtype=np.float64).reshape(3, 1)
-        plane_normal_array = np.asarray(plane_normal, dtype=np.float64).reshape(3)
+        plane_origin_array = np.asarray(plane_origin, dtype=np.float64).reshape(
+            3, 1
+        )
+        plane_normal_array = np.asarray(plane_normal, dtype=np.float64).reshape(
+            3
+        )
         normal_norm = float(np.linalg.norm(plane_normal_array))
         if not np.isclose(normal_norm, 1.0, atol=1e-8):
             raise ValueError("plane_normal must be a unit vector")
         self.plane_origin = plane_origin_array
         self.plane_normal = plane_normal_array
-        self._plane_origin_flat = np.ascontiguousarray(plane_origin_array.reshape(3))
+        self._plane_origin_flat = np.ascontiguousarray(
+            plane_origin_array.reshape(3)
+        )
         self._plane_normal_flat = np.ascontiguousarray(plane_normal_array)
 
     def apply_forces(
@@ -156,7 +166,9 @@ def _compute_sucker_plane_force_direct(
 
     element_count = rod_radii.shape[0]
     start = start_index if start_index >= 0 else element_count + start_index
-    start = 0 if start < 0 else start if start < element_count else element_count
+    start = (
+        0 if start < 0 else start if start < element_count else element_count
+    )
 
     if end_index < 0:
         stop = element_count if end_index == -1 else element_count + end_index
@@ -164,9 +176,15 @@ def _compute_sucker_plane_force_direct(
         stop = end_index + 1 if end_index < element_count else element_count
 
     for idx in range(start, stop):
-        element_center_x = 0.5 * (rod_positions[0, idx + 1] + rod_positions[0, idx])
-        element_center_y = 0.5 * (rod_positions[1, idx + 1] + rod_positions[1, idx])
-        element_center_z = 0.5 * (rod_positions[2, idx + 1] + rod_positions[2, idx])
+        element_center_x = 0.5 * (
+            rod_positions[0, idx + 1] + rod_positions[0, idx]
+        )
+        element_center_y = 0.5 * (
+            rod_positions[1, idx + 1] + rod_positions[1, idx]
+        )
+        element_center_z = 0.5 * (
+            rod_positions[2, idx + 1] + rod_positions[2, idx]
+        )
 
         sucker_axis_x = rod_directors[0, 0, idx]
         sucker_axis_y = rod_directors[0, 1, idx]
@@ -189,7 +207,11 @@ def _compute_sucker_plane_force_direct(
         if positive_dist > capture_distance:
             continue
 
-        scale = capture_distance if capture_distance > min_distance else min_distance
+        scale = (
+            capture_distance
+            if capture_distance > min_distance
+            else min_distance
+        )
         weight = np.exp(-((positive_dist / scale) ** 2) * 9.0)
 
         velocity_x = 0.5 * (rod_velocities[0, idx + 1] + rod_velocities[0, idx])
@@ -202,9 +224,15 @@ def _compute_sucker_plane_force_direct(
         tangent_z = velocity_z - normal_speed * nz
 
         force_mag = trigger_strength * stiffness * weight * positive_dist
-        force_x = -force_mag * nx - trigger_strength * transverse_damping * tangent_x
-        force_y = -force_mag * ny - trigger_strength * transverse_damping * tangent_y
-        force_z = -force_mag * nz - trigger_strength * transverse_damping * tangent_z
+        force_x = (
+            -force_mag * nx - trigger_strength * transverse_damping * tangent_x
+        )
+        force_y = (
+            -force_mag * ny - trigger_strength * transverse_damping * tangent_y
+        )
+        force_z = (
+            -force_mag * nz - trigger_strength * transverse_damping * tangent_z
+        )
 
         rod_external_forces[0, idx] += 0.5 * force_x
         rod_external_forces[1, idx] += 0.5 * force_y

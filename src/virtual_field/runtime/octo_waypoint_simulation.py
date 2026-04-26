@@ -1,30 +1,32 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from importlib.resources import files
 
-from loguru import logger
-import numpy as np
 import elastica as ea
+import numpy as np
+from loguru import logger
 
 from virtual_field.core.commands import ArmCommand, MultiArmCommand
-from virtual_field.core.state import SphereEntity, Transform, MeshEntity
+from virtual_field.core.state import MeshEntity, SphereEntity, Transform
 from virtual_field.runtime.custom_elastica.dissipation import RayleighDamping
 from virtual_field.runtime.foraging_elastica import (
-    SphereHeadTether,
     BaseSphereTether,
     OctoArmPolicy,
     SegmentExtensionActuation,
+    SphereHeadTether,
     SuckerActuation,
     YSurfaceBallwGravity,
     current_activation,
     idle_policy_like,
     rotate_policy_by_angle,
 )
+from virtual_field.runtime.mesh_assets import (
+    build_pyvista_polydata_gltf_data_uri,
+)
 from virtual_field.runtime.mode_base import OctoArmSimulationBase
 from virtual_field.runtime.orientation import controller_quat_xyzw_to_matrix
 from virtual_field.runtime.spirob_elastica.spirob import create_spirob
-from virtual_field.runtime.mesh_assets import build_pyvista_polydata_gltf_data_uri
-from importlib.resources import files
 
 # Configurations
 ASSET_PATH = files("virtual_field").joinpath("externals", "crawling")
@@ -32,7 +34,10 @@ EXTERNAL_POLICY_PATH = ASSET_PATH / "best_policy.npy"
 EXTERNAL_MESH_PATH = ASSET_PATH / "terrain" / "scene.gltf"
 EXTERNAL_MESH_BASE_COLOR_TEXTURE_PATH = (
     # ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor.jpeg"
-    ASSET_PATH / "terrain" / "textures" / "m32_Viekoda_Bay_baseColor_underwaterV2.jpeg"
+    ASSET_PATH
+    / "terrain"
+    / "textures"
+    / "m32_Viekoda_Bay_baseColor_underwaterV2.jpeg"
 )
 
 WAYPOINT_PLANE_Y = -0.05
@@ -42,7 +47,9 @@ SPHERE_COLOR_RGB = [0.55, 0.45, 0.95]
 # Must match VR/client/app.js `initialControllerForward` (Three.js local axis used for ray).
 RIGHT_CONTROLLER_FORWARD = np.array([0.0, -1.0, 0.0], dtype=np.float64)
 # Must match VR/client/app.js `waypointPlaneConfig` (centerX/Y/Z, sizeX/Z).
-WAYPOINT_PLANE_CENTER = np.array([0.0, WAYPOINT_PLANE_Y, -0.3], dtype=np.float64)
+WAYPOINT_PLANE_CENTER = np.array(
+    [0.0, WAYPOINT_PLANE_Y, -0.3], dtype=np.float64
+)
 WAYPOINT_PLANE_SIZE_X = 4.0
 WAYPOINT_PLANE_SIZE_Z = 3.0
 WAYPOINT_REACHED_RADIUS = 0.08
@@ -108,7 +115,10 @@ def _pentagon_waypoints_xy_plane(radius: float) -> np.ndarray:
 
     angles = np.linspace(0.0, 2.0 * np.pi, 6, endpoint=True)[:-1]
     return np.asarray(
-        [[radius * np.sin(angle), 0.0, -radius * np.cos(angle)] for angle in angles],
+        [
+            [radius * np.sin(angle), 0.0, -radius * np.cos(angle)]
+            for angle in angles
+        ],
         dtype=np.float64,
     )
 
@@ -131,6 +141,7 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
 
     seed_pentagon_waypoints: bool = True
     preset_pentagon_radius: float = 0.45
+
     enable_controller_trigger_waypoints: bool = False
 
     head: ea.CosseratRod = field(init=False)
@@ -151,7 +162,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
     _crawl_active_until: float = field(init=False, default=0.0)
     _loco_coast_until: float | None = field(init=False, default=None)
     _defer_heading_until: float | None = field(init=False, default=None)
-    _last_trigger_pressed: dict[str, bool] = field(init=False, default_factory=dict)
+    _last_trigger_pressed: dict[str, bool] = field(
+        init=False, default_factory=dict
+    )
     base_suction_active: np.ndarray = field(init=False)
     middle_suction_active: np.ndarray = field(init=False)
     target_extension: np.ndarray = field(init=False)
@@ -161,9 +174,10 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
 
     def build_simulation(self) -> None:
         import pyvista as pv
+
         from .custom_elastica.mesh import (
-            MeshSurface,
             Grid,
+            MeshSurface,
             RodMeshSurfaceContactGridMethodWithAnisotropicFriction,
         )
 
@@ -175,7 +189,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
 
         self._head_local_positions = np.asarray(
             self.head.position_collection, dtype=np.float64
-        ).copy() - np.asarray(self.head.position_collection[:, [0]], dtype=np.float64)
+        ).copy() - np.asarray(
+            self.head.position_collection[:, [0]], dtype=np.float64
+        )
         self._head_pose = Transform(
             translation=list(np.array([0.0, 0.0, 0.0], dtype=np.float64)),
             rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
@@ -198,7 +214,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
             100.0,
         )
         self.simulator.append(self.base_sphere)
-        self.simulator.detect_contact_between(self.base_sphere, self.head).using(
+        self.simulator.detect_contact_between(
+            self.base_sphere, self.head
+        ).using(
             SphereHeadTether,
             head_orientation=self.head.director_collection[..., 0],
         )
@@ -227,7 +245,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         terrain_mesh.translate(
             -np.array(terrain_mesh.center), inplace=True
         )  # center the mesh at origin
-        terrain_mesh.scale(1.2 * np.array([1, 1, 1]), inplace=True)  # rescale mesh
+        terrain_mesh.scale(
+            1.2 * np.array([1, 1, 1]), inplace=True
+        )  # rescale mesh
         # terrain_mesh.rotate_x(
         #     90, inplace=True
         # )  # rotate so surface upper side points in +y
@@ -374,7 +394,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
             if controller_command is None:
                 self._last_trigger_pressed[hand] = False
                 continue
-            pressed = bool(controller_command.buttons.get("trigger_click", False))
+            pressed = bool(
+                controller_command.buttons.get("trigger_click", False)
+            )
             was_pressed = self._last_trigger_pressed.get(hand, False)
             if pressed and not was_pressed:
                 waypoint = self._project_waypoint_from_transform(
@@ -419,7 +441,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
             ],
             dtype=np.float64,
         )
-        return float(np.linalg.norm(horizontal_delta)) <= WAYPOINT_REACHED_RADIUS
+        return (
+            float(np.linalg.norm(horizontal_delta)) <= WAYPOINT_REACHED_RADIUS
+        )
 
     def _project_waypoint_from_transform(
         self, transform: Transform
@@ -456,7 +480,10 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
             dtype=np.float64,
         )
         displacement = np.asarray(
-            [waypoint[0] - sphere_position[0], waypoint[2] - sphere_position[2]],
+            [
+                waypoint[0] - sphere_position[0],
+                waypoint[2] - sphere_position[2],
+            ],
             dtype=np.float64,
         )
         norm = float(np.linalg.norm(displacement))
@@ -476,7 +503,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         labels: list[str] = []
         while self._waypoint_queue and self._queue_head_is_reached():
             w = self._waypoint_queue.pop(0)
-            labels.append(f"[{float(w[0]):.4f},{float(w[1]):.4f},{float(w[2]):.4f}]")
+            labels.append(
+                f"[{float(w[0]):.4f},{float(w[1]):.4f},{float(w[2]):.4f}]"
+            )
         return labels
 
     def _log_waypoint_pops(self, popped_labels: list[str]) -> None:
@@ -504,13 +533,15 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
                 (np.floor(self._time / period) + 1.0) * period
             )
         elif (
-            self._loco_coast_until is not None and self._time >= self._loco_coast_until
+            self._loco_coast_until is not None
+            and self._time >= self._loco_coast_until
         ):
             self._loco_coast_until = None
 
     def _locomotion_is_active(self) -> bool:
         return self._waypoint_active or (
-            self._loco_coast_until is not None and self._time < self._loco_coast_until
+            self._loco_coast_until is not None
+            and self._time < self._loco_coast_until
         )
 
     def _set_active_policy_toward_waypoint(
@@ -547,7 +578,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         ):
             self._set_active_policy_toward_waypoint(waypoint, cycle_index)
 
-    def _write_tentacle_actuation(self, phase: float, policy: OctoArmPolicy) -> None:
+    def _write_tentacle_actuation(
+        self, phase: float, policy: OctoArmPolicy
+    ) -> None:
         for arm_index in range(TENTACLE_COUNT):
             arm_policy = policy.arm_policies[arm_index]
             self.target_stiffness[arm_index] = current_activation(
@@ -603,7 +636,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         if self._locomotion_is_active():
             phase = float((self._time % period) / period)
             if has_target:
-                self._refresh_heading_and_active_policy(self._waypoint_queue[0], period)
+                self._refresh_heading_and_active_policy(
+                    self._waypoint_queue[0], period
+                )
             policy = self.active_policy
         else:
             phase = 0.0
@@ -620,7 +655,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
         step_dt = dt / substeps  # Actual dt
         for _ in range(substeps):
             self._apply_policy()
-            self._time = self.timestepper.step(self.simulator, self._time, step_dt)
+            self._time = self.timestepper.step(
+                self.simulator, self._time, step_dt
+            )
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
@@ -639,7 +676,9 @@ class OctoWaypointSimulation(OctoArmSimulationBase):
 
         for idx in range(MAX_WAYPOINT_QUEUE):
             waypoint = (
-                self._waypoint_queue[idx] if idx < len(self._waypoint_queue) else None
+                self._waypoint_queue[idx]
+                if idx < len(self._waypoint_queue)
+                else None
             )
             spheres.append(
                 SphereEntity(

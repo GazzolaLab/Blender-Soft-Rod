@@ -1,10 +1,9 @@
 from typing import Any
 
-import numpy as np
-from numba import njit
-
 import elastica as ea
+import numpy as np
 from elastica.typing import RodType
+from numba import njit
 
 
 # TODO: Rename, exponential damping

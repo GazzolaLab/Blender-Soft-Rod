@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Type
+
+from collections.abc import Callable
 
 import numpy as np
 from numba import njit
@@ -41,7 +42,9 @@ class SuckerActuationToSphere(NoContact):
         self.min_distance = float(min_distance)
         self.alignment_torque_scale = float(alignment_torque_scale)
         self.trigger = trigger
-        self.trigger_active = bool(trigger) if isinstance(trigger, bool) else False
+        self.trigger_active = (
+            bool(trigger) if isinstance(trigger, bool) else False
+        )
 
     @property
     def _allowed_system_two(self) -> list[Type]:
@@ -184,7 +187,8 @@ def _compute_sucker_sphere_force(
                 rod_positions[axis, idx + 1] + rod_positions[axis, idx]
             )
             sucker_position[axis] = (
-                element_center[axis] + rod_directors[0, axis, idx] * rod_radii[idx]
+                element_center[axis]
+                + rod_directors[0, axis, idx] * rod_radii[idx]
             )
 
         center_to_sucker = sucker_position - sphere_center
@@ -195,7 +199,9 @@ def _compute_sucker_sphere_force(
         surface_normal = center_to_sucker / center_distance
         sphere_surface_point = sphere_center + sphere_radius * surface_normal
         attachment_vector = sucker_position - sphere_surface_point
-        attachment_distance = np.sqrt(np.dot(attachment_vector, attachment_vector))
+        attachment_distance = np.sqrt(
+            np.dot(attachment_vector, attachment_vector)
+        )
         if attachment_distance <= min_distance:
             attachment_direction = surface_normal
         else:
@@ -214,7 +220,9 @@ def _compute_sucker_sphere_force(
             distance_scale = min_distance
 
         normalized_distance = positive_distance / distance_scale
-        distance_weight = np.exp(-(normalized_distance * normalized_distance) * 9.0)
+        distance_weight = np.exp(
+            -(normalized_distance * normalized_distance) * 9.0
+        )
 
         relative_velocity = rod_element_velocities[:, idx] - sphere_velocity
         closing_speed = np.dot(relative_velocity, attachment_direction)
@@ -249,7 +257,9 @@ def _compute_sucker_sphere_force(
                 center_to_contact[0] * desired_contact_direction[1]
                 - center_to_contact[1] * desired_contact_direction[0]
             )
-            alignment_torque_world = alignment_torque_scale * magnitude * torque_axis
+            alignment_torque_world = (
+                alignment_torque_scale * magnitude * torque_axis
+            )
             sphere_torque_world += alignment_torque_world
 
         lever_arm = sucker_position - element_center

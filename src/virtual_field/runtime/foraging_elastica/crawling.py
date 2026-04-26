@@ -24,7 +24,9 @@ class SegmentExtensionActuation(ea.NoForces):
         self.amplitude = amplitude
 
     def apply_forces(self, system: object, time: float = 0.0) -> None:
-        stretch_magnitude, stiffness_magnitude, bend_magnitude = self.amplitude()
+        stretch_magnitude, stiffness_magnitude, bend_magnitude = (
+            self.amplitude()
+        )
         self._apply_segment_extension_force(
             self.start_index,
             self.end_index,
@@ -62,8 +64,12 @@ class SegmentExtensionActuation(ea.NoForces):
         shear_matrix[1, 1, :end_index] = (
             original_shear_matrix[1, 1, :] * stiffness_scale
         )
-        bend_matrix[0, 0, :end_index] = original_bend_matrix[0, 0, :] * stiffness_scale
-        bend_matrix[1, 1, :end_index] = original_bend_matrix[1, 1, :] * stiffness_scale
+        bend_matrix[0, 0, :end_index] = (
+            original_bend_matrix[0, 0, :] * stiffness_scale
+        )
+        bend_matrix[1, 1, :end_index] = (
+            original_bend_matrix[1, 1, :] * stiffness_scale
+        )
 
 
 @dataclass(slots=True)
@@ -173,9 +179,13 @@ class CrawlingPolicy:
         )
 
     @classmethod
-    def from_vector(cls, values: np.ndarray, T_L: float = 2.4) -> "CrawlingPolicy":
+    def from_vector(
+        cls, values: np.ndarray, T_L: float = 2.4
+    ) -> "CrawlingPolicy":
         flat = np.asarray(values, dtype=np.float64).reshape(-1)
-        kwargs = {name: float(value) for name, value in zip(cls.PARAMETER_NAMES, flat)}
+        kwargs = {
+            name: float(value) for name, value in zip(cls.PARAMETER_NAMES, flat)
+        }
         kwargs["_T_L"] = float(T_L)
         return cls(**kwargs)
 
@@ -216,14 +226,18 @@ class OctoArmPolicy:
         ).astype(np.float64)
 
     @classmethod
-    def from_vector(cls, values: np.ndarray, T_L: float = 2.4) -> "OctoArmPolicy":
+    def from_vector(
+        cls, values: np.ndarray, T_L: float = 2.4
+    ) -> "OctoArmPolicy":
         flat = np.asarray(values, dtype=np.float64).reshape(-1)
         arm_width = CrawlingPolicy.vector_size()
         arms = []
         for arm_index in range(cls.num_arms()):
             start = arm_index * arm_width
             arms.append(
-                CrawlingPolicy.from_vector(flat[start : start + arm_width], T_L=T_L)
+                CrawlingPolicy.from_vector(
+                    flat[start : start + arm_width], T_L=T_L
+                )
             )
         return cls(T_L=float(T_L), arm_policies=tuple(arms))
 

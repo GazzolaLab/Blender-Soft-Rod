@@ -1,17 +1,16 @@
 from typing import Type
-from numba import njit
-from elastica.contact_forces import NoContact, common_check_systems_validity
-from elastica.rigidbody.sphere import Sphere
+
 import numpy as np
 from elastica._linalg import (
     _batch_norm,
+    _batch_product_i_ik_to_k,
     _batch_product_k_ik_to_ik,
-    _batch_product_i_ik_to_k
 )
+from elastica.contact_forces import NoContact, common_check_systems_validity
+from elastica.rigidbody.sphere import Sphere
+from numba import njit
 
-from .mesh_contact_utils import (
-    _batch_sphere_triangle_intersection_check
-)
+from .mesh_contact_utils import _batch_sphere_triangle_intersection_check
 from .mesh_surface import MeshSurface
 
 
@@ -58,7 +57,7 @@ class SphereMeshSurfaceContact(NoContact):
     @property
     def _allowed_system_one(self) -> list[Type]:
         # Modify this list to include the allowed system types for contact
-        return [Sphere]  
+        return [Sphere]
 
     @property
     def _allowed_system_two(self) -> list[Type]:
@@ -77,10 +76,11 @@ class SphereMeshSurfaceContact(NoContact):
         """
         common_check_systems_validity(system_one, self._allowed_system_one)
         common_check_systems_validity(system_two, self._allowed_system_two)
-        if system_one.radius>self.search_radius:
+        if system_one.radius > self.search_radius:
             raise ValueError(
-            f"Search radius must be greater than the sphere radius."
-        )
+                f"Search radius must be greater than the sphere radius."
+            )
+
     def apply_contact(
         self,
         system_one,
@@ -91,32 +91,38 @@ class SphereMeshSurfaceContact(NoContact):
         Apply contact forces and torques between sphere object and mesh surface object.
 
         """
-        (
-            self.face_idx_array
-        ) = self.search_faces(self.search_radius,system_one.position_collection,system_two.faces[:, 0, :],system_two.faces[:, 1, :],system_two.faces[:, 2, :])
+        self.face_idx_array = self.search_faces(
+            self.search_radius,
+            system_one.position_collection,
+            system_two.faces[:, 0, :],
+            system_two.faces[:, 1, :],
+            system_two.faces[:, 2, :],
+        )
 
         return self.sphere_mesh_contact(
-                system_one.position_collection,
-                system_one.radius,
-                system_one.velocity_collection,
-                system_one.external_forces,
-                system_two.faces,
-                system_two.face_normals,
-                system_two.face_centers,
-                system_two.side_vectors,
-                self.face_idx_array,
-                self.surface_tol,
-                self.k,
-                self.nu,
-            )
-    
+            system_one.position_collection,
+            system_one.radius,
+            system_one.velocity_collection,
+            system_one.external_forces,
+            system_two.faces,
+            system_two.face_normals,
+            system_two.face_centers,
+            system_two.side_vectors,
+            self.face_idx_array,
+            self.surface_tol,
+            self.k,
+            self.nu,
+        )
+
     @staticmethod
     @njit(cache=True)
-    def search_faces(search_radius,position,faces_vertex_A,faces_vertex_B,faces_vertex_C):
-        idx_A = _batch_norm(faces_vertex_A-position)<search_radius
-        idx_B = _batch_norm(faces_vertex_B-position)<search_radius
-        idx_C = _batch_norm(faces_vertex_C-position)<search_radius
-        return np.where(idx_A+idx_B+idx_C)[0]
+    def search_faces(
+        search_radius, position, faces_vertex_A, faces_vertex_B, faces_vertex_C
+    ):
+        idx_A = _batch_norm(faces_vertex_A - position) < search_radius
+        idx_B = _batch_norm(faces_vertex_B - position) < search_radius
+        idx_C = _batch_norm(faces_vertex_C - position) < search_radius
+        return np.where(idx_A + idx_B + idx_C)[0]
 
     @staticmethod
     @njit(cache=True)
@@ -147,7 +153,6 @@ class SphereMeshSurfaceContact(NoContact):
         -------
         magnitude of the plane response
         """
-
 
         if len(face_idx_array) == 0:
             return (
@@ -192,7 +197,7 @@ class SphereMeshSurfaceContact(NoContact):
         )
 
         normal_component_of_element_velocity = _batch_product_i_ik_to_k(
-            velocity[:,0],contact_face_normals
+            velocity[:, 0], contact_face_normals
         )
         damping_force = -nu * _batch_product_k_ik_to_ik(
             normal_component_of_element_velocity, contact_face_normals
@@ -215,9 +220,8 @@ class SphereMeshSurfaceContact(NoContact):
         # force on the sphere. Thus lets set plane response force to 0.0 for the no contact points.
         plane_response_force_contacts[..., no_intersection_idx] = 0.0
 
-
         # Update the external forces
-        external_forces[:,0] += np.sum(plane_response_force_contacts,axis=1)
+        external_forces[:, 0] += np.sum(plane_response_force_contacts, axis=1)
 
         return (
             _batch_norm(plane_response_force_contacts),
@@ -225,4 +229,3 @@ class SphereMeshSurfaceContact(NoContact):
             no_intersection_idx,
             contact_face_normals,
         )
-

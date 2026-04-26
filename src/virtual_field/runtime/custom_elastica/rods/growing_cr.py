@@ -1,23 +1,10 @@
 from typing import Type
 from typing_extensions import Self
 
-from numpy.typing import NDArray
-
-import numpy as np
-from numpy.testing import assert_allclose
 import elastica as ea
-from elastica.utils import Tolerance
+import numpy as np
+from elastica._linalg import _batch_cross, _batch_dot, _batch_norm
 from elastica.rod import RodBase
-from elastica.rod.factory_function import (
-    _assert_dim,
-    _directors_validity_checker,
-)
-from elastica.systems.protocol import SystemProtocol
-from elastica._linalg import (
-    _batch_cross,
-    _batch_norm,
-    _batch_dot,
-)
 from elastica.rod.cosserat_rod import (
     _compute_bending_twist_strains,
     _compute_internal_forces,
@@ -26,6 +13,14 @@ from elastica.rod.cosserat_rod import (
     _update_accelerations,
     _zeroed_out_external_forces_and_torques,
 )
+from elastica.rod.factory_function import (
+    _assert_dim,
+    _directors_validity_checker,
+)
+from elastica.systems.protocol import SystemProtocol
+from elastica.utils import Tolerance
+from numpy.testing import assert_allclose
+from numpy.typing import NDArray
 
 
 def growing_cr_allocate(
@@ -65,7 +60,9 @@ def growing_cr_allocate(
         _batch_dot(normal_collection, tangents),
         0,
         atol=Tolerance.atol(),
-        err_msg=(" Rod normal and tangent are not perpendicular to each other!"),
+        err_msg=(
+            " Rod normal and tangent are not perpendicular to each other!"
+        ),
     )
     directors[0, ...] = normal_collection
     directors[1, ...] = _batch_cross(tangents, normal_collection)
@@ -79,7 +76,9 @@ def growing_cr_allocate(
     _assert_dim(radius_temp, 2, "radius")
     radius[:] = radius_temp
     # Check if the elements of radius are greater than tolerance
-    assert np.all(radius > Tolerance.atol()), " Radius has to be greater than 0."
+    assert np.all(
+        radius > Tolerance.atol()
+    ), " Radius has to be greater than 0."
 
     # Set density array
     density_array = np.zeros((n_elements))
@@ -88,9 +87,9 @@ def growing_cr_allocate(
     _assert_dim(density_temp, 2, "density")
     density_array[:] = density_temp
     # Check if the elements of density are greater than tolerance
-    assert np.all(density_array > Tolerance.atol()), (
-        " Density has to be greater than 0."
-    )
+    assert np.all(
+        density_array > Tolerance.atol()
+    ), " Density has to be greater than 0."
 
     # Second moment of inertia
     A0 = np.pi * radius * radius
@@ -149,9 +148,9 @@ def growing_cr_allocate(
             ],
         )
     for i in range(0, 3):
-        assert np.all(bend_matrix[i, i, :] > Tolerance.atol()), (
-            " Bend matrix has to be greater than 0."
-        )
+        assert np.all(
+            bend_matrix[i, i, :] > Tolerance.atol()
+        ), " Bend matrix has to be greater than 0."
 
     # Compute bend matrix in Voronoi Domain
     rest_lengths_temp_for_voronoi = rest_lengths
@@ -299,7 +298,9 @@ class GrowingCR(ea.CosseratRod, SystemProtocol):
         self.director_collection = directors
         self.radius = radius
         self.mass_second_moment_of_inertia = mass_second_moment_of_inertia
-        self.inv_mass_second_moment_of_inertia = inv_mass_second_moment_of_inertia
+        self.inv_mass_second_moment_of_inertia = (
+            inv_mass_second_moment_of_inertia
+        )
         self.shear_matrix = shear_matrix
         self.bend_matrix = bend_matrix
         self.density = density_array
@@ -446,7 +447,9 @@ class GrowingCR(ea.CosseratRod, SystemProtocol):
             np.float64(youngs_modulus),
         )
         if total_elems != total_elements:
-            raise RuntimeError("growing_cr_allocate total element count mismatch")
+            raise RuntimeError(
+                "growing_cr_allocate total element count mismatch"
+            )
 
         return cls(
             total_elements,

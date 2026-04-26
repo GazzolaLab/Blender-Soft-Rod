@@ -1,8 +1,7 @@
-from elastica import NoForces
-
-from numba import njit
 import numpy as np
+from elastica import NoForces
 from elastica.typing import RodType
+from numba import njit
 
 
 class _SpirobBendConstraint(NoForces):

@@ -1,28 +1,33 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-import numpy as np
 from typing import Any
 
-from virtual_field.core.commands import ArmCommand
-from virtual_field.core.state import MeshEntity
-from virtual_field.core.state import SphereEntity
-from virtual_field.runtime.mesh_assets import build_pyvista_polydata_gltf_data_uri
-from virtual_field.runtime.mode_base import DualArmSimulationBase
-from .custom_elastica.dissipation import RayleighDamping
-from .custom_elastica.contacts import SuckerActuationToSphere
-from .custom_elastica.forcing import _PullSphereToPoint
-
+from dataclasses import dataclass, field
 from importlib.resources import files
 
-MAZE_PATH = files("virtual_field").joinpath("externals", "mesh", "pipe_maze_simple_with_marker.stl")
+import numpy as np
+
+from virtual_field.core.commands import ArmCommand
+from virtual_field.core.state import MeshEntity, SphereEntity
+from virtual_field.runtime.mesh_assets import (
+    build_pyvista_polydata_gltf_data_uri,
+)
+from virtual_field.runtime.mode_base import DualArmSimulationBase
+
+from .custom_elastica.contacts import SuckerActuationToSphere
+from .custom_elastica.dissipation import RayleighDamping
+from .custom_elastica.forcing import _PullSphereToPoint
+
+MAZE_PATH = files("virtual_field").joinpath(
+    "externals", "mesh", "pipe_maze_simple_with_marker.stl"
+)
 # MAZE_PATH = files("virtual_field").joinpath("externals", "mesh", "pipe_maze_complex_with_marker.stl")
 
 
 @dataclass(slots=True)
 class TwoGCRSimulation(DualArmSimulationBase):
     """Dual soft arms backed by ``GrowingCR`` rods."""
+
     spheres: list[Any] = field(init=False)
     _sucker_active: dict[str, bool] = field(init=False)
     _base_pull_active: dict[str, bool] = field(init=False)
@@ -44,7 +49,9 @@ class TwoGCRSimulation(DualArmSimulationBase):
         previous_controller_command: ArmCommand | None = None,
     ) -> None:
         primary_pressed = bool(controller_command.buttons.get("primary", False))
-        secondary_pressed = bool(controller_command.buttons.get("secondary", False))
+        secondary_pressed = bool(
+            controller_command.buttons.get("secondary", False)
+        )
         previous_primary_pressed = bool(
             previous_controller_command
             and previous_controller_command.buttons.get("primary", False)
@@ -54,7 +61,9 @@ class TwoGCRSimulation(DualArmSimulationBase):
             and previous_controller_command.buttons.get("secondary", False)
         )
 
-        self._primary_pressed[arm_id] = primary_pressed and not previous_primary_pressed
+        self._primary_pressed[arm_id] = (
+            primary_pressed and not previous_primary_pressed
+        )
         self._secondary_pressed[arm_id] = (
             secondary_pressed and not previous_secondary_pressed
         )
@@ -71,20 +80,22 @@ class TwoGCRSimulation(DualArmSimulationBase):
         super(TwoGCRSimulation, self).handle_command_inactive(arm_id)
 
     def build_simulation(self) -> None:
-        import pyvista as pv
         import elastica as ea
-        from elastica.memory_block.memory_block_rod import MemoryBlockCosseratRod
+        import pyvista as pv
+        from elastica.memory_block.memory_block_rod import (
+            MemoryBlockCosseratRod,
+        )
 
         from .custom_elastica.boundary_conditions import (
             _GrowingCRBoundaryConditions,
         )
-        from .custom_elastica.rods.growing_cr import GrowingCR
         from .custom_elastica.mesh import (
-            MeshSurface,
             Grid,
+            MeshSurface,
             RodMeshSurfaceContactGridMethod,
-            SphereMeshSurfaceContact
+            SphereMeshSurfaceContact,
         )
+        from .custom_elastica.rods.growing_cr import GrowingCR
 
         class _Simulator(
             ea.BaseSystemCollection,
@@ -144,43 +155,58 @@ class TwoGCRSimulation(DualArmSimulationBase):
 
         maze_mesh.scale(1.03e-2 * np.array([1.0, 1.0, 1.0]), inplace=True)
         maze_mesh.rotate_x(-90, inplace=True)
-        
+
         maze_mesh.translate(
             -np.array(maze_mesh.center), inplace=True
         )  # center the mesh at origin
 
-        #move so that max mesh value is a z=0
-        maze_mesh.translate(np.array([0,0,maze_mesh.bounds[4]]),inplace=True)
-        
-        #find vertex indices for the enterance holes
-        hole_vertex_idx = maze_mesh.points[:,2]>-0.01*(maze_mesh.bounds[5]-maze_mesh.bounds[4]) #mesh vertices between z=0 and z=-0.01*total_z_extent
-        hole_vertices_center_x = 0.5*(max(maze_mesh.points[hole_vertex_idx,0]) + min(maze_mesh.points[hole_vertex_idx,0]))
-        hole_vertices_center_y = 0.5*(max(maze_mesh.points[hole_vertex_idx,1]) + min(maze_mesh.points[hole_vertex_idx,1]))
-        
-        #move mesh so that origin is between hole centers
-        maze_mesh.translate(np.array([-hole_vertices_center_x,-hole_vertices_center_y,0]),inplace=True)
+        # move so that max mesh value is a z=0
+        maze_mesh.translate(np.array([0, 0, maze_mesh.bounds[4]]), inplace=True)
 
-        #finally move origin to center of two bases so arms are inside hole centers
+        # find vertex indices for the enterance holes
+        hole_vertex_idx = maze_mesh.points[:, 2] > -0.01 * (
+            maze_mesh.bounds[5] - maze_mesh.bounds[4]
+        )  # mesh vertices between z=0 and z=-0.01*total_z_extent
+        hole_vertices_center_x = 0.5 * (
+            max(maze_mesh.points[hole_vertex_idx, 0])
+            + min(maze_mesh.points[hole_vertex_idx, 0])
+        )
+        hole_vertices_center_y = 0.5 * (
+            max(maze_mesh.points[hole_vertex_idx, 1])
+            + min(maze_mesh.points[hole_vertex_idx, 1])
+        )
+
+        # move mesh so that origin is between hole centers
         maze_mesh.translate(
-            0.5*(right_rod_base + left_rod_base), inplace=True
-        ) 
+            np.array([-hole_vertices_center_x, -hole_vertices_center_y, 0]),
+            inplace=True,
+        )
+
+        # finally move origin to center of two bases so arms are inside hole centers
+        maze_mesh.translate(
+            0.5 * (right_rod_base + left_rod_base), inplace=True
+        )
 
         # Label connected components
         conn = maze_mesh.connectivity()
 
         # Extract number of regions
-        region_ids = conn['RegionId']
+        region_ids = conn["RegionId"]
         n_regions = region_ids.max() + 1
 
         components = []
         component_volumes = []
         for i in range(n_regions):
-            comp = conn.threshold([i, i], scalars="RegionId").extract_surface(algorithm='dataset_surface')
+            comp = conn.threshold([i, i], scalars="RegionId").extract_surface(
+                algorithm="dataset_surface"
+            )
             component_volumes.append(comp.volume)
             components.append(comp)
-        
-        target_reduction = 0.9 #reduce number of faces by this ratio
-        pipe_mesh = components.pop(np.argmax(component_volumes)).decimate(target_reduction) #largest volume will be the pipe
+
+        target_reduction = 0.9  # reduce number of faces by this ratio
+        pipe_mesh = components.pop(np.argmax(component_volumes)).decimate(
+            target_reduction
+        )  # largest volume will be the pipe
         self._pipe_maze_asset_uri = build_pyvista_polydata_gltf_data_uri(
             pipe_mesh,
             color_rgba=(0.42, 0.48, 0.55, 0.65),
@@ -195,13 +221,17 @@ class TwoGCRSimulation(DualArmSimulationBase):
             exit_boundary_condition=False,
         )
 
-        self.simulator.detect_contact_between(self.left_rod, pipe_surface).using(
+        self.simulator.detect_contact_between(
+            self.left_rod, pipe_surface
+        ).using(
             RodMeshSurfaceContactGridMethod,
             k=1e6,
             nu=1e1,
             grid=grid,
         )
-        self.simulator.detect_contact_between(self.right_rod, pipe_surface).using(
+        self.simulator.detect_contact_between(
+            self.right_rod, pipe_surface
+        ).using(
             RodMeshSurfaceContactGridMethod,
             k=1e6,
             nu=1e1,
@@ -221,10 +251,10 @@ class TwoGCRSimulation(DualArmSimulationBase):
         sphere_radius = 0.02
         sphere_density = 300.0
         for comp in components:
-            sphere = ea.Sphere(np.array(comp.center), sphere_radius, sphere_density)
-            self.spheres.append(
-                sphere
+            sphere = ea.Sphere(
+                np.array(comp.center), sphere_radius, sphere_density
             )
+            self.spheres.append(sphere)
             self.simulator.append(sphere)
             self.simulator.detect_contact_between(self.left_rod, sphere).using(
                 ea.RodSphereContact, k=1e4, nu=0.0
@@ -242,39 +272,46 @@ class TwoGCRSimulation(DualArmSimulationBase):
             self.simulator.add_forcing_to(sphere).using(
                 ea.GravityForces,
                 acc_gravity=np.array([0.0, -9.80665, 0.0]),
-
             )
-            self.simulator.detect_contact_between(sphere,pipe_surface).using(
+            self.simulator.detect_contact_between(sphere, pipe_surface).using(
                 SphereMeshSurfaceContact,
                 k=1e4,
                 nu=2e0,
-                search_radius=5*sphere_radius,
+                search_radius=5 * sphere_radius,
             )
             self.simulator.detect_contact_between(self.left_rod, sphere).using(
                 SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
-                trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[arm_id],
+                trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[
+                    arm_id
+                ],
             )
             self.simulator.detect_contact_between(self.right_rod, sphere).using(
                 SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
-                trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[arm_id],
+                trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[
+                    arm_id
+                ],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[
-                    :, 0
-                ].copy(),
-                is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[arm_id],
+                target=lambda arm_id=self.arm_ids[
+                    0
+                ]: self.left_rod.position_collection[:, 0].copy(),
+                is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[
+                    arm_id
+                ],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
                 target=lambda arm_id=self.arm_ids[
                     1
                 ]: self.right_rod.position_collection[:, 0].copy(),
-                is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
+                is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[
+                    arm_id
+                ],
             )
 
         p_linear = 1000.0
@@ -287,8 +324,12 @@ class TwoGCRSimulation(DualArmSimulationBase):
             p_linear_value=p_linear,
             p_angular_value=p_angular,
             controller=self.get_target_left,
-            trigger_increase_elements=lambda: self._secondary_pressed[self.arm_ids[0]],
-            trigger_decrease_elements=lambda: self._primary_pressed[self.arm_ids[0]],
+            trigger_increase_elements=lambda: self._secondary_pressed[
+                self.arm_ids[0]
+            ],
+            trigger_decrease_elements=lambda: self._primary_pressed[
+                self.arm_ids[0]
+            ],
             ramp_up_time=1e-3,
         )
         # right: self.arm_ids[1]
@@ -298,8 +339,12 @@ class TwoGCRSimulation(DualArmSimulationBase):
             p_linear_value=p_linear,
             p_angular_value=p_angular,
             controller=self.get_target_right,
-            trigger_increase_elements=lambda: self._secondary_pressed[self.arm_ids[1]],
-            trigger_decrease_elements=lambda: self._primary_pressed[self.arm_ids[1]],
+            trigger_increase_elements=lambda: self._secondary_pressed[
+                self.arm_ids[1]
+            ],
+            trigger_decrease_elements=lambda: self._primary_pressed[
+                self.arm_ids[1]
+            ],
             ramp_up_time=1e-3,
         )
 
@@ -346,11 +391,13 @@ class TwoGCRSimulation(DualArmSimulationBase):
                 static_asset=True,
             )
         ]
-    
+
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
         for idx, sphere in enumerate(self.spheres):
-            position = np.asarray(sphere.position_collection[..., 0], dtype=np.float64)
+            position = np.asarray(
+                sphere.position_collection[..., 0], dtype=np.float64
+            )
             spheres.append(
                 SphereEntity(
                     sphere_id=f"{self.user_id}_pipe_sphere_{idx}",

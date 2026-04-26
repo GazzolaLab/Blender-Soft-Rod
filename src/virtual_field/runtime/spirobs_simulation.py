@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Callable
 
 import numpy as np
-from collections import deque
 
+from virtual_field.core.state import HapticEvent
 from virtual_field.runtime.mode_base import DualArmSimulationBase
 
 
@@ -40,10 +40,6 @@ class SpirobsSimulation(DualArmSimulationBase):
             _SpirobBendConstraint,
         )
         from virtual_field.runtime.spirob_elastica.sdf_objects import SDFTorus
-        from virtual_field.runtime.spirob_elastica.spirob import create_spirob
-        from virtual_field.runtime.custom_elastica.control import (
-            TargetPoseProportionalControl,
-        )
 
         class _Simulator(
             ea.BaseSystemCollection,
@@ -62,12 +58,12 @@ class SpirobsSimulation(DualArmSimulationBase):
         # In viewer coordinates, forward is -Z.
         direction = np.array([0.0, 0.0, -1.0])
         normal = np.array([1.0, 0.0, 0.0])
-        base_length = 0.551479602
-        base_radius = 0.019945905
+        base_length = 0.55
+        base_radius = 0.02
         density = 2500.0
         youngs_modulus = 5.0e5
 
-        self.left_rod = create_spirob(
+        self.left_rod = ea.CosseratRod.straight_rod(
             n_elem,
             np.array(self.base_left, dtype=np.float64),
             direction,
@@ -75,7 +71,7 @@ class SpirobsSimulation(DualArmSimulationBase):
             base_length,
             base_radius,
             density,
-            youngs_modulus,
+            youngs_modulus=youngs_modulus,
         )
         self.right_rod = ea.CosseratRod.straight_rod(
             n_elem,

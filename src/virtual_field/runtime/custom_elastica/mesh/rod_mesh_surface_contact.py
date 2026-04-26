@@ -1,27 +1,23 @@
 from typing import Type
 
-from numba import njit
-from elastica.contact_forces import NoContact
-from elastica.contact_utils import (
-    _node_to_element_velocity,
-    _elements_to_nodes_inplace,
-    _find_slipping_elements,
-)
 import numpy as np
 from elastica._linalg import (
+    _batch_cross,
     _batch_dot,
+    _batch_matrix_transpose,
+    _batch_matvec,
     _batch_norm,
     _batch_product_k_ik_to_ik,
-    _batch_cross,
-    _batch_matvec,
-    _batch_matrix_transpose,
 )
-
-
-from .mesh_contact_utils import (
-    Grid,
-    _batch_sphere_triangle_intersection_check
+from elastica.contact_forces import NoContact
+from elastica.contact_utils import (
+    _elements_to_nodes_inplace,
+    _find_slipping_elements,
+    _node_to_element_velocity,
 )
+from numba import njit
+
+from .mesh_contact_utils import Grid, _batch_sphere_triangle_intersection_check
 from .mesh_surface import MeshSurface
 
 
@@ -64,7 +60,6 @@ class RodMeshSurfaceContactGridMethod(NoContact):
         self.nu = nu
         self.grid = grid
         self.surface_tol = surface_tol
-        
 
     @property
     def _allowed_system_two(self) -> list[Type]:
@@ -92,7 +87,9 @@ class RodMeshSurfaceContactGridMethod(NoContact):
             self.position_idx_array,
             self.face_idx_array,
             self.element_position,
-        ) = self.grid.find_faces(position_collection=system_one.position_collection)
+        ) = self.grid.find_faces(
+            position_collection=system_one.position_collection
+        )
 
         return self.rod_mesh_contact(
             system_two.faces,
@@ -195,7 +192,9 @@ class RodMeshSurfaceContactGridMethod(NoContact):
         )
 
         # Elastic force response due to penetration
-        plane_penetration = np.minimum(distance_from_face_plane - radius_contacts, 0.0)
+        plane_penetration = np.minimum(
+            distance_from_face_plane - radius_contacts, 0.0
+        )
         elastic_force = -k * _batch_product_k_ik_to_ik(
             plane_penetration, normals_on_elements
         )
@@ -272,7 +271,7 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         gamma: float,
         static_mu_array: np.ndarray,
         kinetic_mu_array: np.ndarray,
-        grid:Grid,
+        grid: Grid,
         surface_tol=1e-4,
     ):
         """
@@ -295,9 +294,7 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         grid : grid class instance
             Dimension of the mesh surface's grid.
         """
-        RodMeshSurfaceContactGridMethod.__init__(
-            self, k, nu, grid, surface_tol
-        )
+        RodMeshSurfaceContactGridMethod.__init__(self, k, nu, grid, surface_tol)
         self.slip_velocity_tol = slip_velocity_tol
         self.gamma = gamma
         (
@@ -340,7 +337,7 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             self.normals_on_elements,
             self.element_position_contacts,
             self.element_velocity_contacts,
-        ) = super().apply_contact(system_one,system_two,time)
+        ) = super().apply_contact(system_one, system_two, time)
 
         self.mesh_anisotropic_friction(
             self.plane_response_force_mag,
@@ -365,7 +362,6 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             system_one.external_torques,
         )
 
-    
     @staticmethod
     @njit(cache=True)
     def mesh_anisotropic_friction(
@@ -389,11 +385,10 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         omega_collection,
         external_forces,
         external_torques,
-        ):
+    ):
 
         if len(position_idx_array) == 0:
             return no_penetration_idx, no_intersection_idx
-
 
         # First compute component of rod tangent in plane. Because friction forces acts in plane not out of plane. Thus
         # axial direction has to be in plane, it cannot be out of plane. We are projecting rod element tangent vector in
@@ -403,7 +398,9 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             tangents_contacts = tangents[:, position_idx_array]
             radius_contacts = radius[position_idx_array]
             omega_collection_contacts = omega_collection[:, position_idx_array]
-            director_collection_contacts = director_collection[:, :, position_idx_array]
+            director_collection_contacts = director_collection[
+                :, :, position_idx_array
+            ]
             kinetic_mu_sideways_array = kinetic_mu_sideways * np.ones_like(
                 position_idx_array
             )
@@ -412,12 +409,18 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             radius_contacts = radius
             omega_collection_contacts = omega_collection
             director_collection_contacts = director_collection
-            kinetic_mu_sideways_array = kinetic_mu_sideways * np.ones_like(radius)
+            kinetic_mu_sideways_array = kinetic_mu_sideways * np.ones_like(
+                radius
+            )
 
-        tangent_along_normal_direction = _batch_dot(normals_on_elements, tangents_contacts)
+        tangent_along_normal_direction = _batch_dot(
+            normals_on_elements, tangents_contacts
+        )
         tangent_perpendicular_to_normal_direction = (
             tangents_contacts
-            - _batch_product_k_ik_to_ik(tangent_along_normal_direction, normals_on_elements)
+            - _batch_product_k_ik_to_ik(
+                tangent_along_normal_direction, normals_on_elements
+            )
         )
 
         tangent_perpendicular_to_normal_direction_mag = _batch_norm(
@@ -441,7 +444,9 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
 
         # Friction forces depends on the direction of velocity, in other words sign
         # of the velocity vector.
-        velocity_sign_along_axial_direction = np.sign(velocity_mag_along_axial_direction)
+        velocity_sign_along_axial_direction = np.sign(
+            velocity_mag_along_axial_direction
+        )
         # Check top for sign convention
         kinetic_mu = 0.5 * (
             kinetic_mu_forward * (1 + velocity_sign_along_axial_direction)
@@ -454,13 +459,19 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
 
         # Now rolling kinetic friction
         rolling_direction = _batch_cross(axial_direction, normals_on_elements)
-        torque_arm = -_batch_product_k_ik_to_ik(radius_contacts, normals_on_elements)
+        torque_arm = -_batch_product_k_ik_to_ik(
+            radius_contacts, normals_on_elements
+        )
         velocity_along_rolling_direction = _batch_dot(
             element_velocity_contacts, rolling_direction
         )
-        velocity_sign_along_rolling_direction = np.sign(velocity_along_rolling_direction)
+        velocity_sign_along_rolling_direction = np.sign(
+            velocity_along_rolling_direction
+        )
 
-        directors_transpose_contacts = _batch_matrix_transpose(director_collection_contacts)
+        directors_transpose_contacts = _batch_matrix_transpose(
+            director_collection_contacts
+        )
         # directors_transpose = _batch_matrix_transpose(director_collection)
 
         # w_rot = Q.T @ omega @ Q @ r
@@ -475,7 +486,8 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             rotation_velocity, rolling_direction
         )
         slip_velocity_mag_along_rolling_direction = (
-            velocity_along_rolling_direction + rotation_velocity_along_rolling_direction
+            velocity_along_rolling_direction
+            + rotation_velocity_along_rolling_direction
         )
         slip_velocity_along_rolling_direction = _batch_product_k_ik_to_ik(
             slip_velocity_mag_along_rolling_direction, rolling_direction
@@ -486,7 +498,8 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         # Compute unitized total slip velocity vector. We will use this to distribute the weight of the rod in axial
         # and rolling directions.
         unitized_total_velocity = (
-            slip_velocity_along_rolling_direction + velocity_along_axial_direction
+            slip_velocity_along_rolling_direction
+            + velocity_along_axial_direction
         )
         unitized_total_velocity /= _batch_norm(unitized_total_velocity + 1e-14)
         # Apply kinetic friction in axial direction.
@@ -499,7 +512,9 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         )
         # If rod element does not have any contact with plane, plane cannot apply friction
         # force on the element. Thus lets set kinetic friction force to 0.0 for the no contact points.
-        kinetic_friction_force_along_axial_direction_contacts[..., no_penetration_idx] = 0.0
+        kinetic_friction_force_along_axial_direction_contacts[
+            ..., no_penetration_idx
+        ] = 0.0
         kinetic_friction_force_along_axial_direction_contacts[
             ..., no_intersection_idx
         ] = 0.0
@@ -525,7 +540,8 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         kinetic_rolling_torque_contacts = _batch_matvec(
             director_collection_contacts,
             _batch_cross(
-                torque_arm, kinetic_friction_force_along_rolling_direction_contacts
+                torque_arm,
+                kinetic_friction_force_along_rolling_direction_contacts,
             ),
         )
 
@@ -537,17 +553,24 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
             + static_mu_backward * (1 - velocity_sign_along_axial_direction)
         )
         max_friction_force = (
-            slip_function_along_axial_direction * static_mu * plane_response_force_mag
+            slip_function_along_axial_direction
+            * static_mu
+            * plane_response_force_mag
         )
         # friction = min(mu N, gamma v)
         static_friction_force_along_axial_direction_contacts = -(
-            np.minimum(np.fabs(gamma * velocity_along_axial_direction), max_friction_force)
+            np.minimum(
+                np.fabs(gamma * velocity_along_axial_direction),
+                max_friction_force,
+            )
             * velocity_sign_along_axial_direction
             * axial_direction
         )
         # If rod element does not have any contact with plane, plane cannot apply friction
         # force on the element. Thus lets set static friction force to 0.0 for the no contact points.
-        static_friction_force_along_axial_direction_contacts[..., no_penetration_idx] = 0.0
+        static_friction_force_along_axial_direction_contacts[
+            ..., no_penetration_idx
+        ] = 0.0
         static_friction_force_along_axial_direction_contacts[
             ..., no_intersection_idx
         ] = 0.0
@@ -577,7 +600,8 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
 
         static_friction_force_along_rolling_direction_contacts = (
             np.minimum(
-                np.fabs(gamma * velocity_along_rolling_direction), max_friction_force
+                np.fabs(gamma * velocity_along_rolling_direction),
+                max_friction_force,
             )
             * velocity_sign_along_rolling_direction
             * rolling_direction
@@ -594,7 +618,8 @@ class RodMeshSurfaceContactGridMethodWithAnisotropicFriction(
         static_rolling_torque_contacts = _batch_matvec(
             director_collection_contacts,
             _batch_cross(
-                torque_arm, static_friction_force_along_rolling_direction_contacts
+                torque_arm,
+                static_friction_force_along_rolling_direction_contacts,
             ),
         )
 

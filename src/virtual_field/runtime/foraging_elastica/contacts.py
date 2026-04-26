@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from re import S
 
-import numpy as np
 import elastica as ea
+import numpy as np
 from numba import njit
 from numpy import arccos, maximum, minimum, sin
 
@@ -222,7 +223,9 @@ def _apply_base_sphere_tether_rotation(
     for i in range(3):
         for j in range(3):
             for t in range(3):
-                rel_rot[i, j] += rod_directors[i, t, idx] * sphere_directors[j, t, 0]
+                rel_rot[i, j] += (
+                    rod_directors[i, t, idx] * sphere_directors[j, t, 0]
+                )
 
     dev_rot_T = np.empty((3, 3))
     for i in range(3):
@@ -250,5 +253,7 @@ def _apply_base_sphere_tether_rotation(
     # Torque applied in local coordinates
     for i in range(3):
         for j in range(3):
-            sphere_external_torques[i, 0] += sphere_directors[i, j, 0] * torque[j]
+            sphere_external_torques[i, 0] += (
+                sphere_directors[i, j, 0] * torque[j]
+            )
             rod_external_torques[i, idx] -= rod_directors[i, j, idx] * torque[j]

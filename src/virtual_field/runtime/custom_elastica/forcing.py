@@ -1,6 +1,6 @@
 from collections.abc import Callable
-import numpy as np
 
+import numpy as np
 from elastica.external_forces import NoForces
 from numba import njit
 
@@ -11,14 +11,16 @@ class _SphereBoxed(NoForces):
         *,
         bounding_box: np.ndarray,
         stiffness: float = 1e3,
-        damping: float = 1.0
+        damping: float = 1.0,
     ) -> None:
         super().__init__()
         self.bounding_box = np.asarray(bounding_box, dtype=np.float64)
         if self.bounding_box.shape != (2, 3):
             raise ValueError("bounding_box must have shape (2, 3)")
         if np.any(self.bounding_box[0] >= self.bounding_box[1]):
-            raise ValueError("bounding_box min corner must be strictly below max corner")
+            raise ValueError(
+                "bounding_box min corner must be strictly below max corner"
+            )
         self.stiffness = stiffness
         self.damping = damping
         self.gravity = np.array([0.0, -9.81, 0.0])
@@ -35,6 +37,7 @@ class _SphereBoxed(NoForces):
             self.damping,
             self.gravity,
         )
+
 
 @njit(cache=True)
 def _boxed_sphere_force(
@@ -60,7 +63,6 @@ def _boxed_sphere_force(
             penetration = position[axis] - upper
             force[axis] += -stiffness * penetration - damping * velocity[axis]
     return force
-
 
 
 class _PullSphereToPoint(NoForces):
@@ -94,6 +96,7 @@ class _PullSphereToPoint(NoForces):
             self.damping,
             self.max_force,
         )
+
 
 @njit(cache=True)
 def _pull_sphere_to_point_force(

@@ -7,10 +7,11 @@ triggers that change ``current_elements``.
 
 from typing import Callable
 
+import time as tm
+
 import numpy as np
 from elastica.external_forces import NoForces
 from numba import njit
-import time as tm
 
 
 @njit(cache=True)  # type: ignore

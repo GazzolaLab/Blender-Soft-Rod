@@ -17,6 +17,7 @@ class TwoCRSimulation(DualArmSimulationBase):
 
     def build_simulation(self) -> None:
         import elastica as ea
+
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
         )
@@ -39,7 +40,7 @@ class TwoCRSimulation(DualArmSimulationBase):
         direction = np.array([0.0, 0.0, -1.0])
         normal = np.array([1.0, 0.0, 0.0])
         base_length = 0.55
-        base_radius = 0.02
+        base_radius = 0.015
         density = 1500.0
         youngs_modulus = 8.0e5
         poisson_ratio = 0.5
@@ -104,15 +105,15 @@ class TwoCRSimulation(DualArmSimulationBase):
         )
 
         # contact (Comment out for now. We'll consider it later)
-        self.simulator.detect_contact_between(self.left_rod, self.right_rod).using(
-            ea.RodRodContact, k=1e4, nu=3
-        )
-        self.simulator.detect_contact_between(self.left_rod, self.left_rod).using(
-            ea.RodSelfContact, k=1e4, nu=3
-        )
-        self.simulator.detect_contact_between(self.right_rod, self.right_rod).using(
-            ea.RodSelfContact, k=1e4, nu=3
-        )
+        self.simulator.detect_contact_between(
+            self.left_rod, self.right_rod
+        ).using(ea.RodRodContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(
+            self.left_rod, self.left_rod
+        ).using(ea.RodSelfContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(
+            self.right_rod, self.right_rod
+        ).using(ea.RodSelfContact, k=1e4, nu=3)
 
         damping_constant = 5.0
         self.simulator.dampen(self.left_rod).using(

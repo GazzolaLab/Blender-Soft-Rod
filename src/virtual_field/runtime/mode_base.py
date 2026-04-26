@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol, final
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, final
-
-from loguru import logger
-import numpy as np
 from math import cos, pi, sin
 
+import numpy as np
+from loguru import logger
+
 from virtual_field.core.commands import ArmCommand, MultiArmCommand
-from virtual_field.core.state import ArmState, MeshEntity, SphereEntity, Transform
+from virtual_field.core.state import (
+    ArmState,
+    HapticEvent,
+    MeshEntity,
+    SphereEntity,
+    Transform,
+)
 from virtual_field.runtime.orientation import (
     compose_rowwise_directors,
     controller_quat_xyzw_to_matrix,
@@ -19,11 +25,12 @@ from virtual_field.runtime.orientation import (
 )
 
 
+# Simplest rod protocol.
 class Rod(Protocol):
     position_collection: np.ndarray
+    director_collection: np.ndarray
     radius: np.ndarray
     lengths: np.ndarray
-    director_collection: np.ndarray
 
 
 @dataclass(slots=True, kw_only=True)
@@ -134,8 +141,12 @@ class SimulationBase(ABC):
     def reset_target_to_rest(self, arm_id: str) -> None:
         if arm_id not in self._rest_target_position:
             return
-        self._target_position[arm_id] = self._rest_target_position[arm_id].copy()
-        self._target_orientation[arm_id] = self._rest_target_orientation[arm_id].copy()
+        self._target_position[arm_id] = self._rest_target_position[
+            arm_id
+        ].copy()
+        self._target_orientation[arm_id] = self._rest_target_orientation[
+            arm_id
+        ].copy()
 
     def recalibrate_orientation_to_base(
         self, arm_id: str, controller_rotation_xyzw: list[float]
@@ -177,7 +188,9 @@ class SimulationBase(ABC):
         substeps = max(1, int(np.ceil(total / self.dt_internal)))
         step_dt = total / substeps
         for _ in range(substeps):
-            self._time = self.timestepper.step(self.simulator, self._time, step_dt)
+            self._time = self.timestepper.step(
+                self.simulator, self._time, step_dt
+            )
         if self._time - self._last_log_time >= 0.1:
             self._last_log_time = self._time
 
@@ -193,6 +206,9 @@ class SimulationBase(ABC):
     def sphere_entities(self) -> list[SphereEntity]:
         return []
 
+    def haptic_events(self) -> list[HapticEvent]:
+        return []
+
     def _rod_to_arm_state(self, arm_id: str, rod: Rod) -> ArmState:
         """
         Convert a rod to an arm state.
@@ -200,15 +216,20 @@ class SimulationBase(ABC):
         """
         node_slice = self._rod_slice_or_full(rod, "_active_node_slice")
         elem_slice = self._rod_slice_or_full(rod, "_active_elem_slice")
-        positions = np.asarray(rod.position_collection[:, node_slice], dtype=np.float64)
+        positions = np.asarray(
+            rod.position_collection[:, node_slice], dtype=np.float64
+        )
         centerline = positions.T.tolist()
         radii = np.asarray(rod.radius[elem_slice], dtype=np.float64).tolist()
-        element_lengths = np.asarray(rod.lengths[elem_slice], dtype=np.float64).tolist()
+        element_lengths = np.asarray(
+            rod.lengths[elem_slice], dtype=np.float64
+        ).tolist()
         directors = np.asarray(
             rod.director_collection[:, :, elem_slice], dtype=np.float64
         )
         directors_list = [
-            directors[..., elem_idx].tolist() for elem_idx in range(directors.shape[-1])
+            directors[..., elem_idx].tolist()
+            for elem_idx in range(directors.shape[-1])
         ]
 
         base_position = positions[:, 0]
@@ -263,7 +284,9 @@ class DualArmSimulationBase(SimulationBase, ABC):
         previous_controller_command: ArmCommand | None = None,
     ) -> None:
         primary_pressed = bool(controller_command.buttons.get("primary", False))
-        secondary_pressed = bool(controller_command.buttons.get("secondary", False))
+        secondary_pressed = bool(
+            controller_command.buttons.get("secondary", False)
+        )
         previous_secondary_pressed = bool(
             previous_controller_command
             and previous_controller_command.buttons.get("secondary", False)
@@ -316,32 +339,22 @@ class DualArmSimulationBase(SimulationBase, ABC):
 class OctoArmSimulationBase(SimulationBase, ABC):
     """Simulation base specialized for a fixed eight-arm layout."""
 
-    base_position: tuple[float, float, float] | tuple[list[float], ...]
+    base_position: tuple[float, float, float]
 
     arm_radial_spacing: float = 0.05
 
     def configure_arm_bases(self) -> None:
-        if len(self.base_position) == len(self.arm_ids) and isinstance(
-            self.base_position[0], (list, tuple)
-        ):
-            self.arm_bases = {
-                arm_id: list(self.base_position[index])
-                for index, arm_id in enumerate(self.arm_ids)
-            }
-            return
-
         base_x, base_y, base_z = self.base_position
 
-        def _base_position(index: int) -> tuple[float, float, float]:
+        self.arm_bases = {}
+        offset_angle = np.deg2rad(22.5)
+        for index, arm_id in enumerate(self.arm_ids):
             loc = index / 8.0
-            offset_angle = np.deg2rad(22.5)
             translation = (
-                base_x - self.arm_radial_spacing * cos(offset_angle + 2.0 * pi * loc),
+                base_x
+                - self.arm_radial_spacing * cos(offset_angle + 2.0 * pi * loc),
                 base_y,
-                base_z + self.arm_radial_spacing * sin(offset_angle + 2.0 * pi * loc),
+                base_z
+                + self.arm_radial_spacing * sin(offset_angle + 2.0 * pi * loc),
             )
-            return translation
-
-        self.arm_bases = {
-            arm_id: _base_position(index) for index, arm_id in enumerate(self.arm_ids)
-        }
+            self.arm_bases[arm_id] = translation
