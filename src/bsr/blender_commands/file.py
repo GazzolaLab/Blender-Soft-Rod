@@ -1,4 +1,4 @@
-""" file.py contains functions useful in handling .blend files using bpy """
+"""file.py contains functions useful in handling .blend files using bpy"""
 
 from pathlib import Path
 

@@ -1,4 +1,5 @@
 from typing import cast
+
 from numbers import Number
 
 import numpy as np
@@ -7,11 +8,13 @@ from numpy.typing import NDArray
 try:
     from numba import njit
 except ModuleNotFoundError:  # pragma: no cover
+
     def njit(*args, **kwargs):  # type: ignore[no-redef]
         def decorator(func):
             return func
 
         return decorator
+
 
 try:
     from scipy.spatial.transform import Rotation

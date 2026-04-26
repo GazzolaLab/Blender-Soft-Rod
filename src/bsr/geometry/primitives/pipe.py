@@ -7,7 +7,7 @@ occur with improper handle type configurations.
 """
 __all__ = ["BezierSplinePipe"]
 
-from typing import TYPE_CHECKING, cast, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import warnings
 from numbers import Number
@@ -177,7 +177,9 @@ class BezierSplinePipe(KeyFrameControlMixin):
         spline = self.object.data.splines[0]
         if positions is not None:
             _validate_position(positions)
-            positions = self._downsample_data(positions, self.downsample_num_element)
+            positions = self._downsample_data(
+                positions, self.downsample_num_element
+            )
             for i, point in enumerate(spline.bezier_points):
                 x, y, z = positions[:, i]
                 point.co = (x, y, z)
@@ -206,13 +208,12 @@ class BezierSplinePipe(KeyFrameControlMixin):
             return np.interp(t, t_old, vector)
 
         flattened = vector.reshape(-1, vector.shape[-1])
-        downsampled = np.vstack(
-            [np.interp(t, t_old, row) for row in flattened]
-        )
+        downsampled = np.vstack([np.interp(t, t_old, row) for row in flattened])
         return downsampled.reshape(vector.shape[:-1] + (num_elements,))
 
     def _create_bezier_spline(
-        self, number_of_points: int,
+        self,
+        number_of_points: int,
     ) -> bpy.types.Object:
         """
         Creates a new pipe object.

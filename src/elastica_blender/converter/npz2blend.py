@@ -8,8 +8,10 @@ import numpy as np
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:  # pragma: no cover
+
     def tqdm(iterable, **kwargs):
         return iterable
+
 
 import bsr
 

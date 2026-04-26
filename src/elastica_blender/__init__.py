@@ -1,5 +1,6 @@
-from importlib import import_module
 from typing import cast
+
+from importlib import import_module
 
 __all__ = ["BlenderRodCallback"]
 
