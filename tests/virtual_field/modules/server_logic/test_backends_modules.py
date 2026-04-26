@@ -39,7 +39,9 @@ def test_apply_command_pass_through_ignores_inactive() -> None:
         ArmCommand(
             arm_id=arm_ids[0],
             active=False,
-            target=Transform(translation=[2.0, 2.0, -2.0], rotation_xyzw=[0, 0, 0, 1]),
+            target=Transform(
+                translation=[2.0, 2.0, -2.0], rotation_xyzw=[0, 0, 0, 1]
+            ),
             buttons={},
         ),
     )

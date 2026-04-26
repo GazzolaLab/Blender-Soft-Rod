@@ -14,7 +14,9 @@ pytestmark = pytest.mark.modules
 
 
 def test_arm_command_rejects_empty_arm_id() -> None:
-    with pytest.raises(ControllerDisconnectedError, match="arm_id cannot be empty"):
+    with pytest.raises(
+        ControllerDisconnectedError, match="arm_id cannot be empty"
+    ):
         ArmCommand(
             arm_id="",
             active=True,
@@ -39,7 +41,9 @@ def test_multi_arm_command_rejects_key_mismatch() -> None:
 
 
 def test_xr_input_rejects_empty_controllers() -> None:
-    with pytest.raises(ControllerDisconnectedError, match="controllers cannot be empty"):
+    with pytest.raises(
+        ControllerDisconnectedError, match="controllers cannot be empty"
+    ):
         XRInputSample(timestamp=0.0, head_pose=Transform(), controllers={})
 
 

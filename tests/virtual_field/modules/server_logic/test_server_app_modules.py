@@ -72,7 +72,10 @@ def test_publisher_message_add_mesh_requires_fields() -> None:
     )
     responses = server._handle_publisher_message(session, "add_mesh", {})
     assert responses[0]["type"] == "error"
-    assert "add_mesh requires mesh_id and mesh_data_b64" in responses[0]["payload"]["reason"]
+    assert (
+        "add_mesh requires mesh_id and mesh_data_b64"
+        in responses[0]["payload"]["reason"]
+    )
 
 
 def test_publisher_message_rejects_update_without_mesh_id() -> None:
