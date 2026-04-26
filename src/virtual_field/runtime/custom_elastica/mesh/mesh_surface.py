@@ -1,11 +1,10 @@
 __doc__ = """ surface classes and implementation details """
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pyvista as pv
-
 from elastica.surface.plane import Plane
 from elastica.utils import Tolerance
+from numpy.testing import assert_allclose
 
 
 class MeshSurface(Plane):
@@ -39,7 +38,9 @@ class MeshSurface(Plane):
             self.texture_vertices = self.mesh.active_texture_coordinates.T
         except AttributeError:
             self.texture_vertices = None
-        self.face_centers = self.face_center_calculation(self.faces, self.n_faces)
+        self.face_centers = self.face_center_calculation(
+            self.faces, self.n_faces
+        )
         self.face_normals = self.face_normal_calculation(
             self.mesh.faces,
             self.mesh.face_normals,
@@ -62,9 +63,15 @@ class MeshSurface(Plane):
             ]
         )  # grid x zero position
         self.side_vectors = np.zeros((3, 3, self.n_faces))  # coords,sides,faces
-        self.side_vectors[:, 0, :] = self.faces[:, 1, :] - self.faces[:, 0, :]  # AB
-        self.side_vectors[:, 1, :] = self.faces[:, 2, :] - self.faces[:, 0, :]  # AC
-        self.side_vectors[:, 2, :] = self.faces[:, 2, :] - self.faces[:, 1, :]  # BC
+        self.side_vectors[:, 0, :] = (
+            self.faces[:, 1, :] - self.faces[:, 0, :]
+        )  # AB
+        self.side_vectors[:, 1, :] = (
+            self.faces[:, 2, :] - self.faces[:, 0, :]
+        )  # AC
+        self.side_vectors[:, 2, :] = (
+            self.faces[:, 2, :] - self.faces[:, 1, :]
+        )  # BC
 
     @staticmethod
     def scale_calculation(bounds: np.ndarray) -> np.ndarray:

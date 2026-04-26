@@ -1,15 +1,13 @@
-from numba import njit
-import numpy as np
-from elastica.contact_utils import (
-    _node_to_element_position,
-)
-from elastica._linalg import (
-    _batch_dot,
-    _batch_norm,
-)
 from functools import partial
+
+import numpy as np
+from elastica._linalg import _batch_dot, _batch_norm
+from elastica.contact_utils import _node_to_element_position
 from elastica.typing import RodType
+from numba import njit
+
 from .mesh_surface import MeshSurface
+
 # import dill
 
 
@@ -78,11 +76,19 @@ def _batch_sphere_triangle_intersection_check(
     triangle_intersection_radius = np.sqrt(
         np.maximum(sphere_radii**2 - distance_from_triangle_plane**2, 0)
     )  # using pythagoras, figure out the intersection radius
-    closest_point_on_triangle_to_projected_point = projected_sphere_center.copy()
+    closest_point_on_triangle_to_projected_point = (
+        projected_sphere_center.copy()
+    )
 
-    projected_sphere_center_to_vertex_A = projected_sphere_center - triangle_vertices_A
-    projected_sphere_center_to_vertex_B = projected_sphere_center - triangle_vertices_B
-    projected_sphere_center_to_vertex_C = projected_sphere_center - triangle_vertices_C
+    projected_sphere_center_to_vertex_A = (
+        projected_sphere_center - triangle_vertices_A
+    )
+    projected_sphere_center_to_vertex_B = (
+        projected_sphere_center - triangle_vertices_B
+    )
+    projected_sphere_center_to_vertex_C = (
+        projected_sphere_center - triangle_vertices_C
+    )
 
     d1 = _batch_dot(projected_sphere_center_to_vertex_A, triangle_side_AB)
     d2 = _batch_dot(projected_sphere_center_to_vertex_A, triangle_side_AC)
@@ -95,36 +101,54 @@ def _batch_sphere_triangle_intersection_check(
     vb = d5 * d2 - d1 * d6
     vc = d1 * d4 - d3 * d2
 
-    region_1 = np.where((d1 <= 0) * (d2 <= 0))[0]  # region 1 (closest to vertex A)
-    closest_point_on_triangle_to_projected_point[:, region_1] = triangle_vertices_A[
-        :, region_1
-    ]
-    region_2 = np.where((d3 >= 0) * (d4 <= d3))[0]  # region 2 (closest to vertex B)
-    closest_point_on_triangle_to_projected_point[:, region_2] = triangle_vertices_B[
-        :, region_2
-    ]
-    region_3 = np.where((d6 >= 0) * (d5 <= d6))[0]  # region 3 (closest to vertex C)
-    closest_point_on_triangle_to_projected_point[:, region_3] = triangle_vertices_C[
-        :, region_3
-    ]
+    region_1 = np.where((d1 <= 0) * (d2 <= 0))[
+        0
+    ]  # region 1 (closest to vertex A)
+    closest_point_on_triangle_to_projected_point[:, region_1] = (
+        triangle_vertices_A[:, region_1]
+    )
+    region_2 = np.where((d3 >= 0) * (d4 <= d3))[
+        0
+    ]  # region 2 (closest to vertex B)
+    closest_point_on_triangle_to_projected_point[:, region_2] = (
+        triangle_vertices_B[:, region_2]
+    )
+    region_3 = np.where((d6 >= 0) * (d5 <= d6))[
+        0
+    ]  # region 3 (closest to vertex C)
+    closest_point_on_triangle_to_projected_point[:, region_3] = (
+        triangle_vertices_C[:, region_3]
+    )
     region_4 = np.where((vc <= 0) * (d1 >= 0) * (d3 <= 0))[
         0
     ]  # region 4 (closest to some point on AB)
-    closest_point_on_triangle_to_projected_point[:, region_4] = triangle_vertices_A[
+    closest_point_on_triangle_to_projected_point[
         :, region_4
-    ] + d1[region_4] * triangle_side_AB[:, region_4] / (d1[region_4] - d3[region_4])
+    ] = triangle_vertices_A[:, region_4] + d1[region_4] * triangle_side_AB[
+        :, region_4
+    ] / (
+        d1[region_4] - d3[region_4]
+    )
     region_5 = np.where((vb <= 0) * (d2 >= 0) * (d6 <= 0))[
         0
     ]  # region 5 (closest to some point on AC)
-    closest_point_on_triangle_to_projected_point[:, region_5] = triangle_vertices_A[
+    closest_point_on_triangle_to_projected_point[
         :, region_5
-    ] + d2[region_5] * triangle_side_AC[:, region_5] / (d2[region_5] - d6[region_5])
+    ] = triangle_vertices_A[:, region_5] + d2[region_5] * triangle_side_AC[
+        :, region_5
+    ] / (
+        d2[region_5] - d6[region_5]
+    )
     region_6 = np.where((va <= 0) * (d4 >= d3) * (d5 >= d6))[
         0
     ]  # region 6 (closest to some point on BC)
-    closest_point_on_triangle_to_projected_point[:, region_6] = triangle_vertices_B[
+    closest_point_on_triangle_to_projected_point[
         :, region_6
-    ] + (d4[region_6] - d3[region_6]) * triangle_side_BC[:, region_6] / (
+    ] = triangle_vertices_B[:, region_6] + (
+        d4[region_6] - d3[region_6]
+    ) * triangle_side_BC[
+        :, region_6
+    ] / (
         (d4[region_6] - d3[region_6]) + (d5[region_6] - d6[region_6])
     )
     # otherwise it is inside the triangle hence closest point will be the same as the projected position
@@ -149,9 +173,10 @@ class Grid:
         **kwargs,
     ):
         super().__init__()
-        assert grid_dimension in [2, 3], (
-            "Please select a valid grid dimension. Either 2 for 2D grids or 3 for 3D grids"
-        )
+        assert grid_dimension in [
+            2,
+            3,
+        ], "Please select a valid grid dimension. Either 2 for 2D grids or 3 for 3D grids"
         self.dimension = grid_dimension
         self.n_faces = surface.n_faces
         self.size = self.compute_grid_size(rod, surface)
@@ -160,9 +185,11 @@ class Grid:
         self.exit_boundary_condition = exit_boundary_condition
         assert len(grid_axes) == 2, "grid axes must have length 2 for 2D grids"
         for axis in grid_axes:
-            assert axis in [0, 1, 2], (
-                "grid axes must be one of 0,1,2 for x,y,z axes respectively"
-            )
+            assert axis in [
+                0,
+                1,
+                2,
+            ], "grid axes must be one of 0,1,2 for x,y,z axes respectively"
         self.axes = grid_axes
         self._generate_grid(surface)
         if self.dimension == 2:
@@ -438,7 +465,9 @@ class Grid:
             n_contacts = face_idx_element_no_duplicates.shape[0]
             if n_contacts > 0:
                 face_idx_chunks.append(face_idx_element_no_duplicates)
-                position_idx_chunks.append(np.full((n_contacts,), i, dtype=np.int64))
+                position_idx_chunks.append(
+                    np.full((n_contacts,), i, dtype=np.int64)
+                )
 
         if len(face_idx_chunks) == 0:
             position_idx_array = np.empty((0,), dtype=np.int64)
@@ -473,9 +502,15 @@ class Grid:
         position_idx_chunks: list[np.ndarray] = []
         face_idx_chunks: list[np.ndarray] = []
         grid_position = np.empty((3, n_element))
-        grid_position[0, :] = np.round((element_position[0, :] - x_min) / grid_size)
-        grid_position[1, :] = np.round((element_position[1, :] - y_min) / grid_size)
-        grid_position[2, :] = np.round((element_position[2, :] - z_min) / grid_size)
+        grid_position[0, :] = np.round(
+            (element_position[0, :] - x_min) / grid_size
+        )
+        grid_position[1, :] = np.round(
+            (element_position[1, :] - y_min) / grid_size
+        )
+        grid_position[2, :] = np.round(
+            (element_position[2, :] - z_min) / grid_size
+        )
 
         # find face neighborhood of each element position
         for i in range(n_element):
@@ -499,7 +534,9 @@ class Grid:
             n_contacts = face_idx_element_no_duplicates.shape[0]
             if n_contacts > 0:
                 face_idx_chunks.append(face_idx_element_no_duplicates)
-                position_idx_chunks.append(np.full((n_contacts,), i, dtype=np.int64))
+                position_idx_chunks.append(
+                    np.full((n_contacts,), i, dtype=np.int64)
+                )
 
         if len(face_idx_chunks) == 0:
             position_idx_array = np.empty((0,), dtype=np.int64)
