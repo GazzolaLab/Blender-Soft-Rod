@@ -44,6 +44,7 @@ async def _exercise_handshake_smoke() -> None:
             hello_ack = await _recv_message_type(websocket, "hello_ack")
             assert hello_ack["payload"]["character_mode"] == "noel-c4"
             assert len(hello_ack["payload"]["arm_ids"]) == 2
+            assert hello_ack["version"] == 1
             _ = await _recv_message_type(websocket, "asset_manifest")
     finally:
         await server.stop()
@@ -166,6 +167,7 @@ async def _exercise_publisher_mesh_smoke() -> None:
             )
             mesh_ack = await _recv_message_type(publisher, "mesh_ack")
             assert mesh_ack["payload"]["status"] == "added"
+            assert mesh_ack["version"] == 1
     finally:
         await server.stop()
 
