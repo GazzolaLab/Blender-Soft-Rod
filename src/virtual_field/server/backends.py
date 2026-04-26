@@ -22,7 +22,9 @@ from virtual_field.runtime.mode_base import (
 from virtual_field.runtime.mode_registry import get_mode_spec
 
 
-def _default_arm_state(arm_id: str, owner_user_id: str, base: Transform) -> ArmState:
+def _default_arm_state(
+    arm_id: str, owner_user_id: str, base: Transform
+) -> ArmState:
     tip = Transform(
         translation=[
             base.translation[0],
@@ -71,33 +73,6 @@ def _allocate_linear_bases(
     }
 
 
-def _allocate_octo_bases(
-    user_id: str,
-    *,
-    base_x: float,
-    base_y: float,
-    base_z: float,
-) -> dict[str, Transform]:
-    """Eight tentacles on a ring plus a ninth ``arm_8`` at the body center (head)."""
-    ring_radius = 0.32
-    bases: dict[str, Transform] = {
-        f"{user_id}_arm_{index}": Transform(
-            translation=[
-                base_x + ring_radius * cos(-0.5 * pi + 2.0 * pi * index / 8.0),
-                base_y,
-                base_z + ring_radius * sin(-0.5 * pi + 2.0 * pi * index / 8.0),
-            ],
-            rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
-        )
-        for index in range(8)
-    }
-    bases[f"{user_id}_arm_8"] = Transform(
-        translation=[base_x, base_y, base_z],
-        rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
-    )
-    return bases
-
-
 @dataclass(slots=True)
 class MultiArmPassThroughBackend:
     """Server-side scene backend for multiple users and arms.
@@ -126,12 +101,14 @@ class MultiArmPassThroughBackend:
     _simulations: dict[str, SimulationBase] = field(
         init=False, default_factory=dict
     )
-    _previous_commands: dict[str, ArmCommand] = field(init=False, default_factory=dict)
+    _previous_commands: dict[str, ArmCommand] = field(
+        init=False, default_factory=dict
+    )
 
     def register_user(
         self,
         user_id: str,
-        character_mode: str = "demo-spline",
+        character_mode: str,
         requested_arm_count: int | None = None,
         arm_spacing: float = 0.3,
         base_x: float = 0.0,
@@ -156,23 +133,22 @@ class MultiArmPassThroughBackend:
             The z position of the base. (depth)
         """
         if user_id in self._user_arms:
-            logger.warning(f"User {user_id} already registered with arm ids {self._user_arms[user_id]}")
+            logger.warning(
+                f"User {user_id} already registered with arm ids {self._user_arms[user_id]}"
+            )
             return self._user_arms[user_id]
 
         mode_spec = get_mode_spec(character_mode)
+        if mode_spec is None:
+            raise ValueError(f"Unsupported character mode: {character_mode}")
         arm_count = (
             requested_arm_count
-            if mode_spec.factory is None and requested_arm_count and requested_arm_count > 0
+            if mode_spec.factory is None
+            and requested_arm_count
+            and requested_arm_count > 0
             else mode_spec.arm_count
         )
-        if mode_spec.base_layout == "octo":
-            base_transforms = _allocate_octo_bases(
-                user_id,
-                base_x=base_x,
-                base_y=base_y,
-                base_z=base_z,
-            )
-        else:
+        if mode_spec.base_layout == "linear":
             base_transforms = _allocate_linear_bases(
                 user_id,
                 arm_count=arm_count,
@@ -181,39 +157,43 @@ class MultiArmPassThroughBackend:
                 base_y=base_y,
                 base_z=base_z,
             )
-        allocated_arm_ids = list(base_transforms.keys())
+            allocated_arm_ids = list(base_transforms.keys())
+            for arm_id, base in base_transforms.items():
+                self._arms[arm_id] = _default_arm_state(arm_id, user_id, base)
 
-        for arm_id, base in base_transforms.items():
-            self._arms[arm_id] = _default_arm_state(arm_id, user_id, base)
-
-        self._user_arms[user_id] = allocated_arm_ids
-        self._user_mode[user_id] = character_mode
-
-        factory = mode_spec.factory
-        if factory is None:
-            return allocated_arm_ids
-
-        if issubclass(factory, DualArmSimulationBase):
-            simulation = factory(
+            simulation = mode_spec.factory(
                 user_id=user_id,
                 arm_ids=tuple(allocated_arm_ids),
                 base_left=base_transforms[allocated_arm_ids[0]].translation,
                 base_right=base_transforms[allocated_arm_ids[1]].translation,
             )
-        elif issubclass(factory, OctoArmSimulationBase):
+        elif mode_spec.base_layout == "octo":
+            allocated_arm_ids = [
+                f"{user_id}_arm_{index}" for index in range(arm_count)
+            ]
+            base = Transform(
+                translation=[base_x, base_y, base_z],
+                rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+            for arm_id in allocated_arm_ids:
+                self._arms[arm_id] = _default_arm_state(arm_id, user_id, base)
+
             octo_kwargs: dict[str, object] = {
                 "user_id": user_id,
                 "arm_ids": tuple(allocated_arm_ids),
                 "base_position": (base_x, base_y, base_z),
             }
             if character_mode == "octo-waypoint":
+                # TODO: Temporary impl
                 octo_kwargs["enable_controller_trigger_waypoints"] = True
-            simulation = factory(**octo_kwargs)
+            simulation = mode_spec.factory(**octo_kwargs)
         else:
-            simulation = factory(
-                user_id=user_id,
-                arm_ids=tuple(allocated_arm_ids),
+            raise ValueError(
+                f"Unsupported base layout: {mode_spec.base_layout}"
             )
+
+        self._user_arms[user_id] = allocated_arm_ids
+        self._user_mode[user_id] = character_mode
         self._simulations[user_id] = simulation
 
         for arm_id in allocated_arm_ids:
@@ -285,6 +265,10 @@ class MultiArmPassThroughBackend:
             for sphere in getattr(simulation, "sphere_entities", lambda: [])():
                 self.add_or_update_sphere(sphere)
 
+        haptics = []
+        for simulation in self._simulations.values():
+            haptics.extend(simulation.haptic_events())
+
         return SceneState(
             timestamp=self._timestamp,
             arms=self._arms,
@@ -292,6 +276,7 @@ class MultiArmPassThroughBackend:
             meshes=self._meshes,
             overlay_points=self._overlay_points,
             spheres=self._spheres,
+            haptics=haptics,
         )
 
     def add_or_update_mesh(self, mesh: MeshEntity) -> None:
@@ -367,13 +352,14 @@ class MultiArmPassThroughBackend:
         for sphere_id in sphere_ids:
             self._spheres.pop(sphere_id, None)
 
-    def add_or_update_overlay_points(self, overlay: OverlayPointsEntity) -> None:
+    def add_or_update_overlay_points(
+        self, overlay: OverlayPointsEntity
+    ) -> None:
         """
         Add or update an overlay points.
         Used for point-cloud style dots.
         """
         self._overlay_points[overlay.overlay_id] = overlay
-
 
     def remove_overlay_points(
         self, overlay_id: str, owner_id: str | None = None
