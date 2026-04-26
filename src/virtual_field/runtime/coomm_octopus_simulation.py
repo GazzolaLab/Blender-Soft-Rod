@@ -1,41 +1,38 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import elastica as ea
 import numpy as np
-import math
-
-from loguru import logger
-from numba import njit
-
-from coomm.actuations.muscles import (
+from coomm.actuations.actuation import ApplyActuations
+from coomm.actuations.muscles import (  # force_length_weight_poly,
     LongitudinalMuscle,
     MuscleGroup,
     ObliqueMuscle,
     TransverseMuscle,
-    # force_length_weight_poly,
 )
-from coomm.actuations.actuation import ApplyActuations
+from loguru import logger
+from numba import njit
 
-from virtual_field.runtime.mode_base import DualArmSimulationBase
 from virtual_field.core.state import SphereEntity
+from virtual_field.runtime.mode_base import DualArmSimulationBase
 
 # MUSCLE CONFIGURATIONS
 # Relative geometry configuration (normalized by base radius)
-#LM_RATIO_MUSCLE_POSITION = 0.0075
-LM_RATIO_MUSCLE_POSITION = 0.0175
-OM_RATIO_MUSCLE_POSITION = 0.01125
+LM_RATIO_MUSCLE_POSITION = 1.0
+OM_RATIO_MUSCLE_POSITION = 1.0
+
 AN_RATIO_RADIUS = 0.002
 TM_RATIO_RADIUS = 0.045
-LM_RATIO_RADIUS = 0.001
-OM_RATIO_RADIUS = 0.00075
+LM_RATIO_RADIUS = 0.100
+OM_RATIO_RADIUS = 0.0375
 
 # Muscle topology and stress parameters
 OM_ROTATION_NUMBER = 6
 TM_MAX_MUSCLE_STRESS = 15_000.0 * 0
-LM_MAX_MUSCLE_STRESS = 10_000.0 * 120 
-OM_MAX_MUSCLE_STRESS = 100_000.0 * 4
+LM_MAX_MUSCLE_STRESS = 10_000.0 * 15000
+OM_MAX_MUSCLE_STRESS = 100_000.0 * 1000
 LM_GROUP_COUNT = 4
 
 # Muscle group ordering for activation assignment
@@ -45,16 +42,17 @@ RIGHT_OM_GROUP_INDEX = 5
 LEFT_OM_GROUP_INDEX = 6
 
 # Activation shaping
-ACTIVATION_RAMP_TIME = 10
+ACTIVATION_RAMP_TIME = 5
 
 # Reaching controller parameters
-SUCKER_EPS = 1.0e-12
+SUCKER_EPS = 1.0e-10
 SUCKER_A_MAX = 1.0
-#SUCKER_GAMMA = 0.0002
-SUCKER_GAMMA = 20
-SUCKER_PHI = 0.005
+# SUCKER_GAMMA = 0.0002
+SUCKER_GAMMA = 5.0
+SUCKER_PHI = 0.015
 
-damping_constant = 0.1
+damping_constant = 2.0
+rotation_damping_constant_ratio = 0.010
 
 
 # TODO: Move these out to the separate file. Keep them here for now, as this mode needs to be tuned isolated.
@@ -90,7 +88,9 @@ def _sucker_full_controller_kernel(
     r_xi: np.ndarray,
     target_pos: np.ndarray,
     eps: float,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
     d_xi = d2
     x_center = 0.5 * (x_c[:, :-1] + x_c[:, 1:])
     x_xi = x_center + d_xi * r_xi[None, :]
@@ -106,12 +106,14 @@ def _sucker_full_controller_kernel(
     s = np.linspace(0.0, arm_length, n_center)
     s_bar = s[np.argmin(rho_norm)]
 
-    
-    mu2 = (
-        -1.0 + 2.0 / (1.0 + np.exp(-2*SUCKER_GAMMA * s))
-    )
-    mu = SUCKER_A_MAX * mu2 * (
-        1.0 - 1.0 / (1.0 + np.exp(-SUCKER_GAMMA * (s - (s_bar + SUCKER_PHI))))
+    # mu2 = -1.0 + 2.0 / (1.0 + np.exp(-2 * SUCKER_GAMMA * s))
+    mu = (
+        SUCKER_A_MAX
+        # * mu2
+        * (
+            1.0
+            - 1.0 / (1.0 + np.exp(-SUCKER_GAMMA * (s - (s_bar + SUCKER_PHI))))
+        )
     )
 
     proj = (n * d3).sum(axis=0)
@@ -127,7 +129,9 @@ def _sucker_full_controller_kernel(
     a_r_om = a_om * _heaviside_positive(-chi_t)
     a_l_om = a_om * _heaviside_positive(chi_t)
 
-    angles = np.array([0.0, np.pi / 2.0, np.pi, 3.0 * np.pi / 2.0], dtype=np.float64)
+    angles = np.array(
+        [0.0, np.pi / 2.0, np.pi, 3.0 * np.pi / 2.0], dtype=np.float64
+    )
     a_lm = np.zeros((LM_GROUP_COUNT, n_center), dtype=np.float64)
     for i in range(LM_GROUP_COUNT):
         theta = angles[i]
@@ -141,11 +145,14 @@ def _sucker_full_controller_kernel(
         cos_alpha_b = (d3 * n_b).sum(axis=0)
         alpha_b_tan = np.arctan2(sin_alpha_b, cos_alpha_b)
         chi_b = np.sign(np.sin(alpha_b_tan))
-        a_lm[i, :] = mu * _heaviside_positive(chi_b) * (np.sin(alpha_b_tan) ** 2)
+        a_lm[i, :] = (
+            mu * _heaviside_positive(chi_b) * (np.sin(alpha_b_tan) ** 2)
+        )
 
     return a_r_om, a_l_om, a_lm[0], a_lm[1], a_lm[2], a_lm[3]
 
 
+# TODO: Refactor later
 class ApplyOctopusMuscles(ApplyActuations):
     """ApplyMuscles."""
 
@@ -192,14 +199,14 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         self.simulator = _Simulator()
         self.timestepper = ea.PositionVerlet()
 
-        n_elem = 21
+        n_elem = 15
         # In viewer coordinates, forward is -Z.
         direction = np.array([0.0, 0.0, -1.0])
-        normal = np.array([1.0, 0.0, 0.0])
+        normal = np.array([0.0, -1.0, 0.0])
         base_length = 0.55
-        base_radius = 0.01
+        base_radius = 0.020
         density = 2000.0
-        youngs_modulus = 1.0e4 * 0.8
+        youngs_modulus = 1.0e6
 
         self.left_rod = create_spirob(
             n_elem,
@@ -221,51 +228,67 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             density,
             youngs_modulus=youngs_modulus,
         )
+        self.left_rod.bend_matrix[0, 0, :] /= 3.0
+        self.left_rod.bend_matrix[1, 1, :] /= 3.0
+        self.left_rod.shear_matrix[0, 0, :] /= 3.0
+        self.left_rod.shear_matrix[1, 1, :] /= 3.0
+        self.right_rod.bend_matrix[0, 0, :] /= 3.0
+        self.right_rod.bend_matrix[1, 1, :] /= 3.0
+        self.right_rod.shear_matrix[0, 0, :] /= 3.0
+        self.right_rod.shear_matrix[1, 1, :] /= 3.0
         self.simulator.append(self.left_rod)
         self.simulator.append(self.right_rod)
 
         self._target_sphere = ea.Sphere(
-            np.array([0.1, 1.2, -0.3]),
-            0.035,
-            100.0,
+            np.array([0.1, 1.2, -0.4]),
+            0.025,
+            5000.0,
         )
         self.simulator.append(self._target_sphere)
 
         self._obstacle_sphere = ea.Sphere(
             np.array([-0.0, 1.1, -0.4]),
-            0.04,
+            0.12,
             100.0,
         )
         self.simulator.append(self._obstacle_sphere)
 
-        self.simulator.detect_contact_between(self.left_rod, self._obstacle_sphere).using(
+        self.simulator.detect_contact_between(
+            self.left_rod, self._obstacle_sphere
+        ).using(
             ea.RodSphereContact,
-            k=2e2,
+            k=1e4,
             nu=0.0,
-            velocity_damping_coefficient=1e-6,
-            friction_coefficient=1e-6,
+            # velocity_damping_coefficient=1e-6,
+            # friction_coefficient=1e-6,
         )
-        self.simulator.detect_contact_between(self.right_rod, self._obstacle_sphere).using(
+        self.simulator.detect_contact_between(
+            self.right_rod, self._obstacle_sphere
+        ).using(
             ea.RodSphereContact,
-            k=2e2,
+            k=1e4,
             nu=0.0,
-            velocity_damping_coefficient=1e-6,
-            friction_coefficient=1e-6,
+            # velocity_damping_coefficient=1e-6,
+            # friction_coefficient=1e-6,
         )
 
-        self.simulator.detect_contact_between(self.left_rod, self._target_sphere).using(
+        self.simulator.detect_contact_between(
+            self.left_rod, self._target_sphere
+        ).using(
             ea.RodSphereContact,
-            k=2e2,
+            k=1e4,
             nu=0.0,
-            velocity_damping_coefficient=1e-6,
-            friction_coefficient=1e-6,
+            # velocity_damping_coefficient=1e-6,
+            # friction_coefficient=1e-6,
         )
-        self.simulator.detect_contact_between(self.right_rod, self._target_sphere).using(
+        self.simulator.detect_contact_between(
+            self.right_rod, self._target_sphere
+        ).using(
             ea.RodSphereContact,
-            k=2e2,
+            k=1e4,
             nu=0.0,
-            velocity_damping_coefficient=1e-6,
-            friction_coefficient=1e-6,
+            # velocity_damping_coefficient=1e-6,
+            # friction_coefficient=1e-6,
         )
 
         self.simulator.constrain(self.left_rod).using(
@@ -312,10 +335,10 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         #     ea.RodSelfContact, k=1e4, nu=3
         # )
 
-        #self.simulator.add_forcing_to(self.left_rod).using(
+        # self.simulator.add_forcing_to(self.left_rod).using(
         #    ea.GravityForces,
         #    acc_gravity=np.array([0.0, -9.81, 0.0]),
-        #)
+        # )
         # self.simulator.add_forcing_to(self.right_rod).using(
         #     ea.GravityForces,
         #     acc_gravity=np.array([0.0, -1.00, 0.0]),
@@ -324,20 +347,22 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         self.simulator.dampen(self.left_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.010 /5,
+            rotational_damping_constant=damping_constant
+            * rotation_damping_constant_ratio,
             time_step=self.dt_internal,
         )
         self.simulator.dampen(self.left_rod).using(
-            ea.LaplaceDissipationFilter, filter_order=7
+            ea.LaplaceDissipationFilter, filter_order=3
         )
         self.simulator.dampen(self.right_rod).using(
             ea.AnalyticalLinearDamper,
             translational_damping_constant=damping_constant,
-            rotational_damping_constant=damping_constant * 0.010 / 5,
+            rotational_damping_constant=damping_constant
+            * rotation_damping_constant_ratio,
             time_step=self.dt_internal,
         )
         self.simulator.dampen(self.right_rod).using(
-            ea.LaplaceDissipationFilter, filter_order=7
+            ea.LaplaceDissipationFilter, filter_order=3
         )
 
         self.simulator.finalize()
@@ -345,17 +370,15 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
     def _create_muscle_groups(
         self, base_radius: float, rod: ea.CosseratRod
     ) -> list[MuscleGroup]:
-        lm_ratio_muscle_position = LM_RATIO_MUSCLE_POSITION / base_radius
-        om_ratio_muscle_position = OM_RATIO_MUSCLE_POSITION / base_radius
         an_ratio_radius = AN_RATIO_RADIUS / base_radius
         tm_ratio_radius = TM_RATIO_RADIUS / base_radius
-        lm_ratio_radius = LM_RATIO_RADIUS / base_radius
-        om_ratio_radius = OM_RATIO_RADIUS / base_radius
 
         rod_area = np.pi * rod.radius**2
-        tm_rest_muscle_area = rod_area * (tm_ratio_radius**2 - an_ratio_radius**2)
-        lm_rest_muscle_area = rod_area * (lm_ratio_radius**2)
-        om_rest_muscle_area = rod_area * (om_ratio_radius**2)
+        tm_rest_muscle_area = rod_area * (
+            tm_ratio_radius**2 - an_ratio_radius**2
+        )
+        lm_rest_muscle_area = rod_area * (LM_RATIO_RADIUS**2)
+        om_rest_muscle_area = rod_area * (OM_RATIO_RADIUS**2)
 
         @njit(cache=True)
         def force_length_weight_poly(
@@ -387,7 +410,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
                     muscles=[
                         LongitudinalMuscle(
                             muscle_init_angle=np.pi * 0.5 * k,
-                            ratio_muscle_position=lm_ratio_muscle_position,
+                            ratio_muscle_position=LM_RATIO_MUSCLE_POSITION,
                             rest_muscle_area=lm_rest_muscle_area,
                             max_muscle_stress=LM_MAX_MUSCLE_STRESS,
                             **muscle_dict,
@@ -402,7 +425,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
                 muscles=[
                     ObliqueMuscle(
                         muscle_init_angle=np.pi * 0.5 * m,
-                        ratio_muscle_position=om_ratio_muscle_position,
+                        ratio_muscle_position=OM_RATIO_MUSCLE_POSITION,
                         rotation_number=OM_ROTATION_NUMBER,
                         rest_muscle_area=om_rest_muscle_area,
                         max_muscle_stress=OM_MAX_MUSCLE_STRESS,
@@ -418,7 +441,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
                 muscles=[
                     ObliqueMuscle(
                         muscle_init_angle=np.pi * 0.5 * m,
-                        ratio_muscle_position=om_ratio_muscle_position,
+                        ratio_muscle_position=OM_RATIO_MUSCLE_POSITION,
                         rotation_number=-OM_ROTATION_NUMBER,
                         rest_muscle_area=om_rest_muscle_area,
                         max_muscle_stress=OM_MAX_MUSCLE_STRESS,
@@ -437,14 +460,16 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
     def _sucker_full_controller(
         self, rod: ea.CosseratRod, target_pos: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray, list[np.ndarray]]:
-        a_r_om, a_l_om, a_lm0, a_lm1, a_lm2, a_lm3 = _sucker_full_controller_kernel(
-            rod.position_collection,
-            rod.director_collection[0, :, :],
-            rod.director_collection[1, :, :],
-            rod.director_collection[2, :, :],
-            rod.radius,
-            target_pos,
-            SUCKER_EPS,
+        a_r_om, a_l_om, a_lm0, a_lm1, a_lm2, a_lm3 = (
+            _sucker_full_controller_kernel(
+                rod.position_collection,
+                rod.director_collection[0, :, :],
+                rod.director_collection[1, :, :],
+                rod.director_collection[2, :, :],
+                rod.radius,
+                target_pos,
+                SUCKER_EPS,
+            )
         )
         return a_r_om, a_l_om, [a_lm0, a_lm1, a_lm2, a_lm3]
 
@@ -476,44 +501,57 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
         substeps = max(1, int(np.ceil(total / self.dt_internal)))
         step_dt = total / substeps
         for _ in range(substeps):
-        
             t = self._time
-            self._target_sphere.position_collection[0, 0] = 0.1 #- 0.15 * np.cos(0.5*t)
-            self._target_sphere.position_collection[1, 0] = 1.2 #- 0.15 * np.sin(0.5*t)
-            self._target_sphere.position_collection[2, 0] = -0.3         
+            self._target_sphere.position_collection[0, 0] = (
+                0.1  # - 0.15 * np.cos(0.5*t)
+            )
+            self._target_sphere.position_collection[1, 0] = (
+                1.2  # - 0.15 * np.sin(0.5*t)
+            )
+            self._target_sphere.position_collection[2, 0] = -0.4
             # Now read updated position
             target_pos = np.asarray(
                 self._target_sphere.position_collection[:, 0], dtype=np.float64
             )
-            self._obstacle_sphere.position_collection[0, 0] = 0.0 #- 0.15 * np.cos(0.5*t)
-            self._obstacle_sphere.position_collection[1, 0] = 1.1 #- 0.15 * np.sin(0.5*t)
-            self._obstacle_sphere.position_collection[2, 0] = -0.4         
-            # Now read updated position
-            position_obs = np.asarray(
-                self._obstacle_sphere.position_collection[:, 0], dtype=np.float64
+            self._obstacle_sphere.position_collection[0, 0] = (
+                0.0  # - 0.15 * np.cos(0.5*t)
             )
-#        target_pos = np.asarray(
-#            self._sphere.position_collection[:, 0], dtype=np.float64
-#        )
-        for _ in range(substeps):
+            self._obstacle_sphere.position_collection[1, 0] = (
+                1.1  # - 0.15 * np.sin(0.5*t)
+            )
+            self._obstacle_sphere.position_collection[2, 0] = -0.4
+
             for arm_id in self.arm_ids:
                 rod = self.rods[arm_id]
 
                 # TODO: Maybe this step can be included within the simulator module.
-                activations = self._controller_activations(rod, target_pos, arm_id)
-
+                activations = self._controller_activations(
+                    rod, target_pos, arm_id
+                )
 
                 for muscle_group, activation in zip(
                     self._muscle_groups[arm_id], activations
                 ):
                     muscle_group.apply_activation(activation)
-            self._time = self.timestepper.step(self.simulator, self._time, step_dt)
+            self._time = self.timestepper.step(
+                self.simulator, self._time, step_dt
+            )
 
-            # logger.info(f"hi: {self._time}")
+            self._target_sphere.position_collection[0, 0] = (
+                0.1  # - 0.15 * np.cos(0.5*t)
+            )
+            self._target_sphere.position_collection[1, 0] = (
+                1.2  # - 0.15 * np.sin(0.5*t)
+            )
+            self._target_sphere.position_collection[2, 0] = -0.4
+
+        # logger.info(
+        #     f"Target sphere position: {self._target_sphere.position_collection[:, 0]}"
+        # )
 
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
-        #Target sphere
+        # Target sphere
         position_target = self._target_sphere.position_collection[..., 0]
         spheres.append(
             SphereEntity(
@@ -525,7 +563,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
             )
         )
 
-        #Obstacle sphere
+        # Obstacle sphere
         position_obs = self._obstacle_sphere.position_collection[..., 0]
         spheres.append(
             SphereEntity(
@@ -533,7 +571,7 @@ class COOMMOctopusSimulation(DualArmSimulationBase):
                 owner_id=self.user_id,
                 translation=position_obs.tolist(),
                 radius=float(self._obstacle_sphere.radius),
-                color_rgb=[0.9, 0.2, 0.2], #red
+                color_rgb=[0.2, 0.9, 0.2],  # red
             )
         )
         return spheres
