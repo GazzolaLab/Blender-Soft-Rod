@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
-from .state import Transform, Twist
+from dataclasses import dataclass, field
 
+from .state import Transform, Twist
 
 JSONDict = dict[str, Any]
 
@@ -106,9 +106,12 @@ class MultiArmCommand:
         return {
             "timestamp": self.timestamp,
             "commands": {
-                arm_id: command.to_dict() for arm_id, command in self.commands.items()
+                arm_id: command.to_dict()
+                for arm_id, command in self.commands.items()
             },
-            "head_pose": None if self.head_pose is None else self.head_pose.to_dict(),
+            "head_pose": (
+                None if self.head_pose is None else self.head_pose.to_dict()
+            ),
             "actions": self.actions,
         }
 

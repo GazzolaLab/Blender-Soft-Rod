@@ -7,7 +7,9 @@ from .state import SceneState
 
 
 class SimulationBackend(Protocol):
-    def step(self, dt: float, command: MultiArmCommand | None) -> SceneState: ...
+    def step(
+        self, dt: float, command: MultiArmCommand | None
+    ) -> SceneState: ...
 
 
 class ControlMapper(Protocol):
