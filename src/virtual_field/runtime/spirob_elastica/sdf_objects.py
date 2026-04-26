@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import deque
 
 import numpy as np
+
 if not hasattr(np, "typing"):
     import numpy.typing as np_typing
 
@@ -28,6 +29,8 @@ class SDFTorus(NoForces):
         major_radius: float,
         minor_radius: float,
         recording_queue: deque,
+        tip_penetration_state: dict[str, float] | None = None,
+        tip_penetration_key: str | None = None,
         stiffness: float = 1.0e5,
         damping: float = 10.0,
         record_interval: float = 1.0 / 90.0,
@@ -39,6 +42,8 @@ class SDFTorus(NoForces):
         self.stiffness = float(stiffness)
         self.damping = float(damping)
         self.recording_queue = recording_queue
+        self.tip_penetration_state = tip_penetration_state
+        self.tip_penetration_key = tip_penetration_key
         self.record_interval = float(record_interval)
         self._last_record_time = -1.0e9
 
@@ -67,6 +72,19 @@ class SDFTorus(NoForces):
             self.damping,
             contact_points,
         )
+        if (
+            self.tip_penetration_state is not None
+            and self.tip_penetration_key is not None
+        ):
+            self.tip_penetration_state[self.tip_penetration_key] = (
+                _torus_tip_penetration(
+                    positions[:, -1],
+                    node_radii[-1],
+                    self.center,
+                    self.major_radius,
+                    self.minor_radius,
+                )
+            )
         current_time = float(time)
         if (
             contact_count > 0
@@ -86,6 +104,27 @@ class SDFTorus(NoForces):
             self._last_record_time = current_time
 
 
+def _torus_tip_penetration(
+    tip_position: np.ndarray,
+    tip_radius: float,
+    center: np.ndarray,
+    major_radius: float,
+    minor_radius: float,
+) -> float:
+    px = tip_position[0] - center[0]
+    py = tip_position[1] - center[1]
+    pz = tip_position[2] - center[2]
+
+    q = np.sqrt(px * px + py * py)
+    a = q - major_radius
+    k = np.sqrt(a * a + pz * pz)
+    sdf = k - minor_radius
+    penetration = tip_radius - sdf
+    if penetration <= 0.0:
+        return 0.0
+    return float(penetration)
+
+
 class SDFObstacleCylinders(NoForces):
     """Finite-cylinder contact via signed-distance fields and normal response."""
 
@@ -95,30 +134,20 @@ class SDFObstacleCylinders(NoForces):
         directions: np.ndarray,
         lengths: np.ndarray,
         radii: np.ndarray,
-        normals: np.ndarray | None = None,
+        normals: np.ndarray,
+        tip_penetration_state: dict[str, float] | None = None,
+        tip_penetration_key: str | None = None,
         stiffness: float = 8.0e4,
         damping: float = 4.0,
     ) -> None:
         super().__init__()
-        self.starts = np.asarray(starts, dtype=np.float64)
-        self.directions = np.asarray(directions, dtype=np.float64)
-        self.lengths = np.asarray(lengths, dtype=np.float64).reshape(-1)
-        self.radii = np.asarray(radii, dtype=np.float64).reshape(-1)
-        if self.starts.ndim != 2 or self.starts.shape[1] != 3:
-            raise ValueError("starts must have shape (n, 3)")
-        if self.directions.shape != self.starts.shape:
-            raise ValueError("directions must have the same shape as starts")
-        if self.lengths.shape[0] != self.starts.shape[0]:
-            raise ValueError("lengths must contain one entry per cylinder")
-        if self.radii.shape[0] != self.starts.shape[0]:
-            raise ValueError("radii must contain one entry per cylinder")
-        if normals is None:
-            self.normals = np.zeros_like(self.starts)
-            self.normals[:, 0] = 1.0
-        else:
-            self.normals = np.asarray(normals, dtype=np.float64)
-            if self.normals.shape != self.starts.shape:
-                raise ValueError("normals must have the same shape as starts")
+        self.starts = starts
+        self.directions = directions
+        self.lengths = lengths.reshape(-1)
+        self.radii = radii.reshape(-1)
+        self.normals = normals
+        self.tip_penetration_state = tip_penetration_state
+        self.tip_penetration_key = tip_penetration_key
         self.stiffness = float(stiffness)
         self.damping = float(damping)
 
@@ -127,7 +156,6 @@ class SDFObstacleCylinders(NoForces):
         system: "RodType | RigidBodyType",
         time: np.float64 = np.float64(0.0),
     ) -> None:
-        del time
         positions = system.position_collection
         velocities = system.velocity_collection
         external_forces = system.external_forces
@@ -147,6 +175,21 @@ class SDFObstacleCylinders(NoForces):
             self.stiffness,
             self.damping,
         )
+        if (
+            self.tip_penetration_state is not None
+            and self.tip_penetration_key is not None
+        ):
+            self.tip_penetration_state[self.tip_penetration_key] = (
+                _obstacle_cylinder_tip_penetration(
+                    positions[:, -1],
+                    node_radii[-1],
+                    self.starts,
+                    self.directions,
+                    self.lengths,
+                    self.radii,
+                    self.normals,
+                )
+            )
 
 
 def _node_radii_from_element_radii(
@@ -184,7 +227,12 @@ def capped_cylinder_sdf_and_normal(
         else np.array([1.0, 0.0, 0.0], dtype=np.float64)
     )
     sdf, normal = _capped_cylinder_sdf_and_normal_impl(
-        point_vec, start_vec, direction_vec, float(length), float(radius), fallback
+        point_vec,
+        start_vec,
+        direction_vec,
+        float(length),
+        float(radius),
+        fallback,
     )
     return float(sdf), normal
 
@@ -196,7 +244,9 @@ def capped_cylinder_sdf(
     length: float,
     radius: float,
 ) -> float:
-    sdf, _ = capped_cylinder_sdf_and_normal(point, start, direction, length, radius)
+    sdf, _ = capped_cylinder_sdf_and_normal(
+        point, start, direction, length, radius
+    )
     return sdf
 
 
@@ -206,17 +256,13 @@ def obstacle_cylinder_sdf_and_normal(
     directions: np.ndarray,
     lengths: np.ndarray,
     radii: np.ndarray,
-    normals: np.ndarray | None = None,
+    normals: np.ndarray,
 ) -> tuple[float, np.ndarray, int]:
     starts_array = np.asarray(starts, dtype=np.float64)
     directions_array = np.asarray(directions, dtype=np.float64)
     lengths_array = np.asarray(lengths, dtype=np.float64).reshape(-1)
     radii_array = np.asarray(radii, dtype=np.float64).reshape(-1)
-    if normals is None:
-        normals_array = np.zeros_like(starts_array)
-        normals_array[:, 0] = 1.0
-    else:
-        normals_array = np.asarray(normals, dtype=np.float64)
+    normals_array = np.asarray(normals, dtype=np.float64)
     point_vec = np.asarray(point, dtype=np.float64).reshape(3)
     sdf, normal, obstacle_index = _obstacle_cylinder_sdf_and_normal_impl(
         point_vec,
@@ -227,6 +273,29 @@ def obstacle_cylinder_sdf_and_normal(
         normals_array,
     )
     return float(sdf), normal, int(obstacle_index)
+
+
+def _obstacle_cylinder_tip_penetration(
+    tip_position: np.ndarray,
+    tip_radius: float,
+    starts: np.ndarray,
+    directions: np.ndarray,
+    lengths: np.ndarray,
+    radii: np.ndarray,
+    normals: np.ndarray,
+) -> float:
+    sdf, _, _ = _obstacle_cylinder_sdf_and_normal_impl(
+        tip_position,
+        starts,
+        directions,
+        lengths,
+        radii,
+        normals,
+    )
+    penetration = tip_radius - sdf
+    if penetration <= 0.0:
+        return 0.0
+    return float(penetration)
 
 
 def _capped_cylinder_sdf_and_normal_impl(
@@ -262,7 +331,10 @@ def _capped_cylinder_sdf_and_normal_impl(
         side_distance = radius - radial_norm
         start_cap_distance = axial
         end_cap_distance = length - axial
-        if side_distance <= start_cap_distance and side_distance <= end_cap_distance:
+        if (
+            side_distance <= start_cap_distance
+            and side_distance <= end_cap_distance
+        ):
             return -(side_distance), radial_dir
         if start_cap_distance <= end_cap_distance:
             return -(start_cap_distance), -direction
@@ -372,7 +444,9 @@ def _apply_torus_contact(
         vn = vx * nx + vy * ny + vz * nz
 
         # Hertzian normal contact + linear normal damping.
-        force_mag = stiffness * penetration * np.sqrt(penetration) - damping * vn
+        force_mag = (
+            stiffness * penetration * np.sqrt(penetration) - damping * vn
+        )
         if force_mag <= 0.0:
             continue
 
@@ -549,7 +623,9 @@ def _apply_cylinder_contact(
         vz = velocities[2, i]
         vn = vx * best_nx + vy * best_ny + vz * best_nz
 
-        force_mag = stiffness * penetration * np.sqrt(penetration) - damping * vn
+        force_mag = (
+            stiffness * penetration * np.sqrt(penetration) - damping * vn
+        )
         if force_mag <= 0.0:
             continue
 

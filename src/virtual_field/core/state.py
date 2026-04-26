@@ -386,6 +386,34 @@ class SphereEntity:
 
 
 @dataclass(slots=True)
+class HapticEvent:
+    arm_id: str
+    active: bool
+    intensity: float
+
+    def __post_init__(self) -> None:
+        self.active = bool(self.active)
+        self.intensity = float(self.intensity)
+        if self.intensity < 0.0:
+            raise ValueError("intensity must be >= 0")
+
+    def to_dict(self) -> JSONDict:
+        return {
+            "arm_id": self.arm_id,
+            "active": bool(self.active),
+            "intensity": float(self.intensity),
+        }
+
+    @classmethod
+    def from_dict(cls, data: JSONDict) -> "HapticEvent":
+        return cls(
+            arm_id=str(data["arm_id"]),
+            active=bool(data.get("active", False)),
+            intensity=float(data.get("intensity", 0.0)),
+        )
+
+
+@dataclass(slots=True)
 class SceneState:
     """Full scene snapshot published from Python to the WebXR client.
 

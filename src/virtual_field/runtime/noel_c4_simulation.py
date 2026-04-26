@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from typing import Any
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
-from virtual_field.core.state import MeshEntity
+from virtual_field.core.state import HapticEvent, MeshEntity
 from virtual_field.runtime.mesh_assets import build_cylinder_gltf_data_uri
 from virtual_field.runtime.mode_base import DualArmSimulationBase
 
@@ -22,7 +23,9 @@ class NoelObstacleSet:
 
 def load_noel_c4_obstacles() -> NoelObstacleSet:
     obstacle_path = (
-        Path(__file__).resolve().parents[3] / "externals" / "noel-c4-obstacles-aug.npz"
+        Path(__file__).resolve().parents[3]
+        / "externals"
+        / "noel-c4-obstacles-aug.npz"
         # / "noel-c4-obstacles.npz"
     )
     data = np.load(obstacle_path, allow_pickle=True)
@@ -118,21 +121,33 @@ def load_noel_c4_obstacles() -> NoelObstacleSet:
 
 @dataclass(slots=True)
 class NoelC4Simulation(DualArmSimulationBase):
+    tip_haptic_max_penetration: float = 0.01
     _obstacles: NoelObstacleSet = field(init=False)
+    _tip_penetration_by_arm: dict[str, float] = field(
+        init=False, default_factory=dict
+    )
+    _haptic_events: list[HapticEvent] = field(init=False, default_factory=list)
 
     def build_simulation(self) -> None:
         import elastica as ea
-        from virtual_field.runtime.spirob_elastica.constraints import (
-            _SpirobBendConstraint,
-        )
+
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
         )
+
+        # from virtual_field.runtime.spirob_elastica.constraints import (
+        #     _SpirobBendConstraint,
+        # )
         from virtual_field.runtime.spirob_elastica.sdf_objects import (
             SDFObstacleCylinders,
         )
 
         self._obstacles = load_noel_c4_obstacles()
+        self._tip_penetration_by_arm = {arm_id: 0.0 for arm_id in self.arm_ids}
+        self._haptic_events = [
+            HapticEvent(arm_id=arm_id, active=False, intensity=0.0)
+            for arm_id in self.arm_ids
+        ]
 
         class _Simulator(
             ea.BaseSystemCollection,
@@ -211,19 +226,22 @@ class NoelC4Simulation(DualArmSimulationBase):
             constrained_director_idx=(0,),
         )
 
-        self.simulator.detect_contact_between(self.left_rod, self.right_rod).using(
-            ea.RodRodContact, k=1e4, nu=3
-        )
-        self.simulator.detect_contact_between(self.right_rod, self.right_rod).using(
-            ea.RodSelfContact, k=1e4, nu=3
-        )
-        self.simulator.add_forcing_to(self.left_rod).using(
-            _SpirobBendConstraint,
-            kt=0,
-            allowed_angle_in_deg=30,
-        )
+        self.simulator.detect_contact_between(
+            self.left_rod, self.right_rod
+        ).using(ea.RodRodContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(
+            self.right_rod, self.right_rod
+        ).using(ea.RodSelfContact, k=1e4, nu=3)
+        # self.simulator.add_forcing_to(self.left_rod).using(
+        #     _SpirobBendConstraint,
+        #     kt=0,
+        #     allowed_angle_in_deg=30,
+        # )
 
         for rod in (self.left_rod, self.right_rod):
+            arm_id = (
+                self.arm_ids[0] if rod is self.left_rod else self.arm_ids[1]
+            )
             self.simulator.add_forcing_to(rod).using(
                 SDFObstacleCylinders,
                 starts=self._obstacles.starts,
@@ -231,6 +249,8 @@ class NoelC4Simulation(DualArmSimulationBase):
                 lengths=self._obstacles.lengths,
                 radii=self._obstacles.radii,
                 normals=self._obstacles.normals,
+                tip_penetration_state=self._tip_penetration_by_arm,
+                tip_penetration_key=arm_id,
             )
 
         damping_constant = 5.0
@@ -267,3 +287,13 @@ class NoelC4Simulation(DualArmSimulationBase):
                 )
             )
         return meshes
+
+    def haptic_events(self) -> list[HapticEvent]:
+        for event in self._haptic_events:
+            arm_id = event.arm_id
+            penetration = self._tip_penetration_by_arm.get(arm_id, 0.0)
+            intensity = penetration / self.tip_haptic_max_penetration
+            intensity = max(0.0, min(1.0, intensity))
+            event.active = intensity > 0.0
+            event.intensity = intensity
+        return self._haptic_events

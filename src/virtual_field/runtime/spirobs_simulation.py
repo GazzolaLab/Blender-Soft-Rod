@@ -14,7 +14,14 @@ class SpirobsSimulation(DualArmSimulationBase):
     contact_point_history_seconds: float = 1.0
     max_contact_points_visible: int = 2000
     max_contact_points_memory: int = 8000
-    _recording_queues: dict[str, deque[tuple[float, list[float]]]] = field(init=False)
+    tip_haptic_max_penetration: float = 0.01
+    _recording_queues: dict[str, deque[tuple[float, list[float]]]] = field(
+        init=False
+    )
+    _tip_penetration_by_arm: dict[str, float] = field(
+        init=False, default_factory=dict
+    )
+    _haptic_events: list[HapticEvent] = field(init=False, default_factory=list)
 
     def build_simulation(self) -> None:
         if self.contact_point_history_seconds <= 0.0:
@@ -25,6 +32,10 @@ class SpirobsSimulation(DualArmSimulationBase):
             raise ValueError("max_contact_points_memory must be > 0")
 
         import elastica as ea
+
+        from virtual_field.runtime.custom_elastica.control import (
+            TargetPoseProportionalControl,
+        )
         from virtual_field.runtime.spirob_elastica.constraints import (
             _SpirobBendConstraint,
         )
@@ -113,15 +124,15 @@ class SpirobsSimulation(DualArmSimulationBase):
         )
 
         # contact (Comment out for now. We'll consider it later)
-        self.simulator.detect_contact_between(self.left_rod, self.right_rod).using(
-            ea.RodRodContact, k=1e4, nu=3
-        )
-        # self.simulator.detect_contact_between(self.left_rod, self.left_rod).using(
-        #     ea.RodSelfContact, k=1e4, nu=3
-        # )
-        self.simulator.detect_contact_between(self.right_rod, self.right_rod).using(
-            ea.RodSelfContact, k=1e4, nu=3
-        )
+        self.simulator.detect_contact_between(
+            self.left_rod, self.right_rod
+        ).using(ea.RodRodContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(
+            self.left_rod, self.left_rod
+        ).using(ea.RodSelfContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(
+            self.right_rod, self.right_rod
+        ).using(ea.RodSelfContact, k=1e4, nu=3)
         self.simulator.add_forcing_to(self.left_rod).using(
             _SpirobBendConstraint,
             kt=0,
@@ -141,12 +152,19 @@ class SpirobsSimulation(DualArmSimulationBase):
             self.arm_ids[0]: recording_queue_left,
             self.arm_ids[1]: recording_queue_right,
         }
+        self._tip_penetration_by_arm = {arm_id: 0.0 for arm_id in self.arm_ids}
+        self._haptic_events = [
+            HapticEvent(arm_id=arm_id, active=False, intensity=0.0)
+            for arm_id in self.arm_ids
+        ]
         self.simulator.add_forcing_to(self.left_rod).using(
             SDFTorus,
             center=torus_center,
             major_radius=major_radius,
             minor_radius=minor_radius,
             recording_queue=recording_queue_left,
+            tip_penetration_state=self._tip_penetration_by_arm,
+            tip_penetration_key=self.arm_ids[0],
         )
         self.simulator.add_forcing_to(self.right_rod).using(
             SDFTorus,
@@ -154,6 +172,8 @@ class SpirobsSimulation(DualArmSimulationBase):
             major_radius=major_radius,
             minor_radius=minor_radius,
             recording_queue=recording_queue_right,
+            tip_penetration_state=self._tip_penetration_by_arm,
+            tip_penetration_key=self.arm_ids[1],
         )
 
         damping_constant = 5.0
@@ -188,8 +208,20 @@ class SpirobsSimulation(DualArmSimulationBase):
             if len(queue) > self.max_contact_points_visible:
                 contact_points = [
                     point
-                    for _, point in list(queue)[-self.max_contact_points_visible :]
+                    for _, point in list(queue)[
+                        -self.max_contact_points_visible :
+                    ]
                 ]
             else:
                 contact_points = [point for _, point in queue]
         return contact_points
+
+    def haptic_events(self) -> list[HapticEvent]:
+        for event in self._haptic_events:
+            arm_id = event.arm_id
+            penetration = self._tip_penetration_by_arm.get(arm_id, 0.0)
+            intensity = penetration / self.tip_haptic_max_penetration
+            intensity = max(0.0, min(1.0, intensity))
+            event.active = intensity > 0.0
+            event.intensity = intensity
+        return self._haptic_events
