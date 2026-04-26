@@ -1,20 +1,19 @@
-__doc__ = (
-    """ Factory function to allocate variables for Cosserat Rod, keeping spirob shape"""
-)
+__doc__ = """ Factory function to allocate variables for Cosserat Rod, keeping spirob shape"""
 from typing import Any, Optional, Tuple
-import logging
-import numpy as np
-from numpy.testing import assert_allclose
-from numpy.typing import NDArray
-from elastica.utils import MaxDimension, Tolerance
-from elastica._linalg import _batch_cross, _batch_norm, _batch_dot
 
+import logging
+
+import numpy as np
+from elastica._linalg import _batch_cross, _batch_dot, _batch_norm
 from elastica.rod.factory_function import (
     _assert_dim,
     _assert_shape,
-    _position_validity_checker,
     _directors_validity_checker,
+    _position_validity_checker,
 )
+from elastica.utils import MaxDimension, Tolerance
+from numpy.testing import assert_allclose
+from numpy.typing import NDArray
 
 
 def polar2xy(r, theta):
@@ -26,13 +25,12 @@ def allocate(
     rod_origin_position: np.ndarray,
     direction: NDArray[np.float64],
     normal: NDArray[np.float64],
-    base_length: np.float64,
     base_radius: np.float64,
     density: np.float64,
     youngs_modulus: np.float64,
     *,
     taper_angle_in_deg: float = 3,  # Needed to compute radius
-    # Geometry parameter. TODO: Clean up later
+    # Geometry parameter. It is from some optimization schinanigans to match the length and good taper angle
     a_val=0.016700421,
     b_val=0.092864105,
     division_angle=float(np.deg2rad(30)),
@@ -41,7 +39,7 @@ def allocate(
     log = logging.getLogger()
 
     N = 24
-    discrete_theta = np.arange(N+ 1) * division_angle
+    discrete_theta = np.arange(N + 1) * division_angle
     inner_r = a_val * np.exp(b_val * discrete_theta)
     inner_positions = np.vstack(polar2xy(inner_r, discrete_theta))
     curled_r = (
@@ -53,7 +51,9 @@ def allocate(
         )
     )
     curled_positions = np.vstack(polar2xy(curled_r, discrete_theta))
-    lengths = np.linalg.norm(np.diff(curled_positions), axis=0)[::-1][:n_elements]
+    lengths = np.linalg.norm(np.diff(curled_positions), axis=0)[::-1][
+        :n_elements
+    ]
     # print(f"lengths: {lengths}")
     radius = np.linalg.norm(
         np.diff(curled_positions) - np.diff(inner_positions), axis=0
@@ -63,7 +63,6 @@ def allocate(
     # print(f"radius: {radius}")
 
     # sanity checks here
-    assert base_length > Tolerance.atol()
     assert np.sqrt(np.dot(normal, normal)) > Tolerance.atol()
     assert np.sqrt(np.dot(direction, direction)) > Tolerance.atol()
 
@@ -87,7 +86,9 @@ def allocate(
     normal /= np.linalg.norm(normal)
 
     # Set the directors matrix
-    directors = np.zeros((MaxDimension.value(), MaxDimension.value(), n_elements))
+    directors = np.zeros(
+        (MaxDimension.value(), MaxDimension.value(), n_elements)
+    )
     # Construct directors using tangents and normal
     normal_collection = np.repeat(normal[:, np.newaxis], n_elements, axis=1)
     # Check if rod normal and rod tangent are perpendicular to each other otherwise
@@ -96,7 +97,9 @@ def allocate(
         _batch_dot(normal_collection, tangents),
         0,
         atol=Tolerance.atol(),
-        err_msg=(" Rod normal and tangent are not perpendicular to each other!"),
+        err_msg=(
+            " Rod normal and tangent are not perpendicular to each other!"
+        ),
     )
     directors[0, ...] = normal_collection
     directors[1, ...] = _batch_cross(tangents, normal_collection)
@@ -105,7 +108,9 @@ def allocate(
 
     # Set radius array
     # Check if the elements of radius are greater than tolerance
-    assert np.all(radius > Tolerance.atol()), " Radius has to be greater than 0."
+    assert np.all(
+        radius > Tolerance.atol()
+    ), " Radius has to be greater than 0."
 
     # Set density array
     density_array = np.zeros((n_elements))
@@ -114,9 +119,9 @@ def allocate(
     _assert_dim(density_temp, 2, "density")
     density_array[:] = density_temp
     # Check if the elements of density are greater than tolerance
-    assert np.all(density_array > Tolerance.atol()), (
-        " Density has to be greater than 0."
-    )
+    assert np.all(
+        density_array > Tolerance.atol()
+    ), " Density has to be greater than 0."
 
     # Second moment of inertia
     A0 = np.pi * radius * radius
@@ -178,7 +183,8 @@ def allocate(
 
     # Bend/Twist matrix
     bend_matrix = np.zeros(
-        (MaxDimension.value(), MaxDimension.value(), n_voronoi_elements + 1), np.float64
+        (MaxDimension.value(), MaxDimension.value(), n_voronoi_elements + 1),
+        np.float64,
     )
     for i in range(n_elements):
         np.fill_diagonal(
@@ -190,9 +196,9 @@ def allocate(
             ],
         )
     for i in range(0, MaxDimension.value()):
-        assert np.all(bend_matrix[i, i, :] > Tolerance.atol()), (
-            " Bend matrix has to be greater than 0."
-        )
+        assert np.all(
+            bend_matrix[i, i, :] > Tolerance.atol()
+        ), " Bend matrix has to be greater than 0."
 
     # Compute bend matrix in Voronoi Domain
     bend_matrix = (
@@ -214,7 +220,9 @@ def allocate(
     _assert_shape(rest_sigma, (MaxDimension.value(), n_elements), "rest_sigma")
 
     rest_kappa = np.zeros((MaxDimension.value(), n_voronoi_elements))
-    _assert_shape(rest_kappa, (MaxDimension.value(), n_voronoi_elements), "rest_kappa")
+    _assert_shape(
+        rest_kappa, (MaxDimension.value(), n_voronoi_elements), "rest_kappa"
+    )
 
     # Compute rest voronoi length
     rest_voronoi_lengths = 0.5 * (rest_lengths[1:] + rest_lengths[:-1])

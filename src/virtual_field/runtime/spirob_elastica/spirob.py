@@ -1,8 +1,8 @@
-from .geometry import allocate
-
 import numpy as np
-from numpy.typing import NDArray
 from elastica import CosseratRod
+from numpy.typing import NDArray
+
+from .geometry import allocate
 
 
 def create_spirob(
@@ -54,7 +54,6 @@ def create_spirob(
         start,
         direction,
         normal,
-        np.float64(base_length),
         np.float64(base_radius),
         np.float64(density),
         np.float64(youngs_modulus),
