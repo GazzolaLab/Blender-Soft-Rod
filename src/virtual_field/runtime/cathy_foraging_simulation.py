@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from importlib.resources import files
 from pathlib import Path
 
-import numpy as np
 import elastica as ea
+import numpy as np
 
 from virtual_field.core.commands import ArmCommand, MultiArmCommand
 from virtual_field.core.state import ArmState, SphereEntity, Transform
@@ -23,11 +24,17 @@ from virtual_field.runtime.mode_base import OctoArmSimulationBase
 from virtual_field.runtime.orientation import controller_quat_xyzw_to_matrix
 from virtual_field.runtime.spirob_elastica.spirob import create_spirob
 
-from importlib.resources import files
-
 # Configurations
 ASSET_PATH = files("virtual_field").joinpath("externals", "crawling")
 EXTERNAL_POLICY_PATH = ASSET_PATH / "best_policy.npy"
+HEAD_TILT_ACTIVATION = np.sin(np.deg2rad(12.0))
+FORAGE_TARGET_RADIUS = 0.045
+FORAGE_TARGET_COLOR_RGB = [0.42, 0.78, 0.47]
+LEFT_TARGET_COLOR_RGB = [0.96, 0.38, 0.34]
+RIGHT_TARGET_COLOR_RGB = [0.34, 0.54, 0.96]
+BOTH_TARGET_COLOR_RGB = [0.75, 0.46, 0.94]
+SELECTION_DISTANCE_THRESHOLD = 0.09
+POINTING_FORWARD = np.array([0.0, -1.0, 0.0], dtype=np.float64)
 
 
 class _Simulator(
@@ -95,9 +102,20 @@ class CathyForagingSimulation(OctoArmSimulationBase):
     _head_pose: Transform = field(init=False)
     _head_local_positions: np.ndarray = field(init=False)
     _head_local_directors: np.ndarray = field(init=False)
+    _tilt_active: bool = field(init=False, default=False)
+    _cycle_heading_angle: float = field(init=False, default=0.0)
+    _last_cycle_index: int = field(init=False, default=-1)
     _crawl_active_until: float = field(init=False, default=0.0)
-    _crawl_phase_origin: float = field(init=False, default=0.0)
-    _last_crawl_pressed: bool = field(init=False, default=False)
+    _loco_coast_until: float | None = field(init=False, default=None)
+    _last_trigger_pressed: dict[str, bool] = field(
+        init=False, default_factory=dict
+    )
+    _selected_target_index_by_hand: dict[str, int | None] = field(
+        init=False, default_factory=dict
+    )
+    _selected_target_position_by_hand: dict[str, list[float] | None] = field(
+        init=False, default_factory=dict
+    )
     base_suction_active: np.ndarray = field(init=False)
     middle_suction_active: np.ndarray = field(init=False)
     target_extension: np.ndarray = field(init=False)
@@ -110,12 +128,11 @@ class CathyForagingSimulation(OctoArmSimulationBase):
 
         self.head_arm_id = f"{self.user_id}_head"
         self.head = _make_head(self.base_position)
-        self._head_local_positions = np.asarray(
-            self.head.position_collection, dtype=np.float64
-        ).copy() - np.asarray(self.head.position_collection[:, [0]], dtype=np.float64)
-        self._head_local_directors = np.asarray(
-            self.head.director_collection, dtype=np.float64
-        ).copy()
+        self._head_local_positions = (
+            self.head.position_collection
+            - self.head.position_collection[:, [0]]
+        )
+        self._head_local_directors = self.head.director_collection.copy()
         self._head_pose = Transform(
             translation=list(self.base_position),
             rotation_xyzw=[0.0, 0.0, 0.0, 1.0],
@@ -124,6 +141,9 @@ class CathyForagingSimulation(OctoArmSimulationBase):
         self.base_policy = _load_best_policy()
         self.idle_policy = idle_policy_like(self.base_policy)
         self.active_policy = self.idle_policy
+        self._last_trigger_pressed = {"left": False, "right": False}
+        self._selected_target_index_by_hand = {"left": None, "right": None}
+        self._selected_target_position_by_hand = {"left": None, "right": None}
 
         arm_count = len(self.arm_ids)
         self.base_suction_active = np.zeros(arm_count, dtype=np.float64)
@@ -242,37 +262,142 @@ class CathyForagingSimulation(OctoArmSimulationBase):
     def handle_frame_command(self, command: MultiArmCommand) -> None:
         if command.head_pose is not None:
             self._head_pose = command.head_pose
+        self._update_target_selection_from_command(command)
 
-        crawl_pressed = bool(command.actions.get("crawl", False))
-        if crawl_pressed and not self._last_crawl_pressed:
-            heading_angle = self._crawl_heading_angle_from_head_pose()
-            self.active_policy = rotate_policy_by_angle(self.base_policy, heading_angle)
-            self._crawl_phase_origin = self._time
-            self._crawl_active_until = self._time + self.base_policy.T_L
-        self._last_crawl_pressed = crawl_pressed
+    def _update_target_selection_from_command(
+        self, command: MultiArmCommand
+    ) -> None:
+        controller_arm_ids = {
+            "left": self.arm_ids[0],
+            "right": self.arm_ids[1],
+        }
+        for hand, arm_id in controller_arm_ids.items():
+            controller_command = command.commands.get(arm_id)
+            if controller_command is None:
+                self._last_trigger_pressed[hand] = False
+                continue
+            pressed = bool(
+                controller_command.buttons.get("trigger_click", False)
+            )
+            was_pressed = self._last_trigger_pressed.get(hand, False)
+            if pressed and not was_pressed:
+                target_index = self._selected_target_index_from_transform(
+                    controller_command.target
+                )
+                if target_index is not None:
+                    self._selected_target_index_by_hand[hand] = target_index
+                    self._selected_target_position_by_hand[hand] = (
+                        self._forage_targets[target_index].tolist()
+                    )
+            self._last_trigger_pressed[hand] = pressed
 
-    def _crawl_heading_angle_from_head_pose(self) -> float:
-        rotation = controller_quat_xyzw_to_matrix(self._head_pose.rotation_xyzw).T
+    def _selected_target_index_from_transform(
+        self, transform: Transform
+    ) -> int | None:
+        origin = np.asarray(transform.translation, dtype=np.float64)
+        rotation = controller_quat_xyzw_to_matrix(transform.rotation_xyzw).T
+        direction = rotation @ POINTING_FORWARD
+        direction_norm = float(np.linalg.norm(direction))
+        if (not np.isfinite(direction_norm)) or direction_norm <= 1.0e-9:
+            return None
+        direction /= direction_norm
+
+        best_index: int | None = None
+        best_distance = np.inf
+        best_t = np.inf
+        for index, target in enumerate(self._forage_targets):
+            offset = target - origin
+            t = float(np.dot(offset, direction))
+            if (not np.isfinite(t)) or t < 0.0:
+                continue
+            closest = origin + t * direction
+            distance = float(np.linalg.norm(target - closest))
+            if distance <= SELECTION_DISTANCE_THRESHOLD and (
+                distance < best_distance
+                or (distance == best_distance and t < best_t)
+            ):
+                best_index = index
+                best_distance = distance
+                best_t = t
+        return best_index
+
+    def selected_target_indices(self) -> dict[str, int | None]:
+        return dict(self._selected_target_index_by_hand)
+
+    def selected_target_positions(self) -> dict[str, list[float] | None]:
+        return {
+            hand: None if position is None else list(position)
+            for hand, position in self._selected_target_position_by_hand.items()
+        }
+
+    def _head_tilt_heading(self) -> tuple[bool, float]:
+        rotation = controller_quat_xyzw_to_matrix(
+            self._head_pose.rotation_xyzw
+        ).T
         forward = rotation @ np.array([0.0, 0.0, -1.0], dtype=np.float64)
         horizontal = np.array([forward[0], forward[2]], dtype=np.float64)
+        up = rotation @ np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        tilt_amount = float(
+            np.linalg.norm(np.array([up[0], up[2]], dtype=np.float64))
+        )
         norm = float(np.linalg.norm(horizontal))
-        if not np.isfinite(norm) or norm <= 1.0e-9:
-            return 0.0
+        if (
+            (not np.isfinite(tilt_amount))
+            or tilt_amount < HEAD_TILT_ACTIVATION
+            or (not np.isfinite(norm))
+            or norm <= 1.0e-9
+        ):
+            return False, self._cycle_heading_angle
         horizontal /= norm
-        return float(np.arctan2(horizontal[0], -horizontal[1]))
+        return True, float(np.arctan2(horizontal[0], -horizontal[1]))
 
-    def _apply_policy(self) -> None:
-        if self._time < self._crawl_active_until:
-            phase = float(
-                ((self._time - self._crawl_phase_origin) % self.base_policy.T_L)
-                / self.base_policy.T_L
+    def _sync_coast_deadline(
+        self, was_crawling: bool, has_target: bool, period: float
+    ) -> None:
+        self._tilt_active = has_target
+        if has_target:
+            self._loco_coast_until = None
+            return
+        if was_crawling:
+            self._loco_coast_until = float(
+                (np.floor(self._time / period) + 1.0) * period
             )
-            policy = self.active_policy
-        else:
-            phase = 0.0
-            policy = self.idle_policy
+        elif (
+            self._loco_coast_until is not None
+            and self._time >= self._loco_coast_until
+        ):
+            self._loco_coast_until = None
 
-        for arm_index, arm_id in enumerate(self.arm_ids):
+    def _locomotion_is_active(self) -> bool:
+        return self._tilt_active or (
+            self._loco_coast_until is not None
+            and self._time < self._loco_coast_until
+        )
+
+    def _set_active_policy_heading(
+        self, heading_angle: float, cycle_index: int
+    ) -> None:
+        self._cycle_heading_angle = heading_angle
+        self.active_policy = rotate_policy_by_angle(
+            self.base_policy, heading_angle
+        )
+        self._last_cycle_index = cycle_index
+
+    def _refresh_heading_and_active_policy(
+        self, heading_angle: float, period: float
+    ) -> None:
+        cycle_index = int(np.floor(self._time / period))
+        self._crawl_active_until = (cycle_index + 1) * period
+        if (
+            cycle_index != self._last_cycle_index
+            or self.active_policy is self.idle_policy
+        ):
+            self._set_active_policy_heading(heading_angle, cycle_index)
+
+    def _write_tentacle_actuation(
+        self, phase: float, policy: OctoArmPolicy
+    ) -> None:
+        for arm_index, _arm_id in enumerate(self.arm_ids):
             arm_policy = policy.arm_policies[arm_index]
             self.target_stiffness[arm_index] = current_activation(
                 phase,
@@ -310,12 +435,32 @@ class CathyForagingSimulation(OctoArmSimulationBase):
                 arm_policy.bend_scale,
             )
 
+    def _apply_policy(self) -> None:
+        was_crawling = self._tilt_active
+        period = float(self.base_policy.T_L)
+        has_target, heading_angle = self._head_tilt_heading()
+        self._sync_coast_deadline(was_crawling, has_target, period)
+
+        if self._locomotion_is_active():
+            phase = float((self._time % period) / period)
+            if has_target:
+                self._refresh_heading_and_active_policy(heading_angle, period)
+            policy = self.active_policy
+        else:
+            phase = 0.0
+            policy = self.idle_policy
+            self._last_cycle_index = -1
+
+        self._write_tentacle_actuation(phase, policy)
+
     def _sync_head_pose(self) -> None:
         anchor = np.asarray(
             self.base_sphere.position_collection[:, 0],
             dtype=np.float64,
         ).reshape(3, 1)
-        rotation = controller_quat_xyzw_to_matrix(self._head_pose.rotation_xyzw).T
+        rotation = controller_quat_xyzw_to_matrix(
+            self._head_pose.rotation_xyzw
+        ).T
         self.head.position_collection[...] = (
             anchor + rotation @ self._head_local_positions
         )
@@ -331,23 +476,41 @@ class CathyForagingSimulation(OctoArmSimulationBase):
         step_dt = total / substeps
         for _ in range(substeps):
             self._apply_policy()
-            self._time = self.timestepper.step(self.simulator, self._time, step_dt)
+            self._time = self.timestepper.step(
+                self.simulator, self._time, step_dt
+            )
         self._sync_head_pose()
 
     def arm_states(self) -> dict[str, ArmState]:
         self._sync_head_pose()
         states = OctoArmSimulationBase.arm_states(self)
-        states[self.head_arm_id] = self._rod_to_arm_state(self.head_arm_id, self.head)
+        states[self.head_arm_id] = self._rod_to_arm_state(
+            self.head_arm_id, self.head
+        )
         return states
 
     def sphere_entities(self) -> list[SphereEntity]:
+        left_index = self._selected_target_index_by_hand["left"]
+        right_index = self._selected_target_index_by_hand["right"]
         return [
             SphereEntity(
                 sphere_id=f"{self.user_id}_forage_target_{index}",
                 owner_id=self.user_id,
                 translation=position.tolist(),
-                radius=0.045,
-                color_rgb=[0.42, 0.78, 0.47],
+                radius=FORAGE_TARGET_RADIUS,
+                color_rgb=(
+                    BOTH_TARGET_COLOR_RGB
+                    if left_index == index and right_index == index
+                    else (
+                        LEFT_TARGET_COLOR_RGB
+                        if left_index == index
+                        else (
+                            RIGHT_TARGET_COLOR_RGB
+                            if right_index == index
+                            else FORAGE_TARGET_COLOR_RGB
+                        )
+                    )
+                ),
             )
             for index, position in enumerate(self._forage_targets)
         ]
