@@ -2,11 +2,14 @@
 <h1> Soft-arm Platform for Action, Rendering, and Control </h1>
 
 <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
-<a href='https://blender-soft-rod.readthedocs.io/en/latest/?badge=latest'>
-    <img src='https://readthedocs.org/projects/blender-soft-rod/badge/?version=latest' alt='Documentation Status' />
+<a href='https://softarmplatformforactionrendringcontrol.readthedocs.io/en/latest'>
+    <img src='https://readthedocs.org/projects/softarmplatformforactionrendringcontrol/badge/?version=latest' alt='Documentation Status' />
 </a>
-<a href='https://github.com/GazzolaLab/Blender-Soft-Rod/actions'>
-    <img src='https://github.com/GazzolaLab/Blender-Soft-Rod/actions/workflows/main.yml/badge.svg' alt='CI' />
+<a href='https://github.com/GazzolaLab/SPARC/actions'>
+    <img src='https://github.com/GazzolaLab/SPARC/actions/workflows/main.yml/badge.svg' alt='CI' />
+</a>
+<a href='https://codecov.io/gh/GazzolaLab/SPARC'>
+    <img src='https://codecov.io/gh/GazzolaLab/SPARC/branch/main/graph/badge.svg' alt='Coverage' />
 </a>
 
 </div>
@@ -37,8 +40,8 @@ We primarily use [`uv`](https://docs.astral.sh/uv/) to manage the dependencies a
 Necessary commands are provided in the `Makefile`.
 
 ```sh
-git clone https://github.com/GazzolaLab/Blender-Soft-Rod.git
-cd Blender-Soft-Rod
+git clone https://github.com/GazzolaLab/SPARC.git
+cd SPARC
 make install  # Assuming you have uv installed.
 make pre-commit-install
 ```
@@ -58,6 +61,7 @@ open build/html/index.html
 
 ```sh
 make test
+make coverage
 ```
 
 - Code formatting
@@ -71,4 +75,3 @@ make formatting
 ```sh
 make mypy
 ```
-

@@ -14,14 +14,14 @@ install:
 
 .PHONY: pre-commit-install
 pre-commit-install:
-	uv run pre-commit install
+	uv run --no-sync pre-commit install
 
 #* Formatters
 .PHONY: codestyle
 codestyle:
-	uv run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
-	uv run isort --settings-path pyproject.toml ./
-	uv run black --config pyproject.toml ./
+	uv run --no-sync pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
+	uv run --no-sync isort --settings-path pyproject.toml ./
+	uv run --no-sync black --config pyproject.toml ./
 
 .PHONY: formatting
 formatting: codestyle
@@ -29,20 +29,24 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	uv run pytest -c pyproject.toml --cov=src
+	uv run --no-sync pytest -c pyproject.toml --cov=src --cov-branch
+
+.PHONY: coverage
+coverage:
+	uv run --no-sync pytest -c pyproject.toml --cov=src --cov-branch --cov-report=term-missing
 
 .PHONY: test_ci
 test_ci:
-	uv run pytest -c pyproject.toml --cov=src --cov-report=xml
+	uv run --no-sync pytest -c pyproject.toml --cov=src --cov-branch --cov-report=xml
 
 .PHONY: check-codestyle
 check-codestyle:
-	uv run isort --diff --check-only --settings-path pyproject.toml ./
-	uv run black --diff --check --config pyproject.toml ./
+	uv run --no-sync isort --diff --check-only --settings-path pyproject.toml ./
+	uv run --no-sync black --diff --check --config pyproject.toml ./
 
 .PHONY: mypy
 mypy:
-	uv run mypy --config-file pyproject.toml src
+	uv run --no-sync mypy --config-file pyproject.toml src
 
 .PHONY: lint
 lint: test check-codestyle mypy check-safety
