@@ -63,6 +63,7 @@ docs = [
   "sphinx-autodoc-typehints>=2.1.0,<3",
   "sphinx-click>=6.0.0,<7",
   "sphinx-copybutton>=0.5.2,<1",
+  "sphinxcontrib-tikz>=0.4.20,<0.5",
   "sphinxcontrib-mermaid>=1.0.0,<2",
   "sphinx-rtd-theme>=2.0.0,<3",
 ]
@@ -148,8 +149,18 @@ doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAI
 addopts = [
   "--strict-markers",
   "--tb=short",
+  "-m",
+  "not slow and not optional_dep",
 #  "--doctest-modules", TODO: Try to include pytest.doctest
 #  "--doctest-continue-on-failure",
+]
+markers = [
+  "equations: numeric invariants and equation-level tests",
+  "modules: module-level unit tests for virtual_field logic",
+  "behavior: cross-module behavior contract tests",
+  "backend_integration: websocket/server end-to-end smoke tests",
+  "slow: tests that are expensive for the default developer loop",
+  "optional_dep: tests requiring optional runtime dependencies",
 ]
 
 [tool.coverage.report]
