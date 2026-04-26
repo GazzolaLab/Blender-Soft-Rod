@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 import base64
 import json
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -158,7 +159,9 @@ def build_pyvista_polydata_gltf_data_uri(
         mesh = mesh.extract_surface()
     tri = mesh.triangulate()
     try:
-        tri = tri.compute_normals(point_normals=True, cell_normals=False, inplace=False)
+        tri = tri.compute_normals(
+            point_normals=True, cell_normals=False, inplace=False
+        )
     except RuntimeError:
         pass
     points = np.asarray(tri.points, dtype=np.float32)
@@ -193,7 +196,9 @@ def build_pyvista_polydata_gltf_data_uri(
                 texcoords_array = texcoords_array.copy()
                 # GLTF UV origin is upper-left for most textures in Three.js workflows.
                 texcoords_array[:, 1] = 1.0 - texcoords_array[:, 1]
-                texcoord_bytes = texcoords_array.astype("<f4", copy=False).tobytes()
+                texcoord_bytes = texcoords_array.astype(
+                    "<f4", copy=False
+                ).tobytes()
     index_bytes = indices.tobytes()
     buffer_blob = position_bytes + normal_bytes
     if texcoord_bytes is not None:
@@ -227,7 +232,9 @@ def build_pyvista_polydata_gltf_data_uri(
     image_entry = None
     texture_entry = None
     texture_path = (
-        Path(base_color_texture_path) if base_color_texture_path is not None else None
+        Path(base_color_texture_path)
+        if base_color_texture_path is not None
+        else None
     )
     if (
         texture_path is not None
@@ -240,10 +247,12 @@ def build_pyvista_polydata_gltf_data_uri(
             ".png": "image/png",
         }.get(texture_path.suffix.lower())
         if texture_mime is not None:
-            texture_encoded = base64.b64encode(texture_path.read_bytes()).decode(
-                "ascii"
-            )
-            image_entry = {"uri": f"data:{texture_mime};base64,{texture_encoded}"}
+            texture_encoded = base64.b64encode(
+                texture_path.read_bytes()
+            ).decode("ascii")
+            image_entry = {
+                "uri": f"data:{texture_mime};base64,{texture_encoded}"
+            }
             texture_entry = {"source": 0}
             material["pbrMetallicRoughness"]["baseColorTexture"] = {"index": 0}
 

@@ -700,7 +700,9 @@ class VRWebSocketServer:
             return
         try:
             exc = task.exception()
-        except Exception:  # pragma: no cover - defensive task-inspection fallback
+        except (
+            Exception
+        ):  # pragma: no cover - defensive task-inspection fallback
             logger.exception("Failed to inspect {}", task_name)
             return
         if exc is not None:
@@ -712,7 +714,9 @@ class VRWebSocketServer:
         for client in tuple(self._clients):
             try:
                 await client.send(encoded)
-            except Exception:  # pragma: no cover - network transport failure path
+            except (
+                Exception
+            ):  # pragma: no cover - network transport failure path
                 stale.append(client)
         for client in stale:
             self._clients.discard(client)
@@ -734,7 +738,9 @@ class VRWebSocketServer:
             encoded = json.dumps(message)
             try:
                 await client.send(encoded)
-            except Exception:  # pragma: no cover - network transport failure path
+            except (
+                Exception
+            ):  # pragma: no cover - network transport failure path
                 stale.append(client)
         for client in stale:
             self._clients.discard(client)
@@ -760,7 +766,9 @@ async def run_server(
     try:
         while True:
             await asyncio.sleep(3600)
-    except Exception as exc:  # pragma: no cover - long-running server loop guard
+    except (
+        Exception
+    ) as exc:  # pragma: no cover - long-running server loop guard
         logger.error("Exception in run_server: {}", exc)
     finally:
         logger.info("Stopping server")
