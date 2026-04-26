@@ -22,7 +22,8 @@ class NoelObstacleSet:
 
 def load_noel_c4_obstacles() -> NoelObstacleSet:
     obstacle_path = (
-        Path(__file__).resolve().parents[3] / "externals" / "noel-c4-obstacles.npz"
+        Path(__file__).resolve().parents[3] / "externals" / "noel-c4-obstacles-aug.npz"
+        # / "noel-c4-obstacles.npz"
     )
     data = np.load(obstacle_path, allow_pickle=True)
 
@@ -46,15 +47,25 @@ def load_noel_c4_obstacles() -> NoelObstacleSet:
     count = int(np.asarray(data["N_OBSTACLE"]).reshape(()))
 
     if starts.shape != (count, 3):
-        raise ValueError(f"obstacle_start must have shape ({count}, 3)")
+        raise ValueError(
+            f"obstacle_start must have shape ({count}, 3). Got {starts.shape=}"
+        )
     if directions.shape != (count, 3):
-        raise ValueError(f"obstacle_direction must have shape ({count}, 3)")
+        raise ValueError(
+            f"obstacle_direction must have shape ({count}, 3). Got {directions.shape=}"
+        )
     if normals.shape != (count, 3):
-        raise ValueError(f"obstacle_normal must have shape ({count}, 3)")
+        raise ValueError(
+            f"obstacle_normal must have shape ({count}, 3). Got {normals.shape=}"
+        )
     if lengths.shape != (count,):
-        raise ValueError(f"obstacle_length must have shape ({count},)")
+        raise ValueError(
+            f"obstacle_length must have shape ({count},). Got {lengths.shape=}"
+        )
     if radii.shape != (count,):
-        raise ValueError(f"obstacle_radii must have shape ({count},)")
+        raise ValueError(
+            f"obstacle_radii must have shape ({count},). Got {radii.shape=}"
+        )
 
     direction_norms = np.linalg.norm(directions, axis=1)
     normal_norms = np.linalg.norm(normals, axis=1)
@@ -94,7 +105,7 @@ def load_noel_c4_obstacles() -> NoelObstacleSet:
     center = np.vstack([starts, ends]).mean(axis=0)
     starts[:, 0] -= 0.10
     starts[:, 1] += 1.0 - center[1] + 0.25
-    starts[:, 2] -= 0.55
+    starts[:, 2] -= 0.75
 
     return NoelObstacleSet(
         starts=starts,
