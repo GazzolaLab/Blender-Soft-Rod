@@ -87,14 +87,12 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "codecov" },
-    { name = "isort", extra = ["colors"] },
     { name = "mypy" },
     { name = "mypy-extensions" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
-    { name = "pyupgrade" },
 ]
 docs = [
     { name = "myst-parser" },
@@ -105,6 +103,7 @@ docs = [
     { name = "sphinx-copybutton" },
     { name = "sphinx-rtd-theme" },
     { name = "sphinxcontrib-mermaid" },
+    { name = "sphinxcontrib-tikz" },
 ]
 
 [package.metadata]
@@ -122,14 +121,12 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=24.4.2,<27" },
     { name = "codecov", specifier = ">=2.1.13,<3" },
-    { name = "isort", extras = ["colors"], specifier = ">=5.13.2,<6" },
     { name = "mypy", specifier = ">=1.10.0,<2" },
     { name = "mypy-extensions", specifier = ">=1.0.0,<2" },
     { name = "pre-commit", specifier = ">=3.7.1,<4" },
     { name = "pytest", specifier = ">=8.2.1,<10" },
     { name = "pytest-cov", specifier = ">=5.0.0,<6" },
     { name = "pytest-mock", specifier = ">=3.14.0,<4" },
-    { name = "pyupgrade", specifier = ">=3.15.2,<4" },
 ]
 docs = [
     { name = "myst-parser", specifier = ">=3.0.1,<4" },
@@ -140,6 +137,7 @@ docs = [
     { name = "sphinx-copybutton", specifier = ">=0.5.2,<1" },
     { name = "sphinx-rtd-theme", specifier = ">=2.0.0,<3" },
     { name = "sphinxcontrib-mermaid", specifier = ">=1.0.0,<2" },
+    { name = "sphinxcontrib-tikz", specifier = ">=0.4.20,<0.5" },
 ]
 
 [[package]]
@@ -420,20 +418,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "isort"
-version = "5.13.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/87/f9/c1eb8635a24e87ade2efce21e3ce8cd6b8630bb685ddc9cdaca1349b2eb5/isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109", size = 175303, upload-time = "2023-12-13T20:37:26.124Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/b3/8def84f539e7d2289a02f0524b944b15d7c75dab7628bedf1c4f0992029c/isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6", size = 92310, upload-time = "2023-12-13T20:37:23.244Z" },
-]
-
-[package.optional-dependencies]
-colors = [
-    { name = "colorama" },
 ]
 
 [[package]]
@@ -912,18 +896,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyupgrade"
-version = "3.21.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tokenize-rt" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/a1/dc63caaeed232b1c58eae1b7a75f262d64ab8435882f696ffa9b58c0c415/pyupgrade-3.21.2.tar.gz", hash = "sha256:1a361bea39deda78d1460f65d9dd548d3a36ff8171d2482298539b9dc11c9c06", size = 45455, upload-time = "2025-11-19T00:39:48.012Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/8c/433dac11910989a90c40b10149d07ef7224232236971a562d3976790ec53/pyupgrade-3.21.2-py2.py3-none-any.whl", hash = "sha256:2ac7b95cbd176475041e4dfe8ef81298bd4654a244f957167bd68af37d52be9f", size = 62814, upload-time = "2025-11-19T00:39:46.958Z" },
-]
-
-[[package]]
 name = "pyvista"
 version = "0.47.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1207,13 +1179,13 @@ wheels = [
 ]
 
 [[package]]
-name = "tokenize-rt"
-version = "6.2.0"
+name = "sphinxcontrib-tikz"
+version = "0.4.20"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/69/ed/8f07e893132d5051d86a553e749d5c89b2a4776eb3a579b72ed61f8559ca/tokenize_rt-6.2.0.tar.gz", hash = "sha256:8439c042b330c553fdbe1758e4a05c0ed460dbbbb24a606f11f0dee75da4cad6", size = 5476, upload-time = "2025-05-23T23:48:00.035Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/f0/3fe8c6e69135a845f4106f2ff8b6805638d4e85c264e70114e8126689587/tokenize_rt-6.2.0-py2.py3-none-any.whl", hash = "sha256:a152bf4f249c847a66497a4a95f63376ed68ac6abf092a2f7cfb29d044ecff44", size = 6004, upload-time = "2025-05-23T23:47:58.812Z" },
+dependencies = [
+    { name = "sphinx" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/90/f1/514013965c81338d2742b47b6affb633149e809affecedf6a969af31d09f/sphinxcontrib-tikz-0.4.20.tar.gz", hash = "sha256:2ee3bd1f9ca2f349c0823a4f3507d91c410e7f96be20f051fef7af1665f341ca", size = 16230, upload-time = "2024-07-13T08:51:31.296Z" }
 
 [[package]]
 name = "tomli"
