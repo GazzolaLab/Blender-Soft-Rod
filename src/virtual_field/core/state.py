@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
+from dataclasses import dataclass, field
 
 JSONDict = dict[str, Any]
 
@@ -124,7 +124,9 @@ class ArmState:
                 raise ValueError("radii cannot contain negative values")
         for length in self.element_lengths:
             if length < 0:
-                raise ValueError("element_lengths cannot contain negative values")
+                raise ValueError(
+                    "element_lengths cannot contain negative values"
+                )
         for idx, director in enumerate(self.directors):
             if len(director) != 3:
                 raise ValueError(f"directors[{idx}] must be 3x3")
@@ -217,7 +219,9 @@ class MeshEntity:
         if not self.owner_id:
             raise ValueError("owner_id cannot be empty")
         if not self.asset_uri and not self.static_asset:
-            raise ValueError("asset_uri cannot be empty unless static_asset is true")
+            raise ValueError(
+                "asset_uri cannot be empty unless static_asset is true"
+            )
         _validate_vector_shape(self.translation, 3, "translation")
         _validate_vector_shape(self.rotation_xyzw, 4, "rotation_xyzw")
         _validate_vector_shape(self.scale, 3, "scale")
@@ -446,6 +450,7 @@ class SceneState:
     meshes: dict[str, MeshEntity] = field(default_factory=dict)
     overlay_points: dict[str, OverlayPointsEntity] = field(default_factory=dict)
     spheres: dict[str, SphereEntity] = field(default_factory=dict)
+    haptics: list[HapticEvent] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         for key, arm in self.arms.items():
@@ -456,7 +461,9 @@ class SceneState:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "timestamp": self.timestamp,
-            "arms": {arm_id: arm.to_dict() for arm_id, arm in self.arms.items()},
+            "arms": {
+                arm_id: arm.to_dict() for arm_id, arm in self.arms.items()
+            },
             "scenery": {
                 name: transform.to_dict()
                 for name, transform in self.scenery.items()
@@ -473,9 +480,12 @@ class SceneState:
                 sphere_id: sphere.to_dict()
                 for sphere_id, sphere in self.spheres.items()
             },
+            "haptics": [event.to_dict() for event in self.haptics],
         }
 
-    def to_dict_for_client(self, sent_static_mesh_asset_ids: set[str]) -> JSONDict:
+    def to_dict_for_client(
+        self, sent_static_mesh_asset_ids: set[str]
+    ) -> JSONDict:
         """Serialize like :meth:`to_dict`, but omit repeated ``asset_uri`` for static meshes.
 
         Updates ``sent_static_mesh_asset_ids`` in place: after a full send of a static
@@ -485,14 +495,20 @@ class SceneState:
         meshes_out: dict[str, JSONDict] = {}
         for mesh_id, mesh in self.meshes.items():
             if mesh.static_asset and mesh_id in sent_static_mesh_asset_ids:
-                meshes_out[mesh_id] = mesh.to_client_dict(include_asset_uri=False)
+                meshes_out[mesh_id] = mesh.to_client_dict(
+                    include_asset_uri=False
+                )
             else:
-                meshes_out[mesh_id] = mesh.to_client_dict(include_asset_uri=True)
+                meshes_out[mesh_id] = mesh.to_client_dict(
+                    include_asset_uri=True
+                )
                 if mesh.static_asset:
                     sent_static_mesh_asset_ids.add(mesh_id)
         return {
             "timestamp": self.timestamp,
-            "arms": {arm_id: arm.to_dict() for arm_id, arm in self.arms.items()},
+            "arms": {
+                arm_id: arm.to_dict() for arm_id, arm in self.arms.items()
+            },
             "scenery": {
                 name: transform.to_dict()
                 for name, transform in self.scenery.items()
@@ -507,6 +523,7 @@ class SceneState:
                 sphere_id: sphere.to_dict()
                 for sphere_id, sphere in self.spheres.items()
             },
+            "haptics": [event.to_dict() for event in self.haptics],
         }
 
     @classmethod
@@ -532,10 +549,16 @@ class SceneState:
             },
             overlay_points={
                 overlay_id: OverlayPointsEntity.from_dict(overlay_data)
-                for overlay_id, overlay_data in data.get("overlay_points", {}).items()
+                for overlay_id, overlay_data in data.get(
+                    "overlay_points", {}
+                ).items()
             },
             spheres={
                 sphere_id: SphereEntity.from_dict(sphere_data)
                 for sphere_id, sphere_data in data.get("spheres", {}).items()
             },
+            haptics=[
+                HapticEvent.from_dict(event)
+                for event in data.get("haptics", [])
+            ],
         )
