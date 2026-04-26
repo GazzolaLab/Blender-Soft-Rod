@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import asyncio
 import base64
 import json
@@ -8,7 +10,6 @@ import sys
 import time
 from dataclasses import dataclass, field
 from itertools import count
-from typing import Any
 
 import click
 from loguru import logger
@@ -16,16 +17,14 @@ from websockets import WebSocketServerProtocol
 from websockets.server import serve
 
 from virtual_field.core.commands import (
+    ControllerDisconnectedError,
     MultiArmCommand,
     XRInputSample,
-    ControllerDisconnectedError,
 )
 from virtual_field.core.mapping import SessionArmControlMapper
 from virtual_field.core.state import MeshEntity, OverlayPointsEntity, SceneState
-from virtual_field.runtime.mode_registry import (
-    DEFAULT_CHARACTER_MODE,
-    SUPPORTED_CHARACTER_MODES,
-)
+from virtual_field.runtime.mode_registry import SUPPORTED_CHARACTER_MODES
+
 from .backends import MultiArmPassThroughBackend
 from .schema import make_message, validate_message
 from .teleop import TeleopService
@@ -38,7 +37,7 @@ class ClientSession:
     arm_ids: list[str]
     teleop: TeleopService | None
     role: str = "vr_client"
-    character_mode: str = DEFAULT_CHARACTER_MODE
+    character_mode: str | None = None
     requested_arm_count: int | None = None
     last_command: MultiArmCommand | None = None
     last_command_ts: float = 0.0
@@ -113,7 +112,9 @@ class VRWebSocketServer:
             lambda task: self._log_background_task_failure("publish loop", task)
         )
         self._simulate_task.add_done_callback(
-            lambda task: self._log_background_task_failure("simulation loop", task)
+            lambda task: self._log_background_task_failure(
+                "simulation loop", task
+            )
         )
         logger.debug("Server started. bound_port={}", self.port)
 
@@ -160,7 +161,9 @@ class VRWebSocketServer:
                 self.backend.remove_owner_meshes(session.user_id)
                 self.backend.remove_owner_overlay_points(session.user_id)
             self._client_user_map.pop(websocket, None)
-            logger.debug("Client disconnected. active_clients={}", len(self._clients))
+            logger.debug(
+                "Client disconnected. active_clients={}", len(self._clients)
+            )
 
     async def _handle_raw_message(
         self, websocket: WebSocketServerProtocol, message: str
@@ -177,7 +180,9 @@ class VRWebSocketServer:
 
             session = self._sessions.get(websocket)
             if session is None:
-                return [make_message("error", {"reason": "hello required first"})]
+                return [
+                    make_message("error", {"reason": "hello required first"})
+                ]
 
             if session.role == "publisher":
                 logger.debug(
@@ -185,7 +190,9 @@ class VRWebSocketServer:
                     message_type,
                     session.user_id,
                 )
-                return self._handle_publisher_message(session, message_type, body)
+                return self._handle_publisher_message(
+                    session, message_type, body
+                )
 
             if session.role == "spectator":
                 if message_type == "heartbeat":
@@ -194,7 +201,9 @@ class VRWebSocketServer:
                 return [
                     make_message(
                         "error",
-                        {"reason": f"{message_type} unsupported for spectator role"},
+                        {
+                            "reason": f"{message_type} unsupported for spectator role"
+                        },
                     )
                 ]
 
@@ -214,9 +223,11 @@ class VRWebSocketServer:
                     SessionArmControlMapper(
                         controlled_arm_ids=(
                             session.arm_ids[0],
-                            session.arm_ids[1]
-                            if len(session.arm_ids) > 1
-                            else session.arm_ids[0],
+                            (
+                                session.arm_ids[1]
+                                if len(session.arm_ids) > 1
+                                else session.arm_ids[0]
+                            ),
                         )
                     )
                 )
@@ -246,7 +257,9 @@ class VRWebSocketServer:
                 return []
 
             return [
-                make_message("error", {"reason": f"unsupported type: {message_type}"})
+                make_message(
+                    "error", {"reason": f"unsupported type: {message_type}"}
+                )
             ]
 
         except ControllerDisconnectedError:
@@ -325,12 +338,20 @@ class VRWebSocketServer:
             ]
 
         requested_user_id = str(body.get("user_id", "")).strip()
-        requested_mode = str(body.get("character_mode", DEFAULT_CHARACTER_MODE))
-        character_mode = (
-            requested_mode
-            if requested_mode in SUPPORTED_CHARACTER_MODES
-            else DEFAULT_CHARACTER_MODE
-        )
+        requested_mode = body.get("character_mode")
+        if (
+            not isinstance(requested_mode, str)
+            or requested_mode not in SUPPORTED_CHARACTER_MODES
+        ):
+            return [
+                make_message(
+                    "error",
+                    {
+                        "reason": "vr_client requires a backend-supported character_mode"
+                    },
+                )
+            ]
+        character_mode = requested_mode
         requested_arm_count_raw = body.get("requested_arm_count")
         try:
             requested_arm_count = (
@@ -435,7 +456,9 @@ class VRWebSocketServer:
                 return [
                     make_message(
                         "error",
-                        {"reason": "add_mesh requires mesh_id and mesh_data_b64"},
+                        {
+                            "reason": "add_mesh requires mesh_id and mesh_data_b64"
+                        },
                     )
                 ]
 
@@ -448,14 +471,18 @@ class VRWebSocketServer:
                 owner_id=session.user_id,
                 asset_uri=asset_uri,
                 translation=list(body.get("translation", [0.0, 0.0, 0.0])),
-                rotation_xyzw=list(body.get("rotation_xyzw", [0.0, 0.0, 0.0, 1.0])),
+                rotation_xyzw=list(
+                    body.get("rotation_xyzw", [0.0, 0.0, 0.0, 1.0])
+                ),
                 scale=list(body.get("scale", [1.0, 1.0, 1.0])),
                 visible=bool(body.get("visible", True)),
                 static_asset=bool(body.get("static_asset", False)),
             )
             self.backend.add_or_update_mesh(mesh)
             logger.debug(
-                "Mesh added/updated owner_id={} mesh_id={}", session.user_id, mesh_id
+                "Mesh added/updated owner_id={} mesh_id={}",
+                session.user_id,
+                mesh_id,
             )
             return [
                 make_message(
@@ -501,7 +528,9 @@ class VRWebSocketServer:
                     list(body["translation"]) if "translation" in body else None
                 ),
                 rotation_xyzw=(
-                    list(body["rotation_xyzw"]) if "rotation_xyzw" in body else None
+                    list(body["rotation_xyzw"])
+                    if "rotation_xyzw" in body
+                    else None
                 ),
                 scale=list(body["scale"]) if "scale" in body else None,
                 visible=(bool(body["visible"]) if "visible" in body else None),
@@ -510,7 +539,9 @@ class VRWebSocketServer:
                 return [
                     make_message(
                         "error",
-                        {"reason": "mesh not found or ownership mismatch for update"},
+                        {
+                            "reason": "mesh not found or ownership mismatch for update"
+                        },
                     )
                 ]
             return [
@@ -582,7 +613,9 @@ class VRWebSocketServer:
 
         if message_type == "remove_overlay_points":
             overlay_id = str(body.get("overlay_id", "")).strip()
-            self.backend.remove_overlay_points(overlay_id, owner_id=session.user_id)
+            self.backend.remove_overlay_points(
+                overlay_id, owner_id=session.user_id
+            )
             logger.debug(
                 "Overlay points removed owner_id={} overlay_id={}",
                 session.user_id,
@@ -615,7 +648,9 @@ class VRWebSocketServer:
         return [
             make_message(
                 "error",
-                {"reason": f"unsupported publisher message type: {message_type}"},
+                {
+                    "reason": f"unsupported publisher message type: {message_type}"
+                },
             )
         ]
 
@@ -631,7 +666,10 @@ class VRWebSocketServer:
                 vr_client_count += 1
                 if session.last_command is None:
                     continue
-                if time.monotonic() - session.last_command_ts > self._heartbeat_timeout:
+                if (
+                    time.monotonic() - session.last_command_ts
+                    > self._heartbeat_timeout
+                ):
                     session.last_command = None
                     continue
                 if command is None:
@@ -662,7 +700,7 @@ class VRWebSocketServer:
             return
         try:
             exc = task.exception()
-        except Exception:
+        except Exception:  # pragma: no cover - defensive task-inspection fallback
             logger.exception("Failed to inspect {}", task_name)
             return
         if exc is not None:
@@ -674,7 +712,7 @@ class VRWebSocketServer:
         for client in tuple(self._clients):
             try:
                 await client.send(encoded)
-            except Exception:
+            except Exception:  # pragma: no cover - network transport failure path
                 stale.append(client)
         for client in stale:
             self._clients.discard(client)
@@ -689,12 +727,14 @@ class VRWebSocketServer:
             if session is None:
                 payload = state.to_dict()
             else:
-                payload = state.to_dict_for_client(session.sent_static_mesh_asset_ids)
+                payload = state.to_dict_for_client(
+                    session.sent_static_mesh_asset_ids
+                )
             message = make_message("scene_state", payload)
             encoded = json.dumps(message)
             try:
                 await client.send(encoded)
-            except Exception:
+            except Exception:  # pragma: no cover - network transport failure path
                 stale.append(client)
         for client in stale:
             self._clients.discard(client)
@@ -702,7 +742,9 @@ class VRWebSocketServer:
             logger.debug("Dropped stale clients count={}", len(stale))
 
 
-async def run_server(host: str, port: int, ssl_context: ssl.SSLContext | None) -> None:
+async def run_server(
+    host: str, port: int, ssl_context: ssl.SSLContext | None
+) -> None:
     server = VRWebSocketServer(host=host, port=port, ssl_context=ssl_context)
     await server.start()
 
@@ -718,7 +760,7 @@ async def run_server(host: str, port: int, ssl_context: ssl.SSLContext | None) -
     try:
         while True:
             await asyncio.sleep(3600)
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - long-running server loop guard
         logger.error("Exception in run_server: {}", exc)
     finally:
         logger.info("Stopping server")
@@ -747,7 +789,9 @@ def main(
 
     # Validate and configure optional TLS.
     if (ssl_cert is None) != (ssl_key is None):
-        raise click.UsageError("--ssl-cert and --ssl-key must be provided together")
+        raise click.UsageError(
+            "--ssl-cert and --ssl-key must be provided together"
+        )
 
     ssl_context: ssl.SSLContext | None = None
     if ssl_cert is not None and ssl_key is not None:
