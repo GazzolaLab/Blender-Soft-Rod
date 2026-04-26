@@ -48,17 +48,23 @@ jobs:
           uv sync --group dev
       # Runs a single command using the runners shell
       - name: Run style checks
+        id: style_checks
+        continue-on-error: true
         run: |
           make check-codestyle
       - name: Run tests
         run: |
           make test_ci
-      - name: Typechecking
-        run: |
-          make mypy
       - name: Upload coverage to Codecov
+        if: ${{ always() }}
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Typechecking
+        run: |
+          make mypy
+      - name: Fail if style checks failed
+        if: ${{ steps.style_checks.outcome == 'failure' }}
+        run: exit 1
