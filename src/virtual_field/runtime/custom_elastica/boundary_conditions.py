@@ -43,6 +43,17 @@ def _reset_element_kinematics_and_strains(
     # kappa[:, index] = 0.0
 
 
+@njit(cache=True)  # type: ignore
+def _reset_shrunk_base_kinematics(
+    velocity: np.ndarray,
+    omega: np.ndarray,
+    index: int,
+) -> None:
+    """Clear storage-side motion at the newly hidden base after shrinking."""
+    velocity[:, index] = 0.0
+    omega[:, index] = 0.0
+
+
 class _GrowingCRBoundaryConditions(NoForces):
     """PD turret + discrete growth for a :class:`GrowingCR` rod (active suffix base).
 
@@ -126,6 +137,11 @@ class _GrowingCRBoundaryConditions(NoForces):
         if tm.time() - self.last_triggered > 0.3:
             if self.trigger_decrease_elements():
                 if ce > mn:
+                    _reset_shrunk_base_kinematics(
+                        system.velocity_collection,
+                        system.omega_collection,
+                        index,
+                    )
                     ce -= 1
                     system.set_current_elements(ce)
                     index = te - ce

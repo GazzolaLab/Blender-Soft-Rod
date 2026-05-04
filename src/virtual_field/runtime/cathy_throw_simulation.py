@@ -84,8 +84,8 @@ class CathyThrowSimulation(DualArmSimulationBase):
 
         sphere_box = np.array(
             [
-                [-0.65, 0.55, -1.05],
-                [0.65, 1.55, 0.05],
+                [-0.55, 0.65, -0.75],
+                [0.55, 1.55, 0.05],
             ],
             dtype=np.float64,
         )
@@ -95,9 +95,7 @@ class CathyThrowSimulation(DualArmSimulationBase):
         n_sphere = 1
         self.spheres = []
         for _ in range(n_sphere):
-            sphere = ea.Sphere(
-                sphere_center.copy(), sphere_radius, sphere_density
-            )
+            sphere = ea.Sphere(sphere_center.copy(), sphere_radius, sphere_density)
             self.spheres.append(sphere)
             self.simulator.append(sphere)
             self.simulator.add_forcing_to(sphere).using(
@@ -121,35 +119,27 @@ class CathyThrowSimulation(DualArmSimulationBase):
                 SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
-                trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[
-                    arm_id
-                ],
+                trigger=lambda arm_id=self.arm_ids[0]: self._sucker_active[arm_id],
             )
             self.simulator.detect_contact_between(self.right_rod, sphere).using(
                 SuckerActuationToSphere,
                 k=0.5e1,
                 nu=0.0,
-                trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[
-                    arm_id
-                ],
+                trigger=lambda arm_id=self.arm_ids[1]: self._sucker_active[arm_id],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
-                target=lambda arm_id=self.arm_ids[
-                    0
-                ]: self.left_rod.position_collection[:, 0].copy(),
-                is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[
-                    arm_id
-                ],
+                target=lambda arm_id=self.arm_ids[0]: self.left_rod.position_collection[
+                    :, 0
+                ].copy(),
+                is_active=lambda arm_id=self.arm_ids[0]: self._base_pull_active[arm_id],
             )
             self.simulator.add_forcing_to(sphere).using(
                 _PullSphereToPoint,
                 target=lambda arm_id=self.arm_ids[
                     1
                 ]: self.right_rod.position_collection[:, 0].copy(),
-                is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[
-                    arm_id
-                ],
+                is_active=lambda arm_id=self.arm_ids[1]: self._base_pull_active[arm_id],
             )
 
         p_linear = 200.0
@@ -185,15 +175,15 @@ class CathyThrowSimulation(DualArmSimulationBase):
             constrained_director_idx=(0,),
         )
 
-        self.simulator.detect_contact_between(
-            self.left_rod, self.left_rod
-        ).using(ea.RodSelfContact, k=1e4, nu=3)
-        self.simulator.detect_contact_between(
-            self.right_rod, self.right_rod
-        ).using(ea.RodSelfContact, k=1e4, nu=3)
-        self.simulator.detect_contact_between(
-            self.left_rod, self.right_rod
-        ).using(ea.RodRodContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(self.left_rod, self.left_rod).using(
+            ea.RodSelfContact, k=1e4, nu=3
+        )
+        self.simulator.detect_contact_between(self.right_rod, self.right_rod).using(
+            ea.RodSelfContact, k=1e4, nu=3
+        )
+        self.simulator.detect_contact_between(self.left_rod, self.right_rod).using(
+            ea.RodRodContact, k=1e4, nu=3
+        )
 
         damping_constant = 5.0
         self.simulator.dampen(self.left_rod).using(
@@ -247,9 +237,7 @@ class CathyThrowSimulation(DualArmSimulationBase):
     def sphere_entities(self) -> list[SphereEntity]:
         spheres: list[SphereEntity] = []
         for idx, sphere in enumerate(self.spheres):
-            position = np.asarray(
-                sphere.position_collection[..., 0], dtype=np.float64
-            )
+            position = np.asarray(sphere.position_collection[..., 0], dtype=np.float64)
             spheres.append(
                 SphereEntity(
                     sphere_id=f"{self.user_id}_cathy_throw_sphere_{idx}",

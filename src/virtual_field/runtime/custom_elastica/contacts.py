@@ -23,6 +23,9 @@ class SuckerActuationToSphere(NoContact):
     `element_center + director[0] * element_radius`.
     When the trigger is active, the sphere is attracted toward each sucker with a
     magnitude that decays rapidly with signed distance from the sphere surface.
+
+    ``sucker_index`` selects which rod elements participate: ``None`` uses every
+    element; a list of integers restricts actuation to those element indices only.
     """
 
     def __init__(
@@ -34,6 +37,7 @@ class SuckerActuationToSphere(NoContact):
         capture_distance: float = 0.05,
         min_distance: float = 1.0e-6,
         alignment_torque_scale: float = 10,
+        sucker_index: list[int] | None = None,
     ) -> None:
         super().__init__()
         self.k = float(k)
@@ -42,8 +46,11 @@ class SuckerActuationToSphere(NoContact):
         self.min_distance = float(min_distance)
         self.alignment_torque_scale = float(alignment_torque_scale)
         self.trigger = trigger
-        self.trigger_active = (
-            bool(trigger) if isinstance(trigger, bool) else False
+        self.trigger_active = bool(trigger) if isinstance(trigger, bool) else False
+        self._sucker_indices: np.ndarray | None = (
+            np.unique(np.asarray(sucker_index, dtype=np.int64))
+            if sucker_index is not None
+            else None
         )
 
     @property
@@ -89,6 +96,10 @@ class SuckerActuationToSphere(NoContact):
         rod_directors = system_one.director_collection
         rod_radii = system_one.radius
 
+        use_subset = self._sucker_indices is not None
+        sucker_indices_arr = (
+            self._sucker_indices if use_subset else np.empty(0, dtype=np.int64)
+        )
         _compute_sucker_sphere_force(
             rod_positions,
             rod_element_velocities,
@@ -102,6 +113,8 @@ class SuckerActuationToSphere(NoContact):
             self.capture_distance,
             self.min_distance,
             self.alignment_torque_scale,
+            use_subset,
+            sucker_indices_arr,
             system_two.director_collection,
             system_one.external_forces,
             system_one.external_torques,
@@ -169,6 +182,8 @@ def _compute_sucker_sphere_force(
     capture_distance: float,
     min_distance: float,
     alignment_torque_scale: float,
+    use_sucker_subset: bool,
+    sucker_element_indices: np.ndarray,
     sphere_directors: np.ndarray,
     rod_external_forces: np.ndarray,
     rod_external_torques: np.ndarray,
@@ -179,7 +194,19 @@ def _compute_sucker_sphere_force(
     sphere_torque_world = np.zeros(3, dtype=np.float64)
     element_count = rod_radii.shape[0]
 
-    for idx in range(element_count):
+    if use_sucker_subset:
+        loop_count = sucker_element_indices.shape[0]
+    else:
+        loop_count = element_count
+
+    for iter_i in range(loop_count):
+        if use_sucker_subset:
+            idx = int(sucker_element_indices[iter_i])
+            if idx < 0 or idx >= element_count:
+                continue
+        else:
+            idx = iter_i
+
         element_center = np.empty(3, dtype=np.float64)
         sucker_position = np.empty(3, dtype=np.float64)
         for axis in range(3):
@@ -187,8 +214,7 @@ def _compute_sucker_sphere_force(
                 rod_positions[axis, idx + 1] + rod_positions[axis, idx]
             )
             sucker_position[axis] = (
-                element_center[axis]
-                + rod_directors[0, axis, idx] * rod_radii[idx]
+                element_center[axis] + rod_directors[0, axis, idx] * rod_radii[idx]
             )
 
         center_to_sucker = sucker_position - sphere_center
@@ -199,9 +225,7 @@ def _compute_sucker_sphere_force(
         surface_normal = center_to_sucker / center_distance
         sphere_surface_point = sphere_center + sphere_radius * surface_normal
         attachment_vector = sucker_position - sphere_surface_point
-        attachment_distance = np.sqrt(
-            np.dot(attachment_vector, attachment_vector)
-        )
+        attachment_distance = np.sqrt(np.dot(attachment_vector, attachment_vector))
         if attachment_distance <= min_distance:
             attachment_direction = surface_normal
         else:
@@ -220,9 +244,7 @@ def _compute_sucker_sphere_force(
             distance_scale = min_distance
 
         normalized_distance = positive_distance / distance_scale
-        distance_weight = np.exp(
-            -(normalized_distance * normalized_distance) * 9.0
-        )
+        distance_weight = np.exp(-(normalized_distance * normalized_distance) * 9.0)
 
         relative_velocity = rod_element_velocities[:, idx] - sphere_velocity
         closing_speed = np.dot(relative_velocity, attachment_direction)
@@ -257,9 +279,7 @@ def _compute_sucker_sphere_force(
                 center_to_contact[0] * desired_contact_direction[1]
                 - center_to_contact[1] * desired_contact_direction[0]
             )
-            alignment_torque_world = (
-                alignment_torque_scale * magnitude * torque_axis
-            )
+            alignment_torque_world = alignment_torque_scale * magnitude * torque_axis
             sphere_torque_world += alignment_torque_world
 
         lever_arm = sucker_position - element_center
@@ -294,3 +314,143 @@ def _compute_sucker_sphere_force(
             + sphere_directors[axis, 2, 0] * sphere_torque_world[2]
         )
     sphere_external_torques[:, 0] += sphere_local_torque
+
+
+class TipSuctionToSphere(NoContact):
+    """Pull the sphere toward a ghost point ``tip + tangent × sphere_radius``.
+
+    ``tip`` is the last rod node; ``tangent`` is local d3 (``directors[2]``) on the
+    distal element. Stiffness uses the same Gaussian-in-distance envelope as before;
+    damping uses motion of the tip **node** vs the sphere along the bond direction.
+    """
+
+    def __init__(
+        self,
+        k: float,
+        nu: float,
+        *,
+        trigger: bool | Callable[[], bool] = False,
+        capture_distance: float = 0.15,
+        min_distance: float = 1.0e-6,
+        alignment_torque_scale: float = 1,
+    ) -> None:
+        super().__init__()
+        self.k = float(k)
+        self.nu = float(nu)
+        self.capture_distance = float(capture_distance)
+        self.min_distance = float(min_distance)
+        self.trigger = trigger
+        self.trigger_active = bool(trigger) if isinstance(trigger, bool) else False
+        self.alignment_torque_scale = float(alignment_torque_scale)
+
+    @property
+    def _allowed_system_two(self) -> list[Type]:
+        return [Sphere]
+
+    def set_trigger(self, active: bool) -> None:
+        self.trigger_active = bool(active)
+
+    def is_triggered(self) -> bool:
+        if callable(self.trigger):
+            return bool(self.trigger())
+        return self.trigger_active
+
+    def apply_contact(
+        self,
+        system_one: RodType,
+        system_two: Sphere,
+        time: np.float64 = np.float64(0.0),
+    ) -> None:
+        if not self.is_triggered():
+            return
+
+        if _prune_using_aabbs_rod_sphere_impl(
+            system_one.position_collection,
+            system_one.radius,
+            system_one.lengths,
+            system_two.position_collection[..., 0],
+            system_two.radius,
+            self.capture_distance,
+        ):
+            return
+
+        sphere_center = system_two.position_collection[..., 0]
+        sphere_velocity = system_two.velocity_collection[..., 0]
+        sphere_radius = system_two.radius
+
+        rod = system_one
+        rod_positions = rod.position_collection
+        rod_velocity_tip = rod.velocity_collection[:, -1]
+
+        _compute_tip_suction_sphere_force(
+            rod.n_elems,
+            rod_positions,
+            rod_velocity_tip,
+            rod.director_collection,
+            sphere_center,
+            sphere_velocity,
+            sphere_radius,
+            self.k,
+            self.nu,
+            self.capture_distance,
+            self.min_distance,
+            rod.external_forces,
+            rod.external_torques,
+            system_two.external_forces,
+            self.alignment_torque_scale,
+        )
+
+
+@njit(cache=True)
+def _compute_tip_suction_sphere_force(
+    n_elems: int,
+    rod_positions: np.ndarray,
+    rod_velocity_tip: np.ndarray,
+    rod_directors: np.ndarray,
+    sphere_center: np.ndarray,
+    sphere_velocity: np.ndarray,
+    sphere_radius: float,
+    stiffness: float,
+    damping: float,
+    capture_distance: float,
+    min_distance: float,
+    rod_external_forces: np.ndarray,
+    rod_external_torques: np.ndarray,
+    sphere_external_forces: np.ndarray,
+    torque_scale_factor: float,
+) -> None:
+    tip = rod_positions[:, -1]
+    tangent = rod_directors[2, :, -1]
+
+    ghost = tip + tangent * sphere_radius
+
+    element_center = 0.5 * (rod_positions[:, -1] + rod_positions[:, -2])
+
+    to_ghost = ghost - sphere_center
+    dist = np.sqrt(np.dot(to_ghost, to_ghost))
+    if dist <= min_distance:
+        return
+
+    bond_dir = to_ghost / dist
+
+    distance_scale = capture_distance
+    if distance_scale < min_distance:
+        distance_scale = min_distance
+    normalized_distance = dist / distance_scale
+    distance_weight = np.exp(-(normalized_distance * normalized_distance) * 9.0)
+
+    relative_velocity = rod_velocity_tip - sphere_velocity
+    closing_speed = np.dot(relative_velocity, bond_dir)
+    magnitude = stiffness * distance_weight + damping * closing_speed
+    if magnitude <= 0.0:
+        return
+
+    pair_force = magnitude * bond_dir
+    sphere_external_forces[..., 0] += pair_force
+    reaction_force = -pair_force
+    rod_external_forces[:, -1] += reaction_force
+
+    lever_arm = ghost - element_center
+    reaction_torque_world = np.cross(lever_arm, reaction_force)
+    rod_local_torque = np.dot(rod_directors[:, :, -1], reaction_torque_world)
+    rod_external_torques[:, -1] += rod_local_torque * torque_scale_factor
