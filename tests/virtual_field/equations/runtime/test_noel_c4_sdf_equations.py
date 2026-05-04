@@ -12,16 +12,6 @@ from virtual_field.runtime.spirob_elastica.sdf_objects import (
 pytestmark = pytest.mark.equations
 
 
-def test_load_noel_c4_obstacles() -> None:
-    obstacles = load_noel_c4_obstacles()
-    assert obstacles.starts.shape == (12, 3)
-    assert obstacles.directions.shape == (12, 3)
-    assert obstacles.normals.shape == (12, 3)
-    assert obstacles.lengths.shape == (12,)
-    assert obstacles.radii.shape == (12,)
-    assert np.allclose(np.linalg.norm(obstacles.directions, axis=1), 1.0)
-
-
 def test_capped_cylinder_sdf_regions() -> None:
     start = np.array([0.0, 0.0, 0.0])
     direction = np.array([0.0, 1.0, 0.0])

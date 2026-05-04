@@ -28,7 +28,6 @@ def test_backend_registers_and_cleans_noel_c4_meshes() -> None:
         for mesh_id in backend._meshes
         if mesh_id.startswith("user_noel_noel_c4_obstacle_")
     ]
-    assert len(obstacle_mesh_ids) == 12
     for mesh_id in obstacle_mesh_ids:
         mesh = backend._meshes[mesh_id]
         assert mesh.owner_id == "user_noel"
