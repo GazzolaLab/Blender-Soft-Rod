@@ -23,9 +23,7 @@ class NoelObstacleSet:
 
 def load_noel_c4_obstacles() -> NoelObstacleSet:
     obstacle_path = (
-        Path(__file__).resolve().parents[3]
-        / "externals"
-        / "noel-c4-obstacles-aug.npz"
+        Path(__file__).resolve().parents[3] / "externals" / "noel-c4-obstacles-aug.npz"
         # / "noel-c4-obstacles.npz"
     )
     data = np.load(obstacle_path, allow_pickle=True)
@@ -107,7 +105,7 @@ def load_noel_c4_obstacles() -> NoelObstacleSet:
     ends = starts + directions * lengths[:, None]
     center = np.vstack([starts, ends]).mean(axis=0)
     starts[:, 0] -= 0.10
-    starts[:, 1] += 1.0 - center[1] + 0.25
+    starts[:, 1] += 1.0 - center[1] + 0.15
     starts[:, 2] -= 0.75
 
     return NoelObstacleSet(
@@ -123,9 +121,7 @@ def load_noel_c4_obstacles() -> NoelObstacleSet:
 class NoelC4Simulation(DualArmSimulationBase):
     tip_haptic_max_penetration: float = 0.01
     _obstacles: NoelObstacleSet = field(init=False)
-    _tip_penetration_by_arm: dict[str, float] = field(
-        init=False, default_factory=dict
-    )
+    _tip_penetration_by_arm: dict[str, float] = field(init=False, default_factory=dict)
     _haptic_events: list[HapticEvent] = field(init=False, default_factory=list)
 
     def build_simulation(self) -> None:
@@ -138,8 +134,8 @@ class NoelC4Simulation(DualArmSimulationBase):
         # from virtual_field.runtime.spirob_elastica.constraints import (
         #     _SpirobBendConstraint,
         # )
-        from virtual_field.runtime.spirob_elastica.sdf_objects import (
-            SDFObstacleCylinders,
+        from virtual_field.runtime.spirob_elastica.sdf_objects_hash import (
+            SDFObstacleCylindersHash,
         )
 
         self._obstacles = load_noel_c4_obstacles()
@@ -193,7 +189,7 @@ class NoelC4Simulation(DualArmSimulationBase):
         self.simulator.append(self.left_rod)
         self.simulator.append(self.right_rod)
 
-        p_linear = 200.0
+        p_linear = 500.0
         p_angular = 5.0
 
         self.simulator.add_forcing_to(self.left_rod).using(
@@ -226,12 +222,15 @@ class NoelC4Simulation(DualArmSimulationBase):
             constrained_director_idx=(0,),
         )
 
-        self.simulator.detect_contact_between(
-            self.left_rod, self.right_rod
-        ).using(ea.RodRodContact, k=1e4, nu=3)
-        self.simulator.detect_contact_between(
-            self.right_rod, self.right_rod
-        ).using(ea.RodSelfContact, k=1e4, nu=3)
+        self.simulator.detect_contact_between(self.left_rod, self.right_rod).using(
+            ea.RodRodContact, k=1e4, nu=3
+        )
+        self.simulator.detect_contact_between(self.right_rod, self.right_rod).using(
+            ea.RodSelfContact, k=1e4, nu=3
+        )
+        self.simulator.detect_contact_between(self.left_rod, self.left_rod).using(
+            ea.RodSelfContact, k=1e4, nu=3
+        )
         # self.simulator.add_forcing_to(self.left_rod).using(
         #     _SpirobBendConstraint,
         #     kt=0,
@@ -239,11 +238,9 @@ class NoelC4Simulation(DualArmSimulationBase):
         # )
 
         for rod in (self.left_rod, self.right_rod):
-            arm_id = (
-                self.arm_ids[0] if rod is self.left_rod else self.arm_ids[1]
-            )
+            arm_id = self.arm_ids[0] if rod is self.left_rod else self.arm_ids[1]
             self.simulator.add_forcing_to(rod).using(
-                SDFObstacleCylinders,
+                SDFObstacleCylindersHash,
                 starts=self._obstacles.starts,
                 directions=self._obstacles.directions,
                 lengths=self._obstacles.lengths,
@@ -293,7 +290,7 @@ class NoelC4Simulation(DualArmSimulationBase):
             arm_id = event.arm_id
             penetration = self._tip_penetration_by_arm.get(arm_id, 0.0)
             intensity = penetration / self.tip_haptic_max_penetration
-            intensity = max(0.0, min(1.0, intensity))
+            intensity = max(0.0, min(0.5, intensity))  # cap at 50%
             event.active = intensity > 0.0
             event.intensity = intensity
         return self._haptic_events

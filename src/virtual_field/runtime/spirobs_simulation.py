@@ -36,9 +36,9 @@ class SpirobsSimulation(DualArmSimulationBase):
         from virtual_field.runtime.custom_elastica.control import (
             TargetPoseProportionalControl,
         )
-        from virtual_field.runtime.spirob_elastica.constraints import (
-            _SpirobBendConstraint,
-        )
+        # from virtual_field.runtime.spirob_elastica.constraints import (
+        #     _SpirobBendConstraint,
+        # )
         from virtual_field.runtime.spirob_elastica.sdf_objects import SDFTorus
 
         class _Simulator(
@@ -129,11 +129,11 @@ class SpirobsSimulation(DualArmSimulationBase):
         self.simulator.detect_contact_between(
             self.right_rod, self.right_rod
         ).using(ea.RodSelfContact, k=1e4, nu=3)
-        self.simulator.add_forcing_to(self.left_rod).using(
-            _SpirobBendConstraint,
-            kt=0,
-            allowed_angle_in_deg=30,
-        )
+        # self.simulator.add_forcing_to(self.left_rod).using(
+        #     _SpirobBendConstraint,
+        #     kt=0,
+        #     allowed_angle_in_deg=30,
+        # )
         # self.simulator.add_forcing_to(self.right_rod).using(
         #     _SpirobBendConstraint,
         #     kt=2,

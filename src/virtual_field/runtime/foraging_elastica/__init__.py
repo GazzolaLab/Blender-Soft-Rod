@@ -7,7 +7,7 @@ from .crawling import (
     idle_policy_like,
     rotate_policy_by_angle,
 )
-from .forcing import SuckerActuation, YSurfaceBallwGravity
+from .forcing import SuckerActuation, YSurfaceBallwGravity, YSurfaceRodwGravity
 
 __all__ = [
     "BaseSphereTether",
@@ -17,6 +17,7 @@ __all__ = [
     "SegmentExtensionActuation",
     "SuckerActuation",
     "YSurfaceBallwGravity",
+    "YSurfaceRodwGravity",
     "current_activation",
     "idle_policy_like",
     "rotate_policy_by_angle",

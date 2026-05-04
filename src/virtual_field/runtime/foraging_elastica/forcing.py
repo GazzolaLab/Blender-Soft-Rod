@@ -324,3 +324,112 @@ class YSurfaceBallwGravity(NoForces):
             s = -f_t / speed_t
             sphere_external_force[0, 0] += s * tx
             sphere_external_force[2, 0] += s * tz
+
+
+class YSurfaceRodwGravity(NoForces):
+    """Cosserat rod on a horizontal floor with gravity and dry friction.
+
+    Applies gravity in ``-Y`` at rod nodes. Contact uses the existing
+    rod-plane normal response against ``y = plane_origin`` with fixed ``+Y``
+    surface normal. A local Coulomb-style tangential friction term is applied
+    on contacting elements and distributed to adjacent nodes.
+    """
+
+    def __init__(
+        self,
+        k_c: float,
+        nu_c: float,
+        *,
+        mu: float = 5.0,
+        plane_origin: float = 0.0,
+    ) -> None:
+        super().__init__()
+        self.k_c = float(k_c)
+        self.nu_c = float(nu_c)
+        self.mu = float(mu)
+        self.plane_origin = float(plane_origin)
+        self._plane_origin = np.array(
+            [[0.0], [self.plane_origin], [0.0]], dtype=np.float64
+        )
+        self._plane_normal = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        self._surface_tol = 1e-4
+
+    def apply_forces(
+        self,
+        system: RodType,
+        time: np.float64 = np.float64(0.0),
+    ) -> None:
+        _apply_uniform_gravity_to_nodes(system.external_forces, system.mass, 9.81)
+        _calculate_contact_forces_rod_plane(
+            self._plane_origin,
+            self._plane_normal,
+            self._surface_tol,
+            self.k_c,
+            self.nu_c,
+            system.radius,
+            system.mass,
+            system.position_collection,
+            system.velocity_collection,
+            system.internal_forces,
+            system.external_forces,
+        )
+        _apply_rod_plane_coulomb_friction(
+            system.position_collection,
+            system.velocity_collection,
+            system.radius,
+            system.external_forces,
+            self.plane_origin,
+            self.k_c,
+            self.nu_c,
+            self.mu,
+        )
+
+
+@njit(cache=True)
+def _apply_uniform_gravity_to_nodes(
+    external_forces: np.ndarray,
+    nodal_mass: np.ndarray,
+    gravity_mag: float,
+) -> None:
+    for i in range(nodal_mass.shape[0]):
+        external_forces[1, i] -= gravity_mag * nodal_mass[i]
+
+
+@njit(cache=True, fastmath=True)
+def _apply_rod_plane_coulomb_friction(
+    rod_positions: np.ndarray,
+    rod_velocities: np.ndarray,
+    rod_radii: np.ndarray,
+    rod_external_forces: np.ndarray,
+    plane_origin: float,
+    k_c: float,
+    nu_c: float,
+    mu: float,
+) -> None:
+    element_count = rod_radii.shape[0]
+    for idx in range(element_count):
+        center_y = 0.5 * (rod_positions[1, idx] + rod_positions[1, idx + 1])
+        penetration = rod_radii[idx] - (center_y - plane_origin)
+        if penetration <= 0.0:
+            continue
+
+        vy = 0.5 * (rod_velocities[1, idx] + rod_velocities[1, idx + 1])
+        normal_force = k_c * penetration ** (3.0 / 2.0) - nu_c * vy
+        if normal_force <= 0.0:
+            continue
+
+        vx = 0.5 * (rod_velocities[0, idx] + rod_velocities[0, idx + 1])
+        vz = 0.5 * (rod_velocities[2, idx] + rod_velocities[2, idx + 1])
+        speed_t_sq = vx * vx + vz * vz
+        if speed_t_sq <= 1.0e-12:
+            continue
+
+        speed_t = np.sqrt(speed_t_sq)
+        scale = -(mu * normal_force) / speed_t
+        fx = scale * vx
+        fz = scale * vz
+
+        rod_external_forces[0, idx] += 0.5 * fx
+        rod_external_forces[2, idx] += 0.5 * fz
+        rod_external_forces[0, idx + 1] += 0.5 * fx
+        rod_external_forces[2, idx + 1] += 0.5 * fz
