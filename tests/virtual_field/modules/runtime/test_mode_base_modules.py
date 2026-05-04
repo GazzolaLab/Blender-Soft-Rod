@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from virtual_field.runtime.mode_base import OctoArmSimulationBase
+from virtual_field.runtime.two_gcr_simulation import TwoGCRSimulation
 
 pytestmark = pytest.mark.modules
 
@@ -45,6 +46,41 @@ class _DummySimulation(OctoArmSimulationBase):
 
     def handle_commands(self, command) -> None:  # noqa: ANN001
         _ = command
+
+
+def _make_dummy_rod(base: list[float]) -> object:
+    return type(
+        "DummyRod",
+        (),
+        {
+            "position_collection": np.array(
+                [
+                    [base[0], base[0], base[0]],
+                    [base[1], base[1], base[1]],
+                    [base[2], base[2] - 0.2, base[2] - 0.4],
+                ],
+                dtype=np.float64,
+            ),
+            "radius": np.array([0.03, 0.02], dtype=np.float64),
+            "lengths": np.array([0.2, 0.2], dtype=np.float64),
+            "director_collection": np.repeat(
+                np.eye(3, dtype=np.float64)[..., None], 2, axis=2
+            ),
+        },
+    )()
+
+
+class _TwoGCRInitRegression(TwoGCRSimulation):
+    def build_simulation(self) -> None:
+        self.wave_event_before_post_setup = self._grip_wave_event.get(
+            self.arm_ids[0], 0
+        )
+        self.simulator = object()
+        self.timestepper = _DummyStepper()
+        self.rods = {
+            arm_id: _make_dummy_rod(base)
+            for arm_id, base in self.arm_bases.items()
+        }
 
 
 def _base_position() -> tuple[float, float, float]:
@@ -117,3 +153,16 @@ def test_arm_states_use_active_rod_slices_when_available() -> None:
     assert state.radii == [0.02]
     assert state.element_lengths == [0.2]
     assert len(state.directors) == 1
+
+
+def test_two_gcr_control_state_exists_during_build_simulation() -> None:
+    simulation = _TwoGCRInitRegression(
+        user_id="user_dummy",
+        arm_ids=("left_arm", "right_arm"),
+        base_left=[-0.15, 0.2, 0.15],
+        base_right=[0.15, 0.2, 0.15],
+        dt_internal=0.1,
+    )
+
+    assert simulation.wave_event_before_post_setup == 0
+    assert simulation._grip_wave_event == {"left_arm": 0, "right_arm": 0}

@@ -199,6 +199,13 @@ def test_server_accepts_noel_c4_mode() -> None:
     assert len(hello_ack["payload"]["arm_ids"]) == 2
 
 
+def test_backend_step_noel_c4_does_not_raise() -> None:
+    backend = MultiArmPassThroughBackend()
+    backend.register_user("user_noel_step", character_mode="noel-c4")
+    scene_state = backend.step(1.0 / 120.0, command=None)
+    assert len(scene_state.arms) == 2
+
+
 def test_server_accepts_cathy_foraging_mode() -> None:
     server = VRWebSocketServer(
         ssl_context=None,  # type: ignore[arg-type]

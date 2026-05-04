@@ -9,6 +9,7 @@ from virtual_field.runtime.custom_elastica.forcing import (
     _pull_sphere_to_point_force,
     _PullSphereToPoint,
     _SphereBoxed,
+    _TravelingContractingWave,
 )
 
 pytestmark = pytest.mark.equations
@@ -207,6 +208,40 @@ def test_sucker_actuation_force_decays_with_distance() -> None:
     )
 
 
+def test_sucker_actuation_respects_sucker_index() -> None:
+    rod = DummyRod()
+    sphere = DummySphere(
+        position=[0.03, 0.0, -0.05],
+        velocity=[0.0, 0.0, 0.0],
+        radius=0.01,
+        mass=1.0,
+    )
+    kwargs = dict(k=10.0, nu=0.0, trigger=True, capture_distance=0.2)
+    contact_all = SuckerActuationToSphere(**kwargs)
+    contact_subset = SuckerActuationToSphere(**kwargs, sucker_index=[0])
+    contact_none = SuckerActuationToSphere(**kwargs, sucker_index=[])
+
+    def clear_forces() -> None:
+        rod.external_forces[:] = 0.0
+        rod.external_torques[:] = 0.0
+        sphere.external_forces[:] = 0.0
+        sphere.external_torques[:] = 0.0
+
+    contact_all.apply_contact(rod, sphere)
+    f_all = sphere.external_forces.copy()
+    clear_forces()
+
+    contact_subset.apply_contact(rod, sphere)
+    f_subset = sphere.external_forces.copy()
+    clear_forces()
+
+    contact_none.apply_contact(rod, sphere)
+    f_empty = sphere.external_forces.copy()
+
+    assert np.allclose(f_all, f_subset)
+    assert np.allclose(f_empty, 0.0)
+
+
 def test_sucker_actuation_adds_alignment_torque() -> None:
     rod = DummyRod()
     sphere = DummySphere(
@@ -228,3 +263,51 @@ def test_sucker_actuation_adds_alignment_torque() -> None:
     assert np.linalg.norm(sphere.external_forces[:, 0]) > 0.0
     assert np.linalg.norm(sphere.external_torques[:, 0]) > 0.0
     assert np.linalg.norm(rod.external_torques[:, 0]) > 0.0
+
+
+def test_traveling_contracting_wave_also_modulates_stiffness() -> None:
+    class DummyWaveRod:
+        def __init__(self) -> None:
+            self.total_elements = 6
+            self.current_elements = 4
+            self.rest_sigma = np.zeros((3, 6), dtype=np.float64)
+            self.shear_matrix = np.zeros((3, 3, 6), dtype=np.float64)
+            self.bend_matrix = np.zeros((3, 3, 6), dtype=np.float64)
+            self.shear_matrix[0, 0, :] = 2.0
+            self.shear_matrix[1, 1, :] = 3.0
+            self.bend_matrix[0, 0, :] = 5.0
+            self.bend_matrix[1, 1, :] = 7.0
+
+    rod = DummyWaveRod()
+    event = {"count": 0}
+    wave = _TravelingContractingWave(
+        event_id=lambda: event["count"],
+        original_rest_sigma=rod.rest_sigma,
+        original_shear_matrix=rod.shear_matrix,
+        original_bend_matrix=rod.bend_matrix,
+        amplitude=-0.2,
+        stiffness_amplitude=0.5,
+        width=1.5,
+        duration=0.4,
+    )
+
+    wave.apply_forces(rod, time=0.0)
+    assert np.allclose(rod.rest_sigma[2], 0.0)
+    assert np.allclose(rod.shear_matrix[0, 0], 2.0)
+    assert np.allclose(rod.bend_matrix[0, 0], 5.0)
+
+    event["count"] = 1
+    wave.apply_forces(rod, time=0.1)
+
+    assert np.min(rod.rest_sigma[2, 2:]) < 0.0
+    assert np.max(rod.shear_matrix[0, 0, 2:]) > 2.0
+    assert np.max(rod.shear_matrix[1, 1, 2:]) > 3.0
+    assert np.max(rod.bend_matrix[0, 0, 2:]) > 5.0
+    assert np.max(rod.bend_matrix[1, 1, 2:]) > 7.0
+
+    wave.apply_forces(rod, time=1.0)
+    assert np.allclose(rod.rest_sigma[2], 0.0)
+    assert np.allclose(rod.shear_matrix[0, 0], 2.0)
+    assert np.allclose(rod.shear_matrix[1, 1], 3.0)
+    assert np.allclose(rod.bend_matrix[0, 0], 5.0)
+    assert np.allclose(rod.bend_matrix[1, 1], 7.0)
