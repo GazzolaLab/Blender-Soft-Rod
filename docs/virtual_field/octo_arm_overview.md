@@ -26,7 +26,6 @@ It currently helps with:
 
 - storing the ordered `arm_ids`
 - assigning each arm id to one entry in `base_positions`
-- exposing convenience helpers such as `rod_for_index()` and `target_for_index()`
 - keeping the mode aligned with the rest of the runtime publishing pipeline
 
 The key requirement is that a derived simulation must provide eight base

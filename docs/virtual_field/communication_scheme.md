@@ -53,7 +53,7 @@ Example for a VR client:
   "version": 1,
   "type": "hello",
   "payload": {
-    "client": "bsr-webxr",
+    "client": "sparc-webxr",
     "role": "vr_client",
     "requested_arm_count": 2,
     "character_mode": "spirobs"
@@ -259,7 +259,8 @@ Top-level payload shape:
   "user_arms": {},
   "meshes": {},
   "overlay_points": {},
-  "spheres": {}
+  "spheres": {},
+  "haptics": []
 }
 ```
 
@@ -333,6 +334,19 @@ Each sphere contains:
 - `radius`
 - `color_rgb`
 - `visible`
+
+### `haptics`
+
+`haptics` is a list of haptic events for VR controllers.
+
+Each event contains:
+
+- `arm_id`
+- `active`
+- `intensity`
+
+The backend gathers these events from each simulation by calling
+`simulation.haptic_events()` before publishing `scene_state`.
 
 ## Publisher messages
 

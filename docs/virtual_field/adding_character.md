@@ -8,6 +8,7 @@ This page is the entry point for the character-implementation tutorials.
 dual_arm_overview
 dual_arm_inputs
 dual_arm_assets
+haptic
 ```
 
 The current runtime contract is still centered around dual-arm simulator
